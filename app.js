@@ -1,3 +1,4 @@
+<script>
 // =====================================================
 // SHUTTLEFEED front-end - data is stored in Google Sheets
 // through a Google Apps Script web app (see Code.gs)
@@ -1163,35 +1164,85 @@ setInterval(function () {
     api('machineCommand', { command: 'PING' }).catch(function () { lastMachineWarm = 0; });
 }, 5000);
 
-// ---- USB CABLE CONTROL (Web Serial: Chrome on Android / desktop, page must be on https) ----
-let usbWriter = null, usbTimer = null;
+// ---- USB CABLE CONTROL (WebUSB: Chrome on Android / desktop, page must be on https) ----
+// Talks to the Arduino Uno R4 WiFi directly over USB (CDC serial), without the Web Serial device list.
+let usbDev = null, usbWriter = null, usbTimer = null;
 
 function usbSetButton(connected) {
     const b = document.getElementById('btn-usb');
     if (b) b.innerText = connected ? 'USB connected' : 'Connect USB';
 }
 
+function usbReset() {
+    usbWriter = null;
+    usbDev = null;
+    clearInterval(usbTimer);
+    usbSetButton(false);
+}
+
 async function connectUsb() {
-    if (!('serial' in navigator)) { toast('This browser has no USB (Web Serial) support.'); return; }
+    if (!navigator.usb) { toast('This browser has no USB (WebUSB) support. Use Chrome.'); return; }
     try {
-        const port = await navigator.serial.requestPort();      // must run from a button tap
-        await port.open({ baudRate: 115200 });
-        const enc = new TextEncoderStream();
-        enc.readable.pipeTo(port.writable);
-        usbWriter = enc.writable.getWriter();
+        // must run from a button tap. 0x2341 = Arduino
+        const dev = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x2341 }] });
+        await dev.open();
+        if (dev.configuration === null) await dev.selectConfiguration(1);
+
+        // find the CDC control interface (class 0x02) and the CDC data interface (class 0x0A)
+        let ctrlIf = null, dataIf = null, outEp = null, inEp = null;
+        for (const i of dev.configuration.interfaces) {
+            const alt = i.alternates[0];
+            if (alt.interfaceClass === 0x02) ctrlIf = i.interfaceNumber;
+            if (alt.interfaceClass === 0x0A) {
+                dataIf = i.interfaceNumber;
+                for (const e of alt.endpoints) {
+                    if (e.direction === 'out') outEp = e.endpointNumber; else inEp = e.endpointNumber;
+                }
+            }
+        }
+        if (dataIf === null || outEp === null) throw new Error('No serial interface found on this device');
+
+        if (ctrlIf !== null) await dev.claimInterface(ctrlIf);
+        await dev.claimInterface(dataIf);
+        if (ctrlIf !== null) {
+            // 115200 baud, 8 data bits, no parity, 1 stop bit
+            await dev.controlTransferOut(
+                { requestType: 'class', recipient: 'interface', request: 0x20, value: 0, index: ctrlIf },
+                new Uint8Array([0x00, 0xC2, 0x01, 0x00, 0x00, 0x00, 0x08]));
+            // DTR + RTS on (tells the Arduino that a program is listening)
+            await dev.controlTransferOut(
+                { requestType: 'class', recipient: 'interface', request: 0x22, value: 0x03, index: ctrlIf });
+        }
+
+        // read and throw away whatever the Arduino prints, so its USB buffer never fills up
+        if (inEp !== null) {
+            (async () => { try { while (dev.opened) await dev.transferIn(inEp, 64); } catch (e) {} })();
+        }
+
+        usbDev = dev;
+        const enc = new TextEncoder();
+        usbWriter = { write: (s) => dev.transferOut(outEp, enc.encode(s)) };   // same .write() as before
         clearInterval(usbTimer);
         usbTimer = setInterval(() => usbSend('PING'), 1000);     // keeps the Arduino failsafe fed
         usbSetButton(true);
         toast('USB machine connected');
-    } catch (e) { toast('USB not connected: ' + e.message); }
+    } catch (e) {
+        usbReset();
+        toast('USB not connected: ' + e.message);
+    }
+}
+
+// cable pulled out
+if (navigator.usb) {
+    navigator.usb.addEventListener('disconnect', (ev) => {
+        if (usbDev && ev.device === usbDev) { usbReset(); toast('USB cable disconnected'); }
+    });
 }
 
 function usbSend(line) {
     if (!usbWriter) return;
     usbWriter.write(line + '\n').catch(() => {
-        usbWriter = null;
-        clearInterval(usbTimer);
-        usbSetButton(false);
+        usbReset();
         toast('USB cable disconnected');
     });
 }
@@ -1312,3 +1363,4 @@ initAimPads();
 setRange(selectedRange);
 applyImages();
 syncThemeUi();
+</script>
