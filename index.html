@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SHUTTLEFEED - CVSU Carmona</title>
     <script>try { if (localStorage.getItem('shuttlefeedTheme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
-    <link rel="stylesheet" href="style.css">
+    <?!= include('Stylesheet'); ?>
 </head>
 <body>
 
@@ -529,14 +528,12 @@
                     <div class="kbd-hint">Keys: H hit · M miss · U undo · Space start/pause · S stop</div>
                 </div>
 
+                <button id="usb-btn" class="usb-btn" onclick="connectUsb()">🔌 Connect machine (USB)</button>
                 <div class="action-card">
                     <button id="btn-start" class="action-btn" onclick="sendCommand('START')">START ▶</button>
                     <button id="btn-pause" class="action-btn hidden" onclick="sendCommand('PAUSE')">PAUSE ⏸</button>
                     <button id="btn-resume" class="action-btn hidden" onclick="sendCommand('RESUME')">RESUME ▶</button>
                     <button id="btn-stop" class="action-btn btn-primary hidden" onclick="sendCommand('STOP')">STOP ■</button>
-                </div>
-                <div style="text-align:center; margin-top:12px;">
-                    <button class="res-undo" id="btn-usb" onclick="connectUsb()" title="Control the machine through the USB cable (Chrome)">Connect USB</button>
                 </div>
             </div>
         </div>
@@ -572,6 +569,6 @@
             <div class="rally-bar"><i></i></div>
         </div>
     </div>
-    <script src="app.js"></script>
+    <?!= include('JavaScript'); ?>
 </body>
 </html>
