@@ -1,10 +1,11 @@
+<script>
 // =====================================================
 // SHUTTLEFEED front-end - data is stored in Google Sheets
 // through a Google Apps Script web app (see Code.gs)
 // =====================================================
 
 // Only needed if you host this page OUTSIDE Apps Script. Leave '' when the page is served by Apps Script.
-const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbz9OgCyPSPYmw5INRl_t2_taCs6hR49Kw4pnowhS3UI41v2ryjOy1odtuSs3IXZs3k/exec' };
+const CONFIG = { API_URL: '' };
 
 // Pictures. Put a Google Drive file ID (file shared as "Anyone with the link") or a full image URL.
 // Leave '' to hide a picture.
@@ -1163,66 +1164,12 @@ setInterval(function () {
     api('machineCommand', { command: 'PING' }).catch(function () { lastMachineWarm = 0; });
 }, 5000);
 
-// ---- USB CABLE CONTROL (Web Serial: Chrome on Android / desktop, page must be on https) ----
-let usbWriter = null, usbTimer = null;
-
-function usbSetButton(connected) {
-    const b = document.getElementById('btn-usb');
-    if (b) b.innerText = connected ? 'USB connected' : 'Connect USB';
-}
-
-async function connectUsb() {
-    if (!('serial' in navigator)) { toast('This browser has no USB (Web Serial) support.'); return; }
-    try {
-        const port = await navigator.serial.requestPort();      // must run from a button tap
-        await port.open({ baudRate: 115200 });
-        // read and throw away what the Arduino prints (PONG, OK...), so its USB buffer never fills up
-        (async () => {
-            try {
-                const reader = port.readable.getReader();
-                while (true) { const { done } = await reader.read(); if (done) break; }
-            } catch (e) {}
-        })();
-        const enc = new TextEncoderStream();
-        enc.readable.pipeTo(port.writable);
-        usbWriter = enc.writable.getWriter();
-        clearInterval(usbTimer);
-        usbTimer = setInterval(() => usbSend('PING'), 1000);     // keeps the Arduino failsafe fed
-        usbSetButton(true);
-        toast('USB machine connected');
-    } catch (e) { toast('USB not connected: ' + e.message); }
-}
-
-function usbSend(line) {
-    if (!usbWriter) return;
-    usbWriter.write(line + '\n').catch(() => {
-        usbWriter = null;
-        clearInterval(usbTimer);
-        usbSetButton(false);
-        toast('USB cable disconnected');
-    });
-}
-
-// Sends the pressed button to the machine (Arduino) through the Apps Script backend
-function sendToMachine(command) {
-    if (usbWriter) { usbSend(command + ',' + selectedRange); return; }   // USB cable connected: send over the cable
-    if (!hasServer() || !authToken) return;
-    const t0 = performance.now();
-    api('machineCommand', {
-        command: command,
-        range: selectedRange,
-        direction: (currentMode === 'Smash') ? smashDir : 'MIXED',
-        interval: getInterval(),
-        count: getCount()
-    }).then(() => {
-        const ms = Math.round(performance.now() - t0);
-        console.log('[MACHINE] ' + command + ' saved on the server in ' + ms + ' ms');
-        toast('Machine ' + command + ' sent (' + ms + ' ms)');   // temporary: remove after testing
-    }).catch(e => toast('Machine not reached: ' + e.message));
-}
-
 // Logic to simulate hardware response
 function sendCommand(command) {
+    if ((command === 'START' || command === 'RESUME') && !usbIsConnected()) {
+        toast('Connect the machine first (press the USB button).');
+        return;
+    }
     const btnStart = document.getElementById('btn-start');
     const btnPause = document.getElementById('btn-pause');
     const btnResume = document.getElementById('btn-resume');
@@ -1315,7 +1262,120 @@ setInterval(tickClock, 1000);
     }
 })();
 
+// ============================================================
+//  USB SERIAL (Web Serial)  -  paste this ABOVE the line "initAimPads();"
+//  at the very bottom of your JavaScript file.
+//  Then DELETE the old function  sendToMachine(command) { ... }  (see the guide).
+// ============================================================
+let usbPort = null, usbWriter = null, usbReader = null, usbLoop = null;
+let usbKeepAlive = null, usbClosing = false, usbReady = false;
+const usbEncoder = new TextEncoder();
+
+function usbIsConnected() { return !!(usbPort && usbWriter); }
+
+function setUsbUi(text, on) {
+    const b = document.getElementById('usb-btn');
+    if (!b) return;
+    b.innerText = text;
+    b.classList.toggle('on', !!on);
+}
+
+async function usbSend(line) {
+    if (!usbIsConnected()) throw new Error('USB not connected');
+    await usbWriter.write(usbEncoder.encode(line + '\n'));
+}
+
+function handleUsbLine(line) {
+    if (!line) return;
+    console.log('[ARDUINO] ' + line);
+    if (line === 'READY' || line === 'PONG') {
+        if (!usbReady) { usbReady = true; setUsbUi('🔌 Machine ready (tap to disconnect)', true); }
+    }
+    if (line === 'FAILSAFE') toast('Machine stopped itself (no signal from the page).');
+}
+
+async function readUsbLoop() {
+    const decoder = new TextDecoder();
+    let buf = '';
+    try {
+        while (usbPort && usbPort.readable && !usbClosing) {
+            usbReader = usbPort.readable.getReader();
+            try {
+                while (true) {
+                    const { value, done } = await usbReader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    let i;
+                    while ((i = buf.indexOf('\n')) >= 0) {
+                        handleUsbLine(buf.slice(0, i).trim());
+                        buf = buf.slice(i + 1);
+                    }
+                }
+            } finally { usbReader.releaseLock(); }
+        }
+    } catch (e) { console.warn('USB read stopped:', e); }
+}
+
+async function connectUsb() {
+    if (usbPort) { await disconnectUsb(); return; }
+    if (!('serial' in navigator)) {
+        toast('This browser cannot use USB. Use Chrome or Edge on a laptop.');
+        return;
+    }
+    try {
+        usbPort = await navigator.serial.requestPort();      // the browser shows a picker (choose the Arduino / COM port)
+        await usbPort.open({ baudRate: 115200 });
+        usbClosing = false; usbReady = false;
+        usbWriter = usbPort.writable.getWriter();
+        usbLoop = readUsbLoop();
+        setUsbUi('🔌 USB connected - waiting for machine...', true);
+        usbKeepAlive = setInterval(() => { usbSend('PING').catch(() => {}); }, 1000);
+        usbSend('PING').catch(() => {});
+        toast('USB connected');
+    } catch (e) {
+        usbPort = null; usbWriter = null;
+        if (e && e.name !== 'NotFoundError') toast('Could not open USB: ' + e.message);   // NotFoundError = you closed the picker
+    }
+}
+
+async function disconnectUsb() {
+    usbClosing = true;
+    clearInterval(usbKeepAlive);
+    try { await usbSend('STOP'); } catch (e) {}
+    try { if (usbReader) await usbReader.cancel(); } catch (e) {}
+    try { if (usbLoop) await usbLoop; } catch (e) {}
+    try { if (usbWriter) usbWriter.releaseLock(); } catch (e) {}
+    try { if (usbPort) await usbPort.close(); } catch (e) {}
+    usbPort = usbWriter = usbReader = usbLoop = null;
+    usbReady = false;
+    setUsbUi('🔌 Connect machine (USB)', false);
+}
+
+// Cable pulled out
+if ('serial' in navigator) {
+    navigator.serial.addEventListener('disconnect', () => {
+        usbClosing = true;
+        clearInterval(usbKeepAlive);
+        usbPort = usbWriter = usbReader = usbLoop = null;
+        usbReady = false;
+        setUsbUi('🔌 Connect machine (USB)', false);
+        toast('USB cable disconnected. The machine stops by itself.');
+    });
+}
+
+// Sends the pressed button straight to the Arduino through the cable
+function sendToMachine(command) {
+    if (!usbIsConnected()) { toast('Machine not connected. Press the USB button first.'); return; }
+    let line = command;
+    if (command === 'START' || command === 'RESUME') line += ',' + selectedRange;
+    const t0 = performance.now();
+    usbSend(line).then(() => {
+        console.log('[MACHINE] ' + line + ' written to USB in ' + Math.round(performance.now() - t0) + ' ms');
+    }).catch(e => toast('Machine not reached: ' + e.message));
+}
+
 initAimPads();
 setRange(selectedRange);
 applyImages();
 syncThemeUi();
+</script>
