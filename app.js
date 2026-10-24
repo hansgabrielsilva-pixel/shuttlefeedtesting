@@ -1,11 +1,10 @@
-<script>
 // =====================================================
 // SHUTTLEFEED front-end - data is stored in Google Sheets
 // through a Google Apps Script web app (see Code.gs)
 // =====================================================
 
 // Only needed if you host this page OUTSIDE Apps Script. Leave '' when the page is served by Apps Script.
-const CONFIG = { API_URL: '' };
+const CONFIG = { API_URL: 'https://script.google.com/macros/s/AKfycbz9OgCyPSPYmw5INRl_t2_taCs6hR49Kw4pnowhS3UI41v2ryjOy1odtuSs3IXZs3k/exec' };
 
 // Pictures. Put a Google Drive file ID (file shared as "Anyone with the link") or a full image URL.
 // Leave '' to hide a picture.
@@ -1378,4 +1377,3 @@ initAimPads();
 setRange(selectedRange);
 applyImages();
 syncThemeUi();
-</script>
