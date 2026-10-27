@@ -1297,6 +1297,7 @@ function handleUsbLine(line) {
     if (line === 'READY' || line === 'PONG') {
         if (!usbReady) { usbReady = true; setUsbUi('🔌 Machine ready (tap to disconnect)', true); syncDirection(); }
     }
+    if (line.includes('NO_PCA9685') && !window._pcaWarned) { window._pcaWarned = true; toast('Direction servo board (PCA9685) not found. Check the SDA/SCL wires.'); }
     if (line === 'FAILSAFE') toast('Machine stopped itself (no signal from the page).');
 }
 
