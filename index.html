@@ -70,6 +70,24 @@
             <div class="sb-tile"><small>Firmware</small><b>1.0.4</b></div>
             <div class="sb-tile wide theme-tile" onclick="toggleTheme()" role="switch" aria-checked="false" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTheme();}"><small>Appearance</small><b id="theme-label">Light mode</b><em>Tap to switch</em><span class="mini-switch" aria-hidden="true"><i></i></span></div>
         </div>
+        <div class="sb-links sb-item" style="--i:3">
+            <h4 class="sb-section">Help &amp; information</h4>
+            <button type="button" class="sb-link" onclick="openInfo('help')">
+                <span class="sb-link-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                <span class="sb-link-tx"><b>Help &amp; support</b><em>FAQs and troubleshooting</em></span>
+                <svg class="sb-chev" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <button type="button" class="sb-link" onclick="openInfo('terms')">
+                <span class="sb-link-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z"></path><polyline points="9 12 11 14 15 10"></polyline></svg></span>
+                <span class="sb-link-tx"><b>Terms &amp; policies</b><em>Terms, privacy and safety</em></span>
+                <svg class="sb-chev" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <button type="button" class="sb-link" onclick="openInfo('manual')">
+                <span class="sb-link-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span>
+                <span class="sb-link-tx"><b>User&#39;s manual</b><em>How to use the software</em></span>
+                <svg class="sb-chev" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
     </div>
 
     <!-- LOGIN SCREEN -->
@@ -180,7 +198,7 @@
                 <label>Program
                     <input type="text" id="class-program" list="program-list" placeholder="e.g. BSCpE" maxlength="10">
                     <datalist id="program-list">
-                        <option value="BSCpE"><option value="BSIT"><option value="BSCS"><option value="BSIndT"><option value="BSE Science"><option value="BSE English"><option value="BSE Math"><option value="BSBA MM"><option value="BSBA HRM"><option value="BSHM">
+                        <option value="BSCpE"><option value="BSIT"><option value="BSCS"><option value="BSEE"><option value="BSME"><option value="BSBA"><option value="BSHM"><option value="BSEd">
                     </datalist>
                 </label>
                 <label>Year
@@ -561,6 +579,20 @@
             </div>
         </div>
     </div>
+    <!-- INFO MODAL: Help & support / Terms & policies / User's manual (content lives in INFO_DOCS in app.js) -->
+    <div class="modal hidden" id="info-modal" onclick="if(event.target===this)closeInfo()">
+        <div class="modal-card hm-card info-card" role="dialog" aria-modal="true" aria-labelledby="info-title">
+            <div class="hm-head">
+                <div>
+                    <h3 id="info-title">Help</h3>
+                    <p id="info-sub"></p>
+                </div>
+                <button class="hm-close" onclick="closeInfo()" aria-label="Close">Close <span>✕</span></button>
+            </div>
+            <div class="hm-body info-body" id="info-body"></div>
+        </div>
+    </div>
+
     <!-- LOGIN ANIMATION: a shuttlecock rally between two rackets (plays after a successful log in / sign up) -->
     <div id="rally-overlay" class="rally-overlay" aria-hidden="true" onclick="skipLoginAnimation()">
         <div class="rally-text">
