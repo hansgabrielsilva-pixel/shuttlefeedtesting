@@ -891,6 +891,154 @@ function openHistory() {
 function closeHistory() { document.getElementById('history-modal').classList.add('hidden'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory(); });
 
+// ===== Settings > Help & support / Terms & policies / User's manual =====
+// Edit the text here. Each doc has groups; each group has items { ic, q, a } where "a" is HTML.
+const SUPPORT_CONTACT = { name: 'SHUTTLEFEED Support Team', email: '', note: 'CvSU Carmona - PHED 4 Instructor Console' };   // put the team's email in "email" to show a contact card
+
+const INFO_DOCS = {
+    help: {
+        title: 'Help & support',
+        sub: 'Quick answers and troubleshooting',
+        search: true,
+        lead: 'Stuck? Tap a question below. If your problem is not listed, contact the support team.',
+        groups: [
+            { name: 'Getting started', items: [
+                { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). After several wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
+                { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
+                { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class chip</b> on the dashboard, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
+            ]},
+            { name: 'Feeder and connection', items: [
+                { ic: '📶', q: 'The feeder does not respond', a: '<ol><li>Make sure the feeder is powered on and the Arduino UNO R4 WiFi is running.</li><li>Check the <b>Wi-Fi status</b> in Settings shows Connected.</li><li>Confirm the phone or laptop is on the <b>same Wi-Fi network</b> as the feeder.</li><li>If it still fails, restart the feeder and reload the page.</li></ol>' },
+                { ic: '🔌', q: '"Connect machine (USB)" does not work', a: '<ul><li>USB connection works in <b>Chrome or Edge</b> on a laptop. Other browsers cannot use it.</li><li>Use a USB <b>data</b> cable (some cables only charge).</li><li>Tap the button, choose the Arduino in the list, and wait for it to say connected.</li><li>If the browser blocks USB access, open the page in its own tab instead of inside an embedded frame.</li></ul>' },
+                { ic: '🌐', q: 'Where do I find the feeder\'s IP address?', a: '<p>Open <b>Settings</b> and tap the <b>IP address</b> tile to copy it.</p>' }
+            ]},
+            { name: 'During a drill', items: [
+                { ic: '🔒', q: 'Why are my settings locked?', a: '<p>Launch settings are locked while a drill is running so they cannot change mid-session. Press <b>STOP</b> to unlock them.</p>' },
+                { ic: '🏸', q: 'The shuttles are not launching or are uneven', a: '<ul><li>Check there are shuttles in the feeder and nothing is jammed.</li><li>Try a different <b>range</b>; each range uses a different motor speed.</li><li>Motor vibration or noise can shift the aim, so make sure the feeder is on a stable surface.</li></ul>' },
+                { ic: '📊', q: 'My scores are missing from History', a: '<p>Scores are saved when a session ends. Press <b>STOP</b> to finish the drill, then open <b>History</b> in the session screen. The last 20 sessions are shown.</p>' }
+            ]}
+        ],
+        showContact: true
+    },
+
+    terms: {
+        title: 'Terms & policies',
+        sub: 'Please read before using SHUTTLEFEED',
+        lead: 'SHUTTLEFEED is a capstone design project of CvSU Carmona, built to help PHED 4 instructors run consistent badminton feeding drills.',
+        groups: [
+            { name: 'Terms of use', items: [
+                { ic: '📜', q: 'Acceptance of terms', a: '<p>By creating an account or logging in you agree to these terms. If you do not agree, please do not use the system.</p>' },
+                { ic: '👤', q: 'Who may use it', a: '<p>SHUTTLEFEED is intended for <b>authorized instructors</b> and project personnel of CvSU Carmona. You are responsible for keeping your password private and for all activity under your account.</p>' },
+                { ic: '✅', q: 'Acceptable use', a: '<ul><li>Use the system only for badminton training and teaching.</li><li>Do not try to break into other accounts, overload the server or tamper with the hardware.</li><li>Do not share your account with students or other people.</li></ul>' },
+                { ic: '🛠️', q: 'Availability', a: '<p>The system is a prototype provided as-is. It may be updated, paused or changed without notice, and it depends on Wi-Fi/USB, the feeder hardware and Google services being available.</p>' }
+            ]},
+            { name: 'Privacy policy', items: [
+                { ic: '🗂️', q: 'What we store', a: '<ul><li>Your <b>name</b>, <b>Instructor ID</b> and last login time.</li><li>Your <b>class</b> entries (program, year, section).</li><li>Your <b>session records</b>: date, mode, range, direction, shuttle count and hit/miss results.</li></ul>' },
+                { ic: '🔐', q: 'How it is protected', a: '<p>Passwords are never stored as plain text; they are <b>salted and hashed</b>. Logins use a temporary token that expires after 12 hours, and repeated failed logins are temporarily blocked.</p><p>Data is kept in the project\'s Google Sheet and is accessible only to the project administrators.</p>' },
+                { ic: '🎯', q: 'How it is used', a: '<p>Your data is used only to run the app: showing your history and statistics, and for academic evaluation of the project. It is <b>not sold or shared</b> for advertising.</p>' },
+                { ic: '🧹', q: 'Your choices', a: '<p>You may ask the administrators to correct or delete your account and records. Your theme preference (light/dark) is saved only on your own device.</p>' }
+            ]},
+            { name: 'Safety policy', items: [
+                { ic: '⚠️', q: 'Hardware and court safety', a: '<div class="info-note warn"><b>The feeder launches shuttlecocks at speed and uses spinning motors.</b></div><ul><li>Keep hands, hair and loose clothing away from the launcher while it is powered.</li><li>Press <b>STOP</b> (or the <kbd>S</kbd> key) before reloading shuttles or adjusting the feeder.</li><li>Keep people out of the line of fire and wear eye protection if needed.</li><li>Place the feeder on a flat, stable surface and unplug it when not in use.</li><li>Only trained personnel should handle wiring, batteries and the Arduino.</li></ul>' },
+                { ic: '⚖️', q: 'Limitation of liability', a: '<p>The developers and CvSU Carmona are not liable for injury, damage or data loss arising from misuse of the system or hardware. Always supervise the drill.</p>' }
+            ]}
+        ],
+        foot: 'Last updated October 2026'
+    },
+
+    manual: {
+        title: 'User\'s manual',
+        sub: 'How to use the SHUTTLEFEED software',
+        search: true,
+        lead: 'A step-by-step guide to the SHUTTLEFEED instructor console, from logging in to reviewing your scores.',
+        groups: [
+            { name: 'Basics', items: [
+                { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
+                { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Enter the <b>Program</b> (e.g. BSCpE), <b>Year</b> and <b>Section</b>.</li><li>Tap <b>Next</b>, then <b>Finish Setup</b> and <b>Go to Dashboard</b>.</li><li>Returning instructors can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
+                { ic: '3️⃣', q: 'Know the dashboard', a: '<ul><li><b>Left:</b> feeder status (Wi-Fi, Feeder, Hardware).</li><li><b>Center:</b> greeting, clock, your class and the <b>Multi-Mode</b> start button.</li><li><b>Right:</b> your totals: sessions run, shuttles launched and recent accuracy.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
+            ]},
+            { name: 'Running a drill', items: [
+                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>Multi-Mode</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
+                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b>: Short, Medium or Long (how far it throws).</li><li><b>Direction</b>: where shuttles are thrown. Smash offers Left, Right or Mixed (Mixed alternates left and right in random order); Service offers Left or Right.</li><li><b>Interval</b> and <b>Shuttles</b> (Smash): tap <b>+</b> / <b>−</b> to change them. In Service they are fixed at 3 seconds and 24 shuttles.</li></ul>' },
+                { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>(Laptop only) tap <b>Connect machine (USB)</b> if you are using a USB cable.</li><li>Tap <b>START ▶</b> to begin the drill.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
+                { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>On the session screen of a laptop:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li><li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li></ul>' }
+            ]},
+            { name: 'Scores and history', items: [
+                { ic: '🎯', q: 'Record shot results', a: '<p>After each shuttle tap <b>HIT ✓</b> or <b>MISS ✗</b>. The bar and shot strip show your running accuracy. Made a mistake? Tap <b>↶ Undo</b> to clear the last score.</p>' },
+                { ic: '📈', q: 'View previous scores', a: '<p>Tap <b>History</b> on the session screen to see your last 20 sessions. Filter them, sort by <b>Newest</b> or <b>Best</b>, and tap a row to see its details.</p>' },
+                { ic: '👤', q: 'Your profile', a: '<p>The profile panel (top left) shows your current class, sessions run, shuttles launched and classes attended. Use <b>Log Out</b> when you are finished.</p>' }
+            ]},
+            { name: 'Settings', items: [
+                { ic: '⚙️', q: 'System settings', a: '<ul><li><b>Wi-Fi status</b>: whether the feeder is connected.</li><li><b>IP address</b>: tap to copy the feeder\'s address.</li><li><b>Hardware / Firmware</b>: the board and version in use.</li><li><b>Appearance</b>: switch between light and dark mode. It is remembered on your device.</li></ul>' }
+            ]}
+        ]
+    }
+};
+
+let infoReturnFocus = null;
+function openInfo(key) {
+    const d = INFO_DOCS[key];
+    if (!d) return;
+    closeAllSidebars();
+    infoReturnFocus = document.activeElement;
+    setText('info-title', d.title);
+    setText('info-sub', d.sub || '');
+    const body = document.getElementById('info-body');
+    body.innerHTML = '';
+    const add = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; el.innerHTML = html; body.appendChild(el); return el; };
+    if (d.lead) add('p', 'info-lead', d.lead);
+    if (d.search) {
+        const s = add('input', 'info-search', '');
+        s.type = 'search'; s.placeholder = 'Search this page…'; s.setAttribute('aria-label', 'Search this page');
+        s.addEventListener('input', () => filterInfo(s.value));
+    }
+    d.groups.forEach(g => {
+        const grp = add('div', 'info-group', g.name);
+        grp.dataset.group = g.name;
+        g.items.forEach(it => {
+            const det = document.createElement('details');
+            det.className = 'info-item';
+            det.innerHTML = '<summary><span class="info-ic">' + it.ic + '</span>' + it.q + '</summary><div class="info-content">' + it.a + '</div>';
+            det.dataset.group = g.name;
+            body.appendChild(det);
+        });
+    });
+    add('p', 'info-empty hidden', 'No matches. Try a different word.').id = 'info-empty';
+    if (d.showContact) {
+        const c = SUPPORT_CONTACT;
+        const mail = c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : 'Ask your course instructor or the project team.';
+        add('div', 'info-contact', '<span class="info-ic">💬</span><div><b>Still need help?</b><small>' + c.name + ' · ' + c.note + '</small><small>' + mail + '</small></div>');
+    }
+    if (d.foot) add('p', 'info-foot', d.foot);
+    // open the first question so the page never looks empty
+    const first = body.querySelector('details'); if (first && !d.search) first.open = true;
+    document.getElementById('info-modal').classList.remove('hidden');
+    body.scrollTop = 0;
+}
+function filterInfo(q) {
+    q = (q || '').trim().toLowerCase();
+    const body = document.getElementById('info-body');
+    let shown = 0;
+    body.querySelectorAll('details.info-item').forEach(el => {
+        const hit = !q || el.textContent.toLowerCase().includes(q);
+        el.classList.toggle('hidden', !hit);
+        if (hit) shown++;
+        if (q && hit) el.open = true;
+    });
+    body.querySelectorAll('.info-group').forEach(g => {
+        const any = [...body.querySelectorAll('details.info-item')].some(el => el.dataset.group === g.dataset.group && !el.classList.contains('hidden'));
+        g.classList.toggle('hidden', !any);
+    });
+    const empty = document.getElementById('info-empty');
+    if (empty) empty.classList.toggle('hidden', shown > 0);
+}
+function closeInfo() {
+    document.getElementById('info-modal').classList.add('hidden');
+    try { if (infoReturnFocus && infoReturnFocus.focus) infoReturnFocus.focus(); } catch (e) {}
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfo(); });
+
+
 function hmRender() {
     const rows = hmRows();
     setText('hm-sub', rows.length ? `Your last ${rows.length} session${rows.length > 1 ? 's' : ''}` : 'No finished sessions yet');
