@@ -1074,11 +1074,11 @@ function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'MIXED';
 function setSmashDirection(d) {
     if (blockedWhileLocked()) return;
     smashDir = SMASH_DIR_NAMES[d] ? d : 'MIXED';
+    sendDirection(smashDir === 'MIXED' ? 'CENTER' : smashDir);          // servo preview
     setAim('h', smashDir === 'MIXED' ? 0 : POSITION_DIRS[smashDir]);
     document.querySelectorAll('#smash-dir-opts button').forEach(b => b.classList.toggle('on', b.dataset.d === smashDir));
     setText('smash-dir-name', SMASH_DIR_NAMES[smashDir]);
     popEl('smash-dir-name');
-    syncDirection();                          // move the direction servo
 }
 // MIXED: half the shuttles go left, half go right, shuffled
 function buildMixedQueue(n) {
@@ -1093,11 +1093,11 @@ const POSITION_DIRS = { LEFT: -30, RIGHT: 30 };     // assumed aim for each posi
 const FIXED_ANGLES = { 'Service': { angle: 55, name: 'High' } };
 function setPosition(p) {
     if (blockedWhileLocked()) return;
+    sendDirection(p);                                                   // servo preview
     setAim('h', POSITION_DIRS[p]);
     document.querySelectorAll('#position-opts button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
     setText('position-name', p === 'LEFT' ? 'Left' : 'Right');
     popEl('position-name');
-    syncDirection();                          // move the direction servo
 }
 
 function applyModeLayout() {
@@ -1182,17 +1182,14 @@ function sendCommand(command) {
     totalShuttles = getCount();
 
     console.log(`[SYSTEM MOCKUP] Command: ${command} | Range: ${selectedRange} | Interval: ${intervalSec}s` + (currentMode === 'Smash' ? ` | Direction: ${smashDir}` : ''));
-    if (command === 'START' || command === 'RESUME') {              // aim the servo BEFORE the motors start
-        if (command === 'START' && currentMode === 'Smash') mixedQueue = buildMixedQueue(totalShuttles);
-        if (currentMode === 'Smash' && smashDir === 'MIXED') sendDirection(mixedQueue[0] || 'CENTER');
-        else syncDirection();
-    }
     sendToMachine(command);                   // real machine: tell the Arduino
 
     if (command === 'START' || command === 'RESUME') {
         if (command === 'START') {
             try { beginLoggedSession(intervalSec); } catch (e) { console.warn('Could not start session log:', e); }
+            if (currentMode === 'Smash') mixedQueue = buildMixedQueue(totalShuttles);
         }
+        aimServoForStart();                       // servo: go to the chosen side before shuttles start
         setControlsLocked(true);                  // locked from START until STOP (stays locked while paused)
         btnStart.classList.add('hidden');
         btnResume.classList.add('hidden');
@@ -1208,7 +1205,8 @@ function sendCommand(command) {
                 setAim('h', POSITION_DIRS[side]);
                 setText('smash-dir-name', 'Mixed · ' + SMASH_DIR_NAMES[side]);
                 setText('current-angle-display', 'Mixed · ' + SMASH_DIR_NAMES[side]);
-                if (mixedQueue.length) sendDirection(mixedQueue[0]);   // servo gets ready for the NEXT shuttle
+                // servo: swing to the NEXT shuttle's side after this shot has left
+                if (mixedQueue.length) setTimeout(() => sendDirection(mixedQueue[0]), SERVO_MOVE_DELAY_MS);
             }
             if (resultsEnabled()) registerShot();
             updateCounterDisplay();
@@ -1295,9 +1293,8 @@ function handleUsbLine(line) {
     if (!line) return;
     console.log('[ARDUINO] ' + line);
     if (line === 'READY' || line === 'PONG') {
-        if (!usbReady) { usbReady = true; setUsbUi('🔌 Machine ready (tap to disconnect)', true); syncDirection(); }
+        if (!usbReady) { usbReady = true; setUsbUi('🔌 Machine ready (tap to disconnect)', true); }
     }
-    if (line.includes('NO_PCA9685') && !window._pcaWarned) { window._pcaWarned = true; toast('Direction servo board (PCA9685) not found. Check the SDA/SCL wires.'); }
     if (line === 'FAILSAFE') toast('Machine stopped itself (no signal from the page).');
 }
 
@@ -1381,23 +1378,27 @@ function sendToMachine(command) {
     }).catch(e => toast('Machine not reached: ' + e.message));
 }
 
-initAimPads();
-setRange(selectedRange);
-applyImages();
-syncThemeUi();
+// ============================================================
+//  DIRECTION SERVO (MG996R on PCA9685 channel 0)
+// ============================================================
+const SERVO_MOVE_DELAY_MS = 600;   // wait after a shot before the servo moves to the next side
 
-// ============================================================
-//  DIRECTION SERVO (MG996R)
-// ============================================================
-// Sends DIR,LEFT / DIR,RIGHT / DIR,CENTER to the Arduino (silently does nothing if USB is not connected)
+// Tells the Arduino where to aim: 'LEFT' | 'RIGHT' | 'CENTER'
 function sendDirection(side) {
     if (!usbIsConnected()) return;
     usbSend('DIR,' + side).catch(() => {});
 }
-// Works out the side from what is selected on screen and sends it
-function syncDirection() {
-    let side;
-    if (currentMode === 'Smash') side = (smashDir === 'MIXED') ? 'CENTER' : smashDir;
-    else side = (+document.getElementById('h-dir').value > 0) ? 'RIGHT' : 'LEFT';
-    sendDirection(side);
+
+// Aim for START / RESUME. Smash: Left / Right / Mixed (first shuttle's side). Service: Left / Right.
+function aimServoForStart() {
+    if (currentMode === 'Smash') {
+        sendDirection(smashDir === 'MIXED' ? (mixedQueue[0] || 'LEFT') : smashDir);
+    } else {
+        sendDirection(+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT');
+    }
 }
+
+initAimPads();
+setRange(selectedRange);
+applyImages();
+syncThemeUi();
