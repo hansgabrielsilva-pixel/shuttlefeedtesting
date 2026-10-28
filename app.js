@@ -891,6 +891,7 @@ function openHistory() {
 function closeHistory() { document.getElementById('history-modal').classList.add('hidden'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory(); });
 
+
 // ===== Settings > Help & support / Terms & policies / User's manual =====
 // Edit the text here. Each doc has groups; each group has items { ic, q, a } where "a" is HTML.
 const SUPPORT_CONTACT = { name: 'SHUTTLEFEED Support Team', email: '', note: 'CvSU Carmona - PHED 4 Instructor Console' };   // put the team's email in "email" to show a contact card
@@ -909,8 +910,7 @@ const INFO_DOCS = {
             ]},
             { name: 'Feeder and connection', items: [
                 { ic: '📶', q: 'The feeder does not respond', a: '<ol><li>Make sure the feeder is powered on and the Arduino UNO R4 WiFi is running.</li><li>Check the <b>Wi-Fi status</b> in Settings shows Connected.</li><li>Confirm the phone or laptop is on the <b>same Wi-Fi network</b> as the feeder.</li><li>If it still fails, restart the feeder and reload the page.</li></ol>' },
-                { ic: '🔌', q: '"Connect machine (USB)" does not work', a: '<ul><li>USB connection works in <b>Chrome or Edge</b> on a laptop. Other browsers cannot use it.</li><li>Use a USB <b>data</b> cable (some cables only charge).</li><li>Tap the button, choose the Arduino in the list, and wait for it to say connected.</li><li>If the browser blocks USB access, open the page in its own tab instead of inside an embedded frame.</li></ul>' },
-                { ic: '🌐', q: 'Where do I find the feeder\'s IP address?', a: '<p>Open <b>Settings</b> and tap the <b>IP address</b> tile to copy it.</p>' }
+                { ic: '🔌', q: '"Connect machine (USB)" does not work', a: '<ul><li>USB connection works in <b>Chrome or Edge</b> on a laptop. Other browsers cannot use it.</li><li>Use a USB <b>data</b> cable (some cables only charge).</li><li>Tap the button, choose the Arduino in the list, and wait for it to say connected.</li><li>If the browser blocks USB access, open the page in its own tab instead of inside an embedded frame.</li></ul>' }
             ]},
             { name: 'During a drill', items: [
                 { ic: '🔒', q: 'Why are my settings locked?', a: '<p>Launch settings are locked while a drill is running so they cannot change mid-session. Press <b>STOP</b> to unlock them.</p>' },
@@ -918,12 +918,14 @@ const INFO_DOCS = {
                 { ic: '📊', q: 'My scores are missing from History', a: '<p>Scores are saved when a session ends. Press <b>STOP</b> to finish the drill, then open <b>History</b> in the session screen. The last 20 sessions are shown.</p>' }
             ]}
         ],
-        showContact: true
+        showContact: true,
+        feedback: true
     },
 
     terms: {
         title: 'Terms & policies',
         sub: 'Please read before using SHUTTLEFEED',
+        search: true,
         lead: 'SHUTTLEFEED is a capstone design project of CvSU Carmona, built to help PHED 4 instructors run consistent badminton feeding drills.',
         groups: [
             { name: 'Terms of use', items: [
@@ -969,69 +971,132 @@ const INFO_DOCS = {
                 { ic: '👤', q: 'Your profile', a: '<p>The profile panel (top left) shows your current class, sessions run, shuttles launched and classes attended. Use <b>Log Out</b> when you are finished.</p>' }
             ]},
             { name: 'Settings', items: [
-                { ic: '⚙️', q: 'System settings', a: '<ul><li><b>Wi-Fi status</b>: whether the feeder is connected.</li><li><b>IP address</b>: tap to copy the feeder\'s address.</li><li><b>Hardware / Firmware</b>: the board and version in use.</li><li><b>Appearance</b>: switch between light and dark mode. It is remembered on your device.</li></ul>' }
+                { ic: '⚙️', q: 'System settings', a: '<ul><li><b>Wi-Fi status</b>: whether the feeder is connected.</li><li><b>Hardware / Firmware</b>: the board and version in use.</li><li><b>Appearance</b>: switch between light and dark mode. It is remembered on your device.</li></ul>' }
             ]}
         ]
     }
 };
 
 let infoReturnFocus = null;
+const infoState = { q: '', group: 'All' };
+
 function openInfo(key) {
     const d = INFO_DOCS[key];
     if (!d) return;
     closeAllSidebars();
     infoReturnFocus = document.activeElement;
+    infoState.q = ''; infoState.group = 'All';
     setText('info-title', d.title);
     setText('info-sub', d.sub || '');
     const body = document.getElementById('info-body');
     body.innerHTML = '';
+    body.dataset.doc = key;
     const add = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; el.innerHTML = html; body.appendChild(el); return el; };
+
     if (d.lead) add('p', 'info-lead', d.lead);
+
+    // search box
     if (d.search) {
         const s = add('input', 'info-search', '');
         s.type = 'search'; s.placeholder = 'Search this page…'; s.setAttribute('aria-label', 'Search this page');
-        s.addEventListener('input', () => filterInfo(s.value));
+        s.addEventListener('input', () => { infoState.q = s.value; applyInfoFilter(); });
     }
+
+    // category chips + expand/collapse all
+    const bar = add('div', 'info-bar', '');
+    const chips = document.createElement('div'); chips.className = 'info-chips'; bar.appendChild(chips);
+    ['All'].concat(d.groups.map(g => g.name)).forEach(name => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'info-chip' + (name === 'All' ? ' on' : ''); b.textContent = name;
+        b.addEventListener('click', () => {
+            infoState.group = name;
+            chips.querySelectorAll('.info-chip').forEach(c => c.classList.toggle('on', c === b));
+            applyInfoFilter();
+            body.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        chips.appendChild(b);
+    });
+    const tog = document.createElement('button');
+    tog.type = 'button'; tog.className = 'info-toggle'; tog.id = 'info-toggle'; tog.textContent = 'Expand all';
+    tog.addEventListener('click', () => {
+        const items = [...body.querySelectorAll('details.info-item:not(.hidden)')];
+        const open = items.some(x => !x.open);
+        items.forEach(x => { x.open = open; });
+        syncInfoToggle();
+    });
+    bar.appendChild(tog);
+
+    // the questions
+    let n = 0;
     d.groups.forEach(g => {
-        const grp = add('div', 'info-group', g.name);
+        const grp = add('div', 'info-group', g.name + ' <span>' + g.items.length + '</span>');
         grp.dataset.group = g.name;
         g.items.forEach(it => {
             const det = document.createElement('details');
             det.className = 'info-item';
-            det.innerHTML = '<summary><span class="info-ic">' + it.ic + '</span>' + it.q + '</summary><div class="info-content">' + it.a + '</div>';
             det.dataset.group = g.name;
+            det.style.setProperty('--n', n++);
+            let fb = '';
+            if (d.feedback) fb = '<div class="info-fb"><span>Was this helpful?</span><button type="button" data-v="up">👍 Yes</button><button type="button" data-v="down">👎 No</button></div>';
+            det.innerHTML = '<summary><span class="info-ic">' + it.ic + '</span><span class="info-q">' + it.q + '</span></summary><div class="info-content">' + it.a + fb + '</div>';
             body.appendChild(det);
         });
     });
-    add('p', 'info-empty hidden', 'No matches. Try a different word.').id = 'info-empty';
+    add('p', 'info-empty hidden', '🔍<br>No matches. Try a different word.').id = 'info-empty';
+
     if (d.showContact) {
         const c = SUPPORT_CONTACT;
         const mail = c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : 'Ask your course instructor or the project team.';
         add('div', 'info-contact', '<span class="info-ic">💬</span><div><b>Still need help?</b><small>' + c.name + ' · ' + c.note + '</small><small>' + mail + '</small></div>');
     }
     if (d.foot) add('p', 'info-foot', d.foot);
-    // open the first question so the page never looks empty
-    const first = body.querySelector('details'); if (first && !d.search) first.open = true;
+
     document.getElementById('info-modal').classList.remove('hidden');
     body.scrollTop = 0;
+    syncInfoToggle();
 }
-function filterInfo(q) {
-    q = (q || '').trim().toLowerCase();
+
+// open/close events don't bubble, so listen once in the capture phase; also handle the "Was this helpful?" buttons
+document.addEventListener('toggle', e => {
+    const t = e.target;
+    if (!t || !t.classList || !t.classList.contains('info-item')) return;
+    syncInfoToggle();
+    if (t.open) setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {} }, 60);
+}, true);
+document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.info-fb button');
+    if (!b) return;
+    const box = b.parentNode;
+    box.classList.add('done');
+    box.innerHTML = b.dataset.v === 'up' ? '✔ Glad that helped!' : 'Sorry about that. Please contact the support team below.';
+});
+
+function syncInfoToggle() {
+    const t = document.getElementById('info-toggle');
+    if (!t) return;
+    const items = [...document.querySelectorAll('#info-body details.info-item:not(.hidden)')];
+    t.textContent = items.length && items.every(x => x.open) ? 'Collapse all' : 'Expand all';
+}
+
+function applyInfoFilter() {
+    const q = infoState.q.trim().toLowerCase();
     const body = document.getElementById('info-body');
     let shown = 0;
+    const visibleGroups = {};
     body.querySelectorAll('details.info-item').forEach(el => {
-        const hit = !q || el.textContent.toLowerCase().includes(q);
+        const okG = infoState.group === 'All' || el.dataset.group === infoState.group;
+        const okQ = !q || el.textContent.toLowerCase().includes(q);
+        const hit = okG && okQ;
         el.classList.toggle('hidden', !hit);
-        if (hit) shown++;
-        if (q && hit) el.open = true;
+        if (hit) { shown++; visibleGroups[el.dataset.group] = true; if (q) el.open = true; }
     });
-    body.querySelectorAll('.info-group').forEach(g => {
-        const any = [...body.querySelectorAll('details.info-item')].some(el => el.dataset.group === g.dataset.group && !el.classList.contains('hidden'));
-        g.classList.toggle('hidden', !any);
-    });
+    body.querySelectorAll('.info-group').forEach(g => g.classList.toggle('hidden', !visibleGroups[g.dataset.group]));
     const empty = document.getElementById('info-empty');
     if (empty) empty.classList.toggle('hidden', shown > 0);
+    syncInfoToggle();
 }
+function filterInfo(q) { infoState.q = q || ''; applyInfoFilter(); }   // kept for compatibility
+
 function closeInfo() {
     document.getElementById('info-modal').classList.add('hidden');
     try { if (infoReturnFocus && infoReturnFocus.focus) infoReturnFocus.focus(); } catch (e) {}
