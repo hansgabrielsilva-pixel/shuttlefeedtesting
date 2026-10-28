@@ -892,6 +892,7 @@ function closeHistory() { document.getElementById('history-modal').classList.add
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory(); });
 
 
+
 // ===== Settings > Help & support / Terms & policies / User's manual =====
 // Edit the text here. Each doc has groups; each group has items { ic, q, a } where "a" is HTML.
 const SUPPORT_CONTACT = { name: 'SHUTTLEFEED Support Team', email: '', note: 'CvSU Carmona - PHED 4 Instructor Console' };   // put the team's email in "email" to show a contact card
@@ -978,90 +979,108 @@ const INFO_DOCS = {
 };
 
 let infoReturnFocus = null;
-const infoState = { q: '', group: 'All' };
 
-function openInfo(key) {
-    const d = INFO_DOCS[key];
-    if (!d) return;
-    closeAllSidebars();
-    infoReturnFocus = document.activeElement;
-    infoState.q = ''; infoState.group = 'All';
-    setText('info-title', d.title);
-    setText('info-sub', d.sub || '');
-    const body = document.getElementById('info-body');
-    body.innerHTML = '';
-    body.dataset.doc = key;
-    const add = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; el.innerHTML = html; body.appendChild(el); return el; };
+// Fills "root" with one document from INFO_DOCS: optional search + Expand all, then collapsible groups that hold collapsible questions.
+// Used by the Settings pop-ups and by the User's manual panel on the welcome screen.
+function buildInfoDoc(root, d, opt) {
+    opt = opt || {};
+    root.innerHTML = '';
+    root.classList.add('info-root');
+    const add = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; el.innerHTML = html; root.appendChild(el); return el; };
+    if (d.lead && opt.lead !== false) add('p', 'info-lead', d.lead);
 
-    if (d.lead) add('p', 'info-lead', d.lead);
-
-    // search box
-    if (d.search) {
-        const s = add('input', 'info-search', '');
-        s.type = 'search'; s.placeholder = 'Search this page…'; s.setAttribute('aria-label', 'Search this page');
-        s.addEventListener('input', () => { infoState.q = s.value; applyInfoFilter(); });
-    }
-
-    // category chips + expand/collapse all
+    // search + Expand all
     const bar = add('div', 'info-bar', '');
-    const chips = document.createElement('div'); chips.className = 'info-chips'; bar.appendChild(chips);
-    ['All'].concat(d.groups.map(g => g.name)).forEach(name => {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'info-chip' + (name === 'All' ? ' on' : ''); b.textContent = name;
-        b.addEventListener('click', () => {
-            infoState.group = name;
-            chips.querySelectorAll('.info-chip').forEach(c => c.classList.toggle('on', c === b));
-            applyInfoFilter();
-            body.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        chips.appendChild(b);
-    });
+    let searchEl = null;
+    if (d.search) {
+        searchEl = document.createElement('input');
+        searchEl.type = 'search'; searchEl.className = 'info-search'; searchEl.placeholder = 'Search this page…'; searchEl.setAttribute('aria-label', 'Search this page');
+        bar.appendChild(searchEl);
+    }
     const tog = document.createElement('button');
-    tog.type = 'button'; tog.className = 'info-toggle'; tog.id = 'info-toggle'; tog.textContent = 'Expand all';
-    tog.addEventListener('click', () => {
-        const items = [...body.querySelectorAll('details.info-item:not(.hidden)')];
-        const open = items.some(x => !x.open);
-        items.forEach(x => { x.open = open; });
-        syncInfoToggle();
-    });
+    tog.type = 'button'; tog.className = 'info-toggle'; tog.textContent = 'Expand all';
     bar.appendChild(tog);
 
-    // the questions
+    // groups (collapsible) containing questions (collapsible)
     let n = 0;
-    d.groups.forEach(g => {
-        const grp = add('div', 'info-group', g.name + ' <span>' + g.items.length + '</span>');
-        grp.dataset.group = g.name;
+    d.groups.forEach((g, gi) => {
+        const box = document.createElement('details');
+        box.className = 'info-gbox';
+        box.dataset.group = g.name;
+        if (gi === 0) box.open = true;
+        box.innerHTML = '<summary><span class="info-gname">' + g.name + '</span><span class="info-gcount">' + g.items.length + '</span></summary>';
+        const list = document.createElement('div'); list.className = 'info-gitems'; box.appendChild(list);
         g.items.forEach(it => {
             const det = document.createElement('details');
             det.className = 'info-item';
-            det.dataset.group = g.name;
             det.style.setProperty('--n', n++);
             let fb = '';
             if (d.feedback) fb = '<div class="info-fb"><span>Was this helpful?</span><button type="button" data-v="up">👍 Yes</button><button type="button" data-v="down">👎 No</button></div>';
             det.innerHTML = '<summary><span class="info-ic">' + it.ic + '</span><span class="info-q">' + it.q + '</span></summary><div class="info-content">' + it.a + fb + '</div>';
-            body.appendChild(det);
+            list.appendChild(det);
         });
+        root.appendChild(box);
     });
-    add('p', 'info-empty hidden', '🔍<br>No matches. Try a different word.').id = 'info-empty';
+    const empty = add('p', 'info-empty hidden', '🔍<br>No matches. Try a different word.');
 
-    if (d.showContact) {
+    if (d.showContact && opt.contact !== false) {
         const c = SUPPORT_CONTACT;
         const mail = c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : 'Ask your course instructor or the project team.';
         add('div', 'info-contact', '<span class="info-ic">💬</span><div><b>Still need help?</b><small>' + c.name + ' · ' + c.note + '</small><small>' + mail + '</small></div>');
     }
     if (d.foot) add('p', 'info-foot', d.foot);
 
-    document.getElementById('info-modal').classList.remove('hidden');
-    body.scrollTop = 0;
-    syncInfoToggle();
+    const boxes = () => [...root.querySelectorAll('details.info-gbox:not(.hidden)')];
+    const items = () => [...root.querySelectorAll('details.info-item:not(.hidden)')];
+    const sync = () => { tog.textContent = boxes().length && boxes().every(b => b.open) && items().every(i => i.open) ? 'Collapse all' : 'Expand all'; };
+    root._sync = sync;
+
+    tog.addEventListener('click', () => {
+        const open = !(boxes().every(b => b.open) && items().every(i => i.open));
+        boxes().forEach(b => { b.open = open; });
+        items().forEach(i => { i.open = open; });
+        sync();
+    });
+
+    if (searchEl) searchEl.addEventListener('input', () => {
+        const q = searchEl.value.trim().toLowerCase();
+        let shown = 0;
+        root.querySelectorAll('details.info-item').forEach(el => {
+            const hit = !q || el.textContent.toLowerCase().includes(q);
+            el.classList.toggle('hidden', !hit);
+            if (hit) { shown++; if (q) el.open = true; }
+        });
+        root.querySelectorAll('details.info-gbox').forEach(b => {
+            const any = !!b.querySelector('details.info-item:not(.hidden)');
+            b.classList.toggle('hidden', !any);
+            if (q && any) b.open = true;
+        });
+        empty.classList.toggle('hidden', shown > 0);
+        sync();
+    });
+    sync();
 }
 
-// open/close events don't bubble, so listen once in the capture phase; also handle the "Was this helpful?" buttons
+function openInfo(key) {
+    const d = INFO_DOCS[key];
+    if (!d) return;
+    closeAllSidebars();
+    infoReturnFocus = document.activeElement;
+    setText('info-title', d.title);
+    setText('info-sub', d.sub || '');
+    const body = document.getElementById('info-body');
+    buildInfoDoc(body, d);
+    document.getElementById('info-modal').classList.remove('hidden');
+    body.scrollTop = 0;
+}
+
+// open/close events don't bubble, so listen in the capture phase; also handles the "Was this helpful?" buttons
 document.addEventListener('toggle', e => {
     const t = e.target;
-    if (!t || !t.classList || !t.classList.contains('info-item')) return;
-    syncInfoToggle();
-    if (t.open) setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {} }, 60);
+    if (!t || !t.classList) return;
+    const root = t.closest && t.closest('.info-root');
+    if (root && root._sync) root._sync();
+    if (t.classList.contains('info-item') && t.open) setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {} }, 60);
 }, true);
 document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('.info-fb button');
@@ -1071,37 +1090,17 @@ document.addEventListener('click', e => {
     box.innerHTML = b.dataset.v === 'up' ? '✔ Glad that helped!' : 'Sorry about that. Please contact the support team below.';
 });
 
-function syncInfoToggle() {
-    const t = document.getElementById('info-toggle');
-    if (!t) return;
-    const items = [...document.querySelectorAll('#info-body details.info-item:not(.hidden)')];
-    t.textContent = items.length && items.every(x => x.open) ? 'Collapse all' : 'Expand all';
-}
-
-function applyInfoFilter() {
-    const q = infoState.q.trim().toLowerCase();
-    const body = document.getElementById('info-body');
-    let shown = 0;
-    const visibleGroups = {};
-    body.querySelectorAll('details.info-item').forEach(el => {
-        const okG = infoState.group === 'All' || el.dataset.group === infoState.group;
-        const okQ = !q || el.textContent.toLowerCase().includes(q);
-        const hit = okG && okQ;
-        el.classList.toggle('hidden', !hit);
-        if (hit) { shown++; visibleGroups[el.dataset.group] = true; if (q) el.open = true; }
-    });
-    body.querySelectorAll('.info-group').forEach(g => g.classList.toggle('hidden', !visibleGroups[g.dataset.group]));
-    const empty = document.getElementById('info-empty');
-    if (empty) empty.classList.toggle('hidden', shown > 0);
-    syncInfoToggle();
-}
-function filterInfo(q) { infoState.q = q || ''; applyInfoFilter(); }   // kept for compatibility
-
 function closeInfo() {
     document.getElementById('info-modal').classList.add('hidden');
     try { if (infoReturnFocus && infoReturnFocus.focus) infoReturnFocus.focus(); } catch (e) {}
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfo(); });
+
+// User's manual shown on the right side of the welcome screen (wide screens only; hidden by CSS on narrow ones)
+(function () {
+    const el = document.getElementById('intro-manual-body');
+    if (el && typeof INFO_DOCS !== 'undefined') buildInfoDoc(el, INFO_DOCS.manual, { lead: false });
+})();
 
 
 function hmRender() {
