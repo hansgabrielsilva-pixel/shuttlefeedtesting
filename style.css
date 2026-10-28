@@ -820,3 +820,32 @@ html.theme-anim *:not(.ts-knob):not(.ts-ico):not(.ts-track):not(.mini-switch):no
 :where([data-theme="dark"]) .info-ic { background: var(--sec-bg); }
 @media (prefers-reduced-motion: reduce) { .info-item, .info-item[open] .info-content { animation: none; } }
 @media (max-width: 640px) { .info-bar { flex-direction: column; align-items: stretch; gap: 2px; } .info-toggle { align-self: flex-end; } }
+
+/* --- info pages v3: collapsible groups, no chips, manual panel on the welcome screen --- */
+.info-bar { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+.info-bar .info-search { flex: 1; width: auto; min-width: 0; }
+.info-gbox { border-radius: 18px; }
+.info-gbox > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: var(--sec-bg); color: var(--green-text); font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.8px; transition: background 0.25s, color 0.25s, transform 0.2s; }
+.info-gbox > summary::-webkit-details-marker { display: none; }
+.info-gbox > summary:hover { transform: translateY(-2px); }
+.info-gname { flex: 1; }
+.info-gcount { min-width: 22px; text-align: center; padding: 1px 8px; border-radius: 10px; background: rgba(255,255,255,0.55); font-size: 11px; letter-spacing: 0; }
+.info-gbox > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 0.25s; margin-top: -3px; flex-shrink: 0; }
+.info-gbox[open] > summary { background: var(--sec-green); color: #fff; }
+.info-gbox[open] > summary .info-gcount { background: rgba(255,255,255,0.2); }
+.info-gbox[open] > summary::after { transform: rotate(-135deg); margin-top: 3px; }
+.info-gitems { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+.info-gbox[open] > .info-gitems { animation: infoOpen 0.28s ease-out; }
+.info-gitems > * { flex-shrink: 0; }
+
+/* welcome screen: card on the left, manual on the right */
+#onboarding-intro { flex-direction: row; align-items: center; justify-content: flex-start; gap: 32px; padding-right: 5%; }
+#onboarding-intro .intro-card { flex-shrink: 0; }
+.intro-manual { flex: 1 1 0; min-width: 0; max-width: 640px; max-height: 94vh; margin-left: auto; display: flex; flex-direction: column; background: var(--main-bg); border-radius: 32px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); overflow: hidden; animation: infoIn 0.5s 0.15s both; }
+.im-head { padding: 20px 26px 14px; background: var(--card-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.06); position: relative; z-index: 2; }
+.im-head h3 { color: var(--red-text); font-size: 22px; }
+.im-head p { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+.intro-manual .hm-body { padding: 16px 22px 22px; }
+@media (max-width: 1100px) { #onboarding-intro { flex-direction: column; justify-content: center; align-items: flex-start; padding-right: 0; } .intro-manual { display: none; } }
+@media (max-width: 640px) { .info-bar { flex-direction: row; } }
+@media (prefers-reduced-motion: reduce) { .info-gbox > summary, .info-gbox > summary::after, .intro-manual, .info-gbox[open] > .info-gitems { animation: none; transition: none; } }
