@@ -294,7 +294,7 @@
             </div>
             
             <div class="header-center">
-                <h1>Main Dashboard</h1>
+                <h1>HOME</h1>
                 <p>SHUTTLEFEED</p>
             </div>
             
@@ -328,14 +328,21 @@
                         <span id="clock-hm">--:--</span><small id="clock-ap"></small>
                     </div>
                     <p id="dash-date"></p>
-                    <div class="class-chip" onclick="changeClass()">🎓 <span id="class-chip-label">Set your class</span> <small>Change</small></div>
                 </div>
 
                 <div class="dash-actions">
+                    <div class="quick-action class-action" onclick="changeClass()">
+                        <div>
+                            <small>Your class · year &amp; program</small>
+                            <div class="qs-detail" id="class-chip-label">Set your class</div>
+                        </div>
+                        <span class="round-go green" title="Change class">✎</span>
+                    </div>
+
                     <div class="main-action" onclick="navigate('mode-screen')">
                         <img data-img="shuttles" alt="Shuttlecock" class="main-icon">
                         <div class="main-text">
-                            <h3 class="dark-red">Multi-Mode</h3>
+                            <h3 class="dark-red">START A DRILL</h3>
                             <p>Choose a drill for your class</p>
                         </div>
                         <span class="round-go red">➔</span>
@@ -368,7 +375,7 @@
             </div>
             
             <div class="header-center">
-                <h1>Multi-Mode</h1>
+                <h1>START A DRILL</h1>
                 <p>PHED 4 DRILLS</p>
             </div>
             
