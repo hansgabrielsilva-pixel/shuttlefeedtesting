@@ -274,7 +274,7 @@ input[type=range] { width: 100%; margin: 10px 0 4px; accent-color: var(--red-tex
 .dash-court rect, .dash-court line { fill: none; stroke: currentColor; stroke-width: 2px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .dash-court .court-net { stroke-width: 3px; stroke-dasharray: 2 7; }
 
-.dash-simple { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px) minmax(0, 1fr); align-items: center; column-gap: 28px; padding: 20px 28px; }
+.dash-simple { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 560px); justify-content: center; align-items: center; column-gap: 28px; padding: 20px 28px; }
 .dash-center { display: flex; flex-direction: column; align-items: center; gap: 26px; }
 .dash-greeting { text-align: center; }
 .dash-greeting h2 { font-size: 28px; color: var(--green-text); }
