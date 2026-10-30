@@ -260,11 +260,6 @@ function refreshDashboard() {
     updateClock();
     setText('qs-detail', `${normMode(lastDrill.mode)} · ${RANGE_LABELS[lastDrill.range] || ''} · ${LOCKED_DRILL.modes.includes(normMode(lastDrill.mode)) ? LOCKED_DRILL.count : lastDrill.count} shuttles`);
     setText('class-chip-label', currentClass ? `${classLabel(currentClass)} · PHED 4` : 'Set your class');
-    setCount('dash-sessions', statsCache.sessions || 0);
-    setCount('dash-shuttles', statsCache.shuttles || 0);
-    let hits = 0, misses = 0;
-    (getHistory() || []).forEach(it => { hits += it.hits || 0; misses += it.misses || 0; });
-    setText('dash-accuracy', (hits + misses) ? Math.round(hits / (hits + misses) * 100) + '%' : '—');
     renderHistory();
 }
 
@@ -959,7 +954,7 @@ const INFO_DOCS = {
             { name: 'Basics', items: [
                 { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
                 { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Enter the <b>Program</b> (e.g. BSCpE), <b>Year</b> and <b>Section</b>.</li><li>Tap <b>Next</b>, then <b>Finish Setup</b> and <b>Go to Dashboard</b>.</li><li>Returning instructors can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
-                { ic: '3️⃣', q: 'Know the dashboard', a: '<ul><li><b>Left:</b> feeder status (Wi-Fi, Feeder, Hardware).</li><li><b>Center:</b> greeting, clock, your class and the <b>START A DRILL</b> button.</li><li><b>Right:</b> your totals: sessions run, shuttles launched and recent accuracy.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
+                { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
                 { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
@@ -1764,4 +1759,3 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeLaunchConfirm();
     else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check') { e.preventDefault(); cfConfirm(); }
 });
-
