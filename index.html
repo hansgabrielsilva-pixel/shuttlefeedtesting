@@ -174,13 +174,7 @@
             <button class="btn-primary pill-btn" onclick="startClassSetup()">Continue ➔</button>
         </div>
         <!-- User's manual, shown to the right of the welcome card on wide screens -->
-        <aside class="intro-manual" aria-label="User's manual">
-            <div class="im-head">
-                <h3>User's manual</h3>
-                <p>How to use the SHUTTLEFEED software</p>
-            </div>
-            <div class="hm-body info-body" id="intro-manual-body"></div>
-        </aside>
+        <aside class="intro-manual" aria-label="User's manual"><div class="kb-host" id="intro-manual-body"></div></aside>
     </div>
 
     <!-- Onboarding Step 1: Class Details -->
@@ -584,17 +578,18 @@
             </div>
         </div>
     </div>
-    <!-- INFO MODAL: Help & support / Terms & policies / User's manual (content lives in INFO_DOCS in app.js) -->
-    <div class="modal hidden" id="info-modal" onclick="if(event.target===this)closeInfo()">
-        <div class="modal-card hm-card info-card" role="dialog" aria-modal="true" aria-labelledby="info-title">
-            <div class="hm-head">
-                <div>
-                    <h3 id="info-title">Help</h3>
-                    <p id="info-sub"></p>
+    <!-- INFO MODAL (kiosk help center): Help & support / Terms & policies / User's manual. Content lives in INFO_DOCS in app.js -->
+    <div class="modal kiosk-modal hidden" id="info-modal">
+        <div class="kiosk-shell" role="dialog" aria-modal="true" aria-labelledby="info-title">
+            <header class="kiosk-head">
+                <div class="kiosk-brand">
+                    <span class="kiosk-mark" aria-hidden="true">🏸</span>
+                    <div><b id="info-title">Help Center</b><small>SHUTTLEFEED</small></div>
                 </div>
-                <button class="hm-close" onclick="closeInfo()" aria-label="Close">Close <span>✕</span></button>
-            </div>
-            <div class="hm-body info-body" id="info-body"></div>
+                <div class="kiosk-tabs" id="info-tabs" role="tablist"></div>
+                <button type="button" class="kiosk-close" onclick="closeInfo()" aria-label="Close help center">✕ <span>Done</span></button>
+            </header>
+            <div class="kiosk-main"><div id="info-body"></div></div>
         </div>
     </div>
 
