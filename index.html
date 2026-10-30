@@ -547,11 +547,40 @@
 
                 <button id="usb-btn" class="usb-btn" onclick="connectUsb()">🔌 Connect machine (USB)</button>
                 <div class="action-card">
-                    <button id="btn-start" class="action-btn" onclick="sendCommand('START')">START ▶</button>
+                    <button id="btn-start" class="action-btn" onclick="requestStart()">START ▶</button>
                     <button id="btn-pause" class="action-btn hidden" onclick="sendCommand('PAUSE')">PAUSE ⏸</button>
                     <button id="btn-resume" class="action-btn hidden" onclick="sendCommand('RESUME')">RESUME ▶</button>
                     <button id="btn-stop" class="action-btn btn-primary hidden" onclick="sendCommand('STOP')">STOP ■</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAUNCH CONFIRMATION: opens when START is pressed (logic in app.js, "Launch confirmation") -->
+    <div class="modal hidden" id="confirm-modal" onclick="if(event.target===this)closeLaunchConfirm()">
+        <div class="cf-card" id="cf-card" role="dialog" aria-modal="true" aria-labelledby="cf-title">
+            <div class="cf-main">
+                <div class="cf-head">
+                    <span class="cf-badge" id="cf-mode">SMASH MODE</span>
+                    <span class="cf-class" id="cf-class"></span>
+                </div>
+                <h3 id="cf-title">Ready to launch?</h3>
+                <p class="cf-sub">Please check your settings before the machine starts.</p>
+                <div class="cf-tiles" id="cf-tiles"></div>
+                <div class="cf-time"><span>Estimated drill time</span><b id="cf-time">-</b></div>
+                <button type="button" class="cf-check" id="cf-check" role="checkbox" aria-checked="false" onclick="cfToggleClear()">
+                    <span class="cf-box" aria-hidden="true">✓</span>
+                    <span class="cf-ct"><b>Court is clear</b><em>Nobody is in front of the machine and shuttles are loaded.</em></span>
+                </button>
+                <div class="cf-actions">
+                    <button type="button" class="cf-back" onclick="closeLaunchConfirm()">← Edit settings</button>
+                    <button type="button" class="cf-go" id="cf-go" onclick="cfConfirm()" disabled>Confirm &amp; start ▶</button>
+                </div>
+            </div>
+            <div class="cf-count" aria-live="assertive">
+                <p>Launching in</p>
+                <div class="cf-num" id="cf-num">3</div>
+                <button type="button" class="cf-cancel" onclick="closeLaunchConfirm()">✕ Cancel</button>
             </div>
         </div>
     </div>
