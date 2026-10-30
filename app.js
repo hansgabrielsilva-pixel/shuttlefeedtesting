@@ -908,7 +908,7 @@ const INFO_DOCS = {
             { name: 'Getting started', items: [
                 { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). After several wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
                 { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
-                { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class chip</b> on the dashboard, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
+                { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class card</b> on the Home screen, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
             ]},
             { name: 'Feeder and connection', items: [
                 { ic: '📶', q: 'The feeder does not respond', a: '<ol><li>Make sure the feeder is powered on and the Arduino UNO R4 WiFi is running.</li><li>Check the <b>Wi-Fi status</b> in Settings shows Connected.</li><li>Confirm the phone or laptop is on the <b>same Wi-Fi network</b> as the feeder.</li><li>If it still fails, restart the feeder and reload the page.</li></ol>' },
@@ -959,10 +959,10 @@ const INFO_DOCS = {
             { name: 'Basics', items: [
                 { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
                 { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Enter the <b>Program</b> (e.g. BSCpE), <b>Year</b> and <b>Section</b>.</li><li>Tap <b>Next</b>, then <b>Finish Setup</b> and <b>Go to Dashboard</b>.</li><li>Returning instructors can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
-                { ic: '3️⃣', q: 'Know the dashboard', a: '<ul><li><b>Left:</b> feeder status (Wi-Fi, Feeder, Hardware).</li><li><b>Center:</b> greeting, clock, your class and the <b>Multi-Mode</b> start button.</li><li><b>Right:</b> your totals: sessions run, shuttles launched and recent accuracy.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
+                { ic: '3️⃣', q: 'Know the dashboard', a: '<ul><li><b>Left:</b> feeder status (Wi-Fi, Feeder, Hardware).</li><li><b>Center:</b> greeting, clock, your class and the <b>START A DRILL</b> button.</li><li><b>Right:</b> your totals: sessions run, shuttles launched and recent accuracy.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
-                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>Multi-Mode</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
+                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
                 { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b>: Short, Medium or Long (how far it throws).</li><li><b>Direction</b>: where shuttles are thrown. Smash offers Left, Right or Mixed (Mixed alternates left and right in random order); Service offers Left or Right.</li><li><b>Interval</b> and <b>Shuttles</b> (Smash): tap <b>+</b> / <b>−</b> to change them. In Service they are fixed at 3 seconds and 24 shuttles.</li></ul>' },
                 { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>(Laptop only) tap <b>Connect machine (USB)</b> if you are using a USB cable.</li><li>Tap <b>START ▶</b> to begin the drill.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
                 { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>On the session screen of a laptop:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li><li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li></ul>' }
@@ -1764,3 +1764,4 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeLaunchConfirm();
     else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check') { e.preventDefault(); cfConfirm(); }
 });
+
