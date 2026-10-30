@@ -1302,6 +1302,7 @@ function repeatDrill(it) {
 function onSessionScreen(e) {
     return document.getElementById('session-screen').classList.contains('active') &&
            document.getElementById('history-modal').classList.contains('hidden') &&
+           document.getElementById('confirm-modal').classList.contains('hidden') &&
            !(e.ctrlKey || e.metaKey || e.altKey) && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
 }
 document.addEventListener('keydown', e => {
@@ -1313,7 +1314,7 @@ document.addEventListener('keydown', e => {
     else if (k === 's') sendCommand('STOP');
     else if (k === ' ') {
         const st = document.getElementById('machine-state-display').innerText.toUpperCase();
-        sendCommand(st.includes('PAUSE') ? 'RESUME' : (st.includes('RUN') || st.includes('SHOT')) ? 'PAUSE' : 'START');
+        { const act = st.includes('PAUSE') ? 'RESUME' : (st.includes('RUN') || st.includes('SHOT')) ? 'PAUSE' : 'START'; if (act === 'START') requestStart(); else sendCommand(act); }
     } else return;
     e.preventDefault();
 });
@@ -1656,3 +1657,110 @@ initAimPads();
 setRange(selectedRange);
 applyImages();
 syncThemeUi();
+
+// ===== Launch confirmation: START opens a summary of the chosen controls; the drill only begins after the instructor confirms =====
+const CONFIRM_REQUIRE_CLEAR = true;       // true = instructor must tick "court is clear" before Confirm works
+const CONFIRM_COUNTDOWN = 3;              // seconds counted down after Confirm (0 = start right away)
+let cfTimer = null, cfRunning = false;
+
+function cfDirKey() {
+    if (currentMode === 'Smash') return smashDir;                                   // LEFT | RIGHT | MIXED
+    return (+document.getElementById('h-dir').value > 0) ? 'RIGHT' : 'LEFT';      // Service: Left or Right
+}
+function cfFmtTime(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m ? m + ' min' + (s ? ' ' + s + ' sec' : '') : s + ' sec';
+}
+function cfIcon(sel) { const s = document.querySelector(sel); return s ? s.outerHTML : ''; }
+
+function requestStart() {
+    if (!usbIsConnected()) { toast('Connect the machine first (press the USB button).'); return; }
+    openLaunchConfirm();
+}
+function openLaunchConfirm() {
+    const dir = cfDirKey();
+    const sec = getInterval(), n = getCount();
+    const rangeIcon = cfIcon('#range-opts button[data-r="' + selectedRange + '"] svg');
+    const dirIcon = currentMode === 'Smash' ? cfIcon('#smash-dir-opts button[data-d="' + dir + '"] svg') : cfIcon('#position-opts button[data-p="' + dir + '"] svg');
+
+    setText('cf-mode', currentMode.toUpperCase() + ' MODE');
+    setText('cf-class', document.getElementById('session-class').innerText || '');
+    document.getElementById('cf-tiles').innerHTML =
+        '<button type="button" class="cf-tile" data-edit="range"><span class="cf-k">Range</span><span class="cf-ic">' + rangeIcon + '</span><b>' + RANGE_LABELS[selectedRange] + '</b><em>Tap to change</em></button>' +
+        '<button type="button" class="cf-tile" data-edit="dir"><span class="cf-k">Direction</span><span class="cf-ic">' + dirIcon + '</span><b>' + SMASH_DIR_NAMES[dir] + '</b><em>Tap to change</em></button>' +
+        '<div class="cf-tile static"><span class="cf-k">Interval</span><span class="cf-ic big">⏱️</span><b>' + sec + ' sec</b><em>between shuttles</em></div>' +
+        '<div class="cf-tile static"><span class="cf-k">Shuttles</span><span class="cf-ic big">🏸</span><b>' + n + '</b><em>to launch</em></div>';
+    setText('cf-time', '≈ ' + cfFmtTime(sec * n));
+
+    const chk = document.getElementById('cf-check');
+    chk.classList.toggle('hidden', !CONFIRM_REQUIRE_CLEAR);
+    chk.setAttribute('aria-checked', 'false'); chk.classList.remove('on');
+    cfSyncGo();
+
+    cfReset();
+    document.getElementById('confirm-modal').classList.remove('hidden');
+    setTimeout(() => { try { document.getElementById(CONFIRM_REQUIRE_CLEAR ? 'cf-check' : 'cf-go').focus(); } catch (e) {} }, 60);
+}
+function cfSyncGo() {
+    const ok = !CONFIRM_REQUIRE_CLEAR || document.getElementById('cf-check').classList.contains('on');
+    const go = document.getElementById('cf-go');
+    go.disabled = !ok;
+    go.classList.toggle('ready', ok);
+}
+function cfToggleClear() {
+    const c = document.getElementById('cf-check');
+    const on = !c.classList.contains('on');
+    c.classList.toggle('on', on); c.setAttribute('aria-checked', on ? 'true' : 'false');
+    cfSyncGo();
+}
+function cfReset() {
+    clearInterval(cfTimer); cfTimer = null; cfRunning = false;
+    document.getElementById('cf-card').classList.remove('counting');
+}
+function closeLaunchConfirm() {
+    cfReset();
+    document.getElementById('confirm-modal').classList.add('hidden');
+}
+function cfEdit(which) {
+    closeLaunchConfirm();
+    const target = which === 'range' ? document.getElementById('range-opts')
+        : document.getElementById(currentMode === 'Smash' ? 'smash-dir-opts' : 'position-opts');
+    const tile = target && target.closest('.speed-tile, .aim-pad');
+    if (!tile) return;
+    try { tile.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+    tile.classList.remove('cf-pulse'); void tile.offsetWidth; tile.classList.add('cf-pulse');
+    setTimeout(() => tile.classList.remove('cf-pulse'), 2200);
+}
+function cfConfirm() {
+    if (cfRunning) return;
+    if (CONFIRM_REQUIRE_CLEAR && !document.getElementById('cf-check').classList.contains('on')) return;
+    if (!usbIsConnected()) { closeLaunchConfirm(); toast('Connect the machine first (press the USB button).'); return; }
+    if (CONFIRM_COUNTDOWN <= 0) { closeLaunchConfirm(); sendCommand('START'); return; }
+    cfRunning = true;
+    const card = document.getElementById('cf-card'), num = document.getElementById('cf-num');
+    card.classList.add('counting');
+    let left = CONFIRM_COUNTDOWN;
+    const tick = () => {
+        num.textContent = left > 0 ? left : 'GO!';
+        num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+        if (left < 0) {
+            clearInterval(cfTimer); cfTimer = null;
+            closeLaunchConfirm(); sendCommand('START');
+            return;
+        }
+        left--;
+    };
+    tick();
+    cfTimer = setInterval(tick, 1000);
+}
+document.getElementById('cf-tiles').addEventListener('click', e => {
+    const t = e.target.closest('[data-edit]');
+    if (t) cfEdit(t.dataset.edit);
+});
+document.addEventListener('keydown', e => {
+    const m = document.getElementById('confirm-modal');
+    if (m.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLaunchConfirm();
+    else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check') { e.preventDefault(); cfConfirm(); }
+});
