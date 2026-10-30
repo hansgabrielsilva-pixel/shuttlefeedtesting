@@ -954,7 +954,7 @@ const INFO_DOCS = {
             { name: 'Basics', items: [
                 { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
                 { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Enter the <b>Program</b> (e.g. BSCpE), <b>Year</b> and <b>Section</b>.</li><li>Tap <b>Next</b>, then <b>Finish Setup</b> and <b>Go to Dashboard</b>.</li><li>Returning instructors can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
-                { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li><b>Top left</b> opens your profile; the <b>sun/moon</b> switch changes theme; the <b>gear</b> opens Settings.</li></ul>' }
+                { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
                 { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
@@ -1484,6 +1484,10 @@ function sendCommand(command) {
         stateBox.classList.remove('flash-animation');
         clearInterval(simulationTimer);
     } else if (command === 'STOP' || command === 'EMERGENCY_STOP') {
+        const summaryData = shuttlesLaunched > 0 ? Object.assign({
+            launched: shuttlesLaunched, planned: totalShuttles,
+            status: command === 'EMERGENCY_STOP' ? 'EMERGENCY_STOP' : (shuttlesLaunched >= totalShuttles ? 'COMPLETED' : 'STOPPED')
+        }, shotCounts()) : null;
         finishLoggedSession(command === 'EMERGENCY_STOP' ? 'EMERGENCY_STOP' : (shuttlesLaunched >= totalShuttles ? 'COMPLETED' : 'STOPPED'));
         resetButtons();
         statusText.innerText = command === 'EMERGENCY_STOP' ? "EMERGENCY STOP" : "STOPPED";
@@ -1492,6 +1496,7 @@ function sendCommand(command) {
         shuttlesLaunched = 0;
         updateCounterDisplay();
         if (currentMode === 'Smash') setSmashDirection(smashDir);          // back to "Mixed" / the chosen side
+        if (summaryData) showDrillSummary(summaryData);
     }
 }
 
@@ -1546,6 +1551,8 @@ function handleUsbLine(line) {
         if (!usbReady) { usbReady = true; setUsbUi('🔌 Machine ready (tap to disconnect)', true); }
     }
     if (line === 'FAILSAFE') toast('Machine stopped itself (no signal from the page).');
+    if (line === 'EMPTY') setFeederEmpty(true);
+    else if (line === 'LOADED') setFeederEmpty(false);
 }
 
 async function readUsbLoop() {
@@ -1603,6 +1610,7 @@ async function disconnectUsb() {
     usbPort = usbWriter = usbReader = usbLoop = null;
     usbReady = false;
     setUsbUi('🔌 Connect machine (USB)', false);
+    setFeederEmpty(false, true);
 }
 
 // Cable pulled out
@@ -1614,6 +1622,7 @@ if ('serial' in navigator) {
         usbReady = false;
         setUsbUi('🔌 Connect machine (USB)', false);
         toast('USB cable disconnected. The machine stops by itself.');
+        setFeederEmpty(false, true);
     });
 }
 
@@ -1759,3 +1768,135 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeLaunchConfirm();
     else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check') { e.preventDefault(); cfConfirm(); }
 });
+
+
+// ============================================================
+//  KIOSK FEATURES: drill summary, idle screen, empty-feeder alert
+// ============================================================
+
+// ---------- Drill summary (shown when a drill ends; returns Home after 15 s) ----------
+const SUMMARY_MS = 15000;
+let summaryTimer = null, summaryTick = null;
+
+function activeScreenId() { const a = document.querySelector('.screen.active'); return a ? a.id : ''; }
+function isLoggedInScreen() { const id = activeScreenId(); return !!id && id !== 'login-screen' && id !== 'signup-screen' && !id.startsWith('onboarding'); }
+
+function showDrillSummary(d) {
+    if (!isLoggedInScreen()) return;                           // e.g. logging out mid-drill
+    const titles = { COMPLETED: ['✓ Drill complete', 'Nice work!', ''], STOPPED: ['■ Drill stopped', 'Drill stopped', 'stopped'], EMERGENCY_STOP: ['⚠ Emergency stop', 'Emergency stop', 'emergency'] };
+    const t = titles[d.status] || titles.STOPPED;
+    const badge = document.getElementById('sum-badge');
+    badge.textContent = t[0]; badge.className = 'sum-badge ' + t[2];
+    setText('sum-title', t[1]);
+    setText('sum-sub', [currentMode, RANGE_LABELS[selectedRange] || '', currentClass ? classLabel(currentClass) : ''].filter(Boolean).join(' · '));
+    setText('sum-launched', String(d.launched));
+    setText('sum-of', 'of ' + d.planned + ' shuttles launched');
+    const scored = d.hits + d.misses;
+    document.getElementById('sum-stats').classList.toggle('hidden', scored === 0);
+    setText('sum-hits', String(d.hits));
+    setText('sum-misses', String(d.misses));
+    setText('sum-acc', scored ? Math.round(d.hits / scored * 100) + '%' : '—');
+
+    document.getElementById('summary-modal').classList.remove('hidden');
+    const bar = document.getElementById('sum-bar');
+    bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
+    const end = Date.now() + SUMMARY_MS;
+    clearInterval(summaryTick); clearTimeout(summaryTimer);
+    const tick = () => setText('sum-count', 'Returning to Home in ' + Math.max(0, Math.ceil((end - Date.now()) / 1000)) + 's');
+    tick(); summaryTick = setInterval(tick, 250);
+    summaryTimer = setTimeout(() => closeSummary(true), SUMMARY_MS);
+}
+function closeSummary(goHome) {
+    clearInterval(summaryTick); clearTimeout(summaryTimer);
+    const m = document.getElementById('summary-modal');
+    if (m.classList.contains('hidden')) return;
+    m.classList.add('hidden');
+    if (goHome && isLoggedInScreen()) navigate('dashboard-screen');
+}
+function summaryRunAgain() {
+    closeSummary(false);
+    if (activeScreenId() !== 'session-screen') quickStart();    // reload the same drill settings
+    requestStart();                                             // the usual "Ready to launch?" check still appears
+}
+
+// ---------- Idle / attract screen (2 minutes without a touch) ----------
+const IDLE_MS = 120000;
+let idleTimer = null, idleClockTimer = null;
+
+function drillIsRunning() { const stopBtn = document.getElementById('btn-stop'); return !!(activeSession || (stopBtn && !stopBtn.classList.contains('hidden'))); }   // running or paused
+function idleVisible() { return !document.getElementById('idle-screen').classList.contains('hidden'); }
+
+function updateIdleClock() {
+    const now = new Date(), h = now.getHours();
+    setTextIfChanged('idle-hm', `${h % 12 || 12}:${String(now.getMinutes()).padStart(2, '0')}`);
+    setTextIfChanged('idle-ap', h < 12 ? 'AM' : 'PM');
+    setTextIfChanged('idle-date', now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+}
+function goIdle() {
+    if (idleVisible()) return;
+    if (drillIsRunning()) { resetIdleTimer(); return; }         // never interrupt a running or paused drill
+    closeSummary(false);
+    closeLaunchConfirm();
+    closeInfo();
+    if (typeof closeHistory === 'function') { try { closeHistory(); } catch (e) {} }
+    dismissEmptyAlert();
+    closeAllSidebars();
+    if (isLoggedInScreen() && activeScreenId() !== 'dashboard-screen') navigate('dashboard-screen');
+    updateIdleClock();
+    clearInterval(idleClockTimer); idleClockTimer = setInterval(updateIdleClock, 1000);
+    document.getElementById('idle-screen').classList.remove('hidden');
+}
+function wakeIdle() {
+    clearInterval(idleClockTimer);
+    document.getElementById('idle-screen').classList.add('hidden');
+    resetIdleTimer();
+}
+function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    if (!idleVisible()) idleTimer = setTimeout(goIdle, IDLE_MS);
+}
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (!idleVisible()) resetIdleTimer(); }, true));
+document.addEventListener('keydown', e => { if (idleVisible()) { e.preventDefault(); wakeIdle(); } }, true);
+resetIdleTimer();
+
+// ---------- No shuttlecocks left (IR sensor) ----------
+let feederEmpty = false;
+let audioCtx = null;
+
+function getAudio() {
+    try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { return null; }
+    return audioCtx;
+}
+// the browser only allows sound after a touch/click, so unlock it on the first one
+document.addEventListener('pointerdown', () => { getAudio(); }, { once: true, capture: true });
+
+function beepFor(ms, freq) {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const t = ctx.currentTime, dur = ms / 1000;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'square'; osc.frequency.value = freq || 880;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.25, t + 0.03);
+    gain.gain.setValueAtTime(0.25, t + dur - 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(t); osc.stop(t + dur + 0.02);
+}
+
+function setFeederEmpty(empty, silent) {
+    if (empty === feederEmpty) return;                         // the Arduino repeats its status; only act on a change
+    feederEmpty = empty;
+    const m = document.getElementById('empty-modal');
+    if (empty) {
+        m.classList.remove('hidden');
+        beepFor(1500, 880);                                    // 1.5-second beep
+    } else {
+        m.classList.add('hidden');
+        if (!silent) toast('Shuttlecocks detected. The feeder is loaded.');
+    }
+}
+function dismissEmptyAlert() { document.getElementById('empty-modal').classList.add('hidden'); }
