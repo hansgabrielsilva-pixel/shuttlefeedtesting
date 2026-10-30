@@ -893,6 +893,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory
 
 
 
+
 // ===== Settings > Help & support / Terms & policies / User's manual =====
 // Edit the text here. Each doc has groups; each group has items { ic, q, a } where "a" is HTML.
 const SUPPORT_CONTACT = { name: 'SHUTTLEFEED Support Team', email: '', note: 'CvSU Carmona - PHED 4 Instructor Console' };   // put the team's email in "email" to show a contact card
@@ -978,128 +979,169 @@ const INFO_DOCS = {
     }
 };
 
-let infoReturnFocus = null;
+// ===== Kiosk help center (full screen). Used by the Settings links and by the manual panel on the welcome screen =====
+const INFO_META = {
+    help:   { tab: 'Help & support',   short: 'Help',   ic: '❓' },
+    terms:  { tab: 'Terms & policies', short: 'Terms',  ic: '🛡️' },
+    manual: { tab: 'User\'s manual',   short: 'Manual', ic: '📖' }
+};
+const INFO_IDLE_MS = 120000;           // kiosk behaviour: close after 2 minutes without a touch
+let infoReturnFocus = null, infoIdleTimer = null, infoCurrent = null;
 
-// Fills "root" with one document from INFO_DOCS: optional search + Expand all, then collapsible groups that hold collapsible questions.
-// Used by the Settings pop-ups and by the User's manual panel on the welcome screen.
-function buildInfoDoc(root, d, opt) {
+// Two-pane viewer: topic list on the left, big readable page on the right, Previous / Next at the bottom.
+// In a narrow space (phone, or the welcome-screen panel) it becomes list -> page with a Back button.
+function buildKiosk(root, d, opt) {
     opt = opt || {};
     root.innerHTML = '';
-    root.classList.add('info-root');
-    const add = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; el.innerHTML = html; root.appendChild(el); return el; };
-    if (d.lead && opt.lead !== false) add('p', 'info-lead', d.lead);
+    root.classList.add('kb');
+    const topics = [];
+    d.groups.forEach(g => g.items.forEach(it => topics.push({ g: g.name, it: it })));
 
-    // search + Expand all
-    const bar = add('div', 'info-bar', '');
-    let searchEl = null;
-    if (d.search) {
-        searchEl = document.createElement('input');
-        searchEl.type = 'search'; searchEl.className = 'info-search'; searchEl.placeholder = 'Search this page…'; searchEl.setAttribute('aria-label', 'Search this page');
-        bar.appendChild(searchEl);
-    }
-    const tog = document.createElement('button');
-    tog.type = 'button'; tog.className = 'info-toggle'; tog.textContent = 'Expand all';
-    bar.appendChild(tog);
+    const wrap = document.createElement('div');
+    wrap.className = 'kb-wrap';
+    wrap.dataset.view = 'list';
 
-    // groups (collapsible) containing questions (collapsible)
-    let n = 0;
-    d.groups.forEach((g, gi) => {
-        const box = document.createElement('details');
-        box.className = 'info-gbox';
-        box.dataset.group = g.name;
-        if (gi === 0) box.open = true;
-        box.innerHTML = '<summary><span class="info-gname">' + g.name + '</span><span class="info-gcount">' + g.items.length + '</span></summary>';
-        const list = document.createElement('div'); list.className = 'info-gitems'; box.appendChild(list);
+    // ---- left: topic list ----
+    const list = document.createElement('nav');
+    list.className = 'kb-list';
+    list.setAttribute('aria-label', d.title + ' topics');
+    const head = document.createElement('div');
+    head.className = 'kb-doc';
+    head.innerHTML = '<h4>' + d.title + '</h4>' + (d.lead ? '<p>' + d.lead + '</p>' : '');
+    list.appendChild(head);
+    const btns = [];
+    let idx = 0;
+    d.groups.forEach(g => {
+        const lab = document.createElement('div');
+        lab.className = 'kb-glabel'; lab.textContent = g.name;
+        list.appendChild(lab);
         g.items.forEach(it => {
-            const det = document.createElement('details');
-            det.className = 'info-item';
-            det.style.setProperty('--n', n++);
-            let fb = '';
-            if (d.feedback) fb = '<div class="info-fb"><span>Was this helpful?</span><button type="button" data-v="up">👍 Yes</button><button type="button" data-v="down">👎 No</button></div>';
-            det.innerHTML = '<summary><span class="info-ic">' + it.ic + '</span><span class="info-q">' + it.q + '</span></summary><div class="info-content">' + it.a + fb + '</div>';
-            list.appendChild(det);
+            const i = idx++;
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'kb-topic';
+            b.innerHTML = '<span class="kb-tic">' + it.ic + '</span><span class="kb-tt">' + it.q + '</span><span class="kb-chev" aria-hidden="true">›</span>';
+            b.addEventListener('click', () => { show(i, i >= cur ? 1 : -1); wrap.dataset.view = 'detail'; });
+            list.appendChild(b); btns.push(b);
         });
-        root.appendChild(box);
     });
-    const empty = add('p', 'info-empty hidden', '🔍<br>No matches. Try a different word.');
-
     if (d.showContact && opt.contact !== false) {
         const c = SUPPORT_CONTACT;
         const mail = c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : 'Ask your course instructor or the project team.';
-        add('div', 'info-contact', '<span class="info-ic">💬</span><div><b>Still need help?</b><small>' + c.name + ' · ' + c.note + '</small><small>' + mail + '</small></div>');
+        const box = document.createElement('div');
+        box.className = 'info-contact';
+        box.innerHTML = '<span class="info-ic">💬</span><div><b>Still need help?</b><small>' + c.name + ' · ' + c.note + '</small><small>' + mail + '</small></div>';
+        list.appendChild(box);
     }
-    if (d.foot) add('p', 'info-foot', d.foot);
+    if (d.foot) { const f = document.createElement('p'); f.className = 'info-foot'; f.textContent = d.foot; list.appendChild(f); }
 
-    const boxes = () => [...root.querySelectorAll('details.info-gbox:not(.hidden)')];
-    const items = () => [...root.querySelectorAll('details.info-item:not(.hidden)')];
-    const sync = () => { tog.textContent = boxes().length && boxes().every(b => b.open) && items().every(i => i.open) ? 'Collapse all' : 'Expand all'; };
-    root._sync = sync;
+    // ---- right: reading page ----
+    const detail = document.createElement('section');
+    detail.className = 'kb-detail';
+    detail.innerHTML =
+        '<button type="button" class="kb-back">‹ All topics</button>' +
+        '<div class="kb-scroll"><article class="kb-card"></article></div>' +
+        '<div class="kb-pager">' +
+            '<button type="button" class="kb-prev">‹ Previous</button>' +
+            '<div class="kb-prog"><span class="kb-count"></span><i><b></b></i></div>' +
+            '<button type="button" class="kb-next">Next ›</button>' +
+        '</div>';
+    const card = detail.querySelector('.kb-card'), scroller = detail.querySelector('.kb-scroll');
+    const prev = detail.querySelector('.kb-prev'), next = detail.querySelector('.kb-next');
+    const count = detail.querySelector('.kb-count'), bar = detail.querySelector('.kb-prog b');
+    let cur = 0;
 
-    tog.addEventListener('click', () => {
-        const open = !(boxes().every(b => b.open) && items().every(i => i.open));
-        boxes().forEach(b => { b.open = open; });
-        items().forEach(i => { i.open = open; });
-        sync();
-    });
+    function show(i, dir) {
+        if (i < 0 || i >= topics.length) return;
+        cur = i;
+        const t = topics[i];
+        const fb = d.feedback ? '<div class="info-fb"><span>Was this helpful?</span><button type="button" data-v="up">👍 Yes</button><button type="button" data-v="down">👎 No</button></div>' : '';
+        card.innerHTML = '<div class="kb-card-head"><span class="kb-cic">' + t.it.ic + '</span><div><small>' + t.g + '</small><h4>' + t.it.q + '</h4></div></div><div class="kb-body">' + t.it.a + '</div>' + fb;
+        card.classList.remove('go-next', 'go-prev'); void card.offsetWidth;
+        card.classList.add(dir < 0 ? 'go-prev' : 'go-next');
+        scroller.scrollTop = 0;
+        btns.forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+        count.textContent = 'Topic ' + (i + 1) + ' of ' + topics.length;
+        bar.style.width = ((i + 1) / topics.length * 100) + '%';
+        prev.disabled = i === 0; next.disabled = i === topics.length - 1;
+        try { btns[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    }
+    prev.addEventListener('click', () => show(cur - 1, -1));
+    next.addEventListener('click', () => show(cur + 1, 1));
+    detail.querySelector('.kb-back').addEventListener('click', () => { wrap.dataset.view = 'list'; });
+    root._kb = { prev: () => show(cur - 1, -1), next: () => show(cur + 1, 1) };
 
-    if (searchEl) searchEl.addEventListener('input', () => {
-        const q = searchEl.value.trim().toLowerCase();
-        let shown = 0;
-        root.querySelectorAll('details.info-item').forEach(el => {
-            const hit = !q || el.textContent.toLowerCase().includes(q);
-            el.classList.toggle('hidden', !hit);
-            if (hit) { shown++; if (q) el.open = true; }
-        });
-        root.querySelectorAll('details.info-gbox').forEach(b => {
-            const any = !!b.querySelector('details.info-item:not(.hidden)');
-            b.classList.toggle('hidden', !any);
-            if (q && any) b.open = true;
-        });
-        empty.classList.toggle('hidden', shown > 0);
-        sync();
-    });
-    sync();
+    wrap.appendChild(list); wrap.appendChild(detail);
+    root.appendChild(wrap);
+    show(0, 1);
 }
 
-function openInfo(key) {
+function renderInfoTabs(active) {
+    const tabs = document.getElementById('info-tabs');
+    tabs.innerHTML = '';
+    ['help', 'terms', 'manual'].forEach(k => {
+        const m = INFO_META[k];
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'kiosk-tab' + (k === active ? ' on' : '');
+        b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', k === active ? 'true' : 'false');
+        b.innerHTML = '<span class="kt-ic">' + m.ic + '</span><span class="kt-long">' + m.tab + '</span><span class="kt-short">' + m.short + '</span>';
+        b.addEventListener('click', () => { if (k !== infoCurrent) switchInfo(k); });
+        tabs.appendChild(b);
+    });
+}
+function switchInfo(key) {
     const d = INFO_DOCS[key];
     if (!d) return;
+    infoCurrent = key;
+    renderInfoTabs(key);
+    buildKiosk(document.getElementById('info-body'), d);
+    infoIdleReset();
+}
+function openInfo(key) {
+    if (!INFO_DOCS[key]) return;
     closeAllSidebars();
     infoReturnFocus = document.activeElement;
-    setText('info-title', d.title);
-    setText('info-sub', d.sub || '');
-    const body = document.getElementById('info-body');
-    buildInfoDoc(body, d);
+    switchInfo(key);
     document.getElementById('info-modal').classList.remove('hidden');
-    body.scrollTop = 0;
+    infoIdleReset();
 }
+function closeInfo() {
+    clearTimeout(infoIdleTimer);
+    const m = document.getElementById('info-modal');
+    if (m.classList.contains('hidden')) return;
+    m.classList.add('hidden');
+    try { if (infoReturnFocus && infoReturnFocus.focus) infoReturnFocus.focus(); } catch (e) {}
+}
+function infoIdleReset() {
+    clearTimeout(infoIdleTimer);
+    const m = document.getElementById('info-modal');
+    if (m && !m.classList.contains('hidden')) infoIdleTimer = setTimeout(closeInfo, INFO_IDLE_MS);
+}
+['pointerdown', 'keydown', 'wheel', 'touchmove'].forEach(ev => document.getElementById('info-modal').addEventListener(ev, infoIdleReset, true));
+document.getElementById('info-modal').addEventListener('scroll', infoIdleReset, true);
 
-// open/close events don't bubble, so listen in the capture phase; also handles the "Was this helpful?" buttons
-document.addEventListener('toggle', e => {
-    const t = e.target;
-    if (!t || !t.classList) return;
-    const root = t.closest && t.closest('.info-root');
-    if (root && root._sync) root._sync();
-    if (t.classList.contains('info-item') && t.open) setTimeout(() => { try { t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (err) {} }, 60);
-}, true);
+// "Was this helpful?" answers
 document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('.info-fb button');
     if (!b) return;
     const box = b.parentNode;
     box.classList.add('done');
-    box.innerHTML = b.dataset.v === 'up' ? '✔ Glad that helped!' : 'Sorry about that. Please contact the support team below.';
+    box.innerHTML = b.dataset.v === 'up' ? '✔ Glad that helped!' : 'Sorry about that. Please contact the support team.';
+});
+// keys: Esc closes, arrows turn the page
+document.addEventListener('keydown', e => {
+    const m = document.getElementById('info-modal');
+    if (e.key === 'Escape') { closeInfo(); return; }
+    if (m.classList.contains('hidden')) return;
+    const kb = document.querySelector('#info-body.kb');
+    if (!kb || !kb._kb) return;
+    if (e.key === 'ArrowRight') kb._kb.next();
+    if (e.key === 'ArrowLeft') kb._kb.prev();
 });
 
-function closeInfo() {
-    document.getElementById('info-modal').classList.add('hidden');
-    try { if (infoReturnFocus && infoReturnFocus.focus) infoReturnFocus.focus(); } catch (e) {}
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfo(); });
-
-// User's manual shown on the right side of the welcome screen (wide screens only; hidden by CSS on narrow ones)
+// the User's manual on the right side of the welcome screen (wide screens only; hidden by CSS on narrow ones)
 (function () {
     const el = document.getElementById('intro-manual-body');
-    if (el && typeof INFO_DOCS !== 'undefined') buildInfoDoc(el, INFO_DOCS.manual, { lead: false });
+    if (el && typeof INFO_DOCS !== 'undefined') buildKiosk(el, INFO_DOCS.manual, { contact: false });
 })();
 
 
