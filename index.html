@@ -180,7 +180,7 @@
             <img data-img="logo" alt="SHUTTLEFEED Logo" class="setup-logo">
             
             <h2 class="dark-green">Which class are you teaching?</h2>
-            <p class="setup-desc" style="margin-top: 6px;">Tap your program and section for this session.</p>
+            <p class="setup-desc" style="margin-top: 6px;">Choose your program and section for this session.</p>
 
             <!-- Returning instructor: one-tap continue -->
             <div id="continue-class" class="continue-card hidden" onclick="continueClass()">
@@ -189,29 +189,25 @@
             </div>
             <p id="or-divider" class="or-divider hidden">or enter a different class</p>
 
-            <div class="class-pick">
-                <div class="cp-group">
-                    <span class="cp-label">Program</span>
-                    <div class="chip-row" id="program-chips" data-target="class-program">
-                        <button type="button" class="cp-chip" data-v="BSCS">BSCS</button><button type="button" class="cp-chip" data-v="BSIT">BSIT</button><button type="button" class="cp-chip" data-v="BSCpE">BSCpE</button><button type="button" class="cp-chip" data-v="BSEE">BSEE</button><button type="button" class="cp-chip" data-v="BSME">BSME</button><button type="button" class="cp-chip" data-v="BSBA">BSBA</button><button type="button" class="cp-chip" data-v="BSHM">BSHM</button><button type="button" class="cp-chip" data-v="BSEd">BSEd</button><button type="button" class="cp-chip cp-other" data-other="1">Other…</button>
-                    </div>
-                    <input type="text" id="class-program" class="cp-input hidden" list="program-list" placeholder="Type your program, e.g. BSCpE" maxlength="10" autocomplete="off">
-                    <datalist id="program-list">
-                        <option value="BSCpE"><option value="BSIT"><option value="BSCS"><option value="BSEE"><option value="BSME"><option value="BSBA"><option value="BSHM"><option value="BSEd">
-                    </datalist>
-                </div>
-                <div class="cp-group">
-                    <span class="cp-label">Year</span>
-                    <div class="cp-year">2nd Year</div>
-                    <select id="class-year" class="hidden"><option value="2" selected>2nd Year</option></select>
-                </div>
-                <div class="cp-group">
-                    <span class="cp-label">Section</span>
-                    <div class="chip-row" id="section-chips" data-target="class-section">
-                        <button type="button" class="cp-chip" data-v="A">A</button><button type="button" class="cp-chip" data-v="B">B</button><button type="button" class="cp-chip" data-v="C">C</button><button type="button" class="cp-chip" data-v="D">D</button><button type="button" class="cp-chip" data-v="E">E</button><button type="button" class="cp-chip" data-v="F">F</button><button type="button" class="cp-chip cp-other" data-other="1">Other…</button>
-                    </div>
-                    <input type="text" id="class-section" class="cp-input hidden" placeholder="Letter" maxlength="1" inputmode="text" autocapitalize="characters" autocomplete="off" pattern="[A-Za-z]" oninput="this.value = this.value.replace(/[^A-Za-z]/g, '').charAt(0).toUpperCase()">
-                </div>
+            <div class="class-fields">
+                <label>Program
+                    <select id="class-program-select">
+                        <option value="" selected disabled>Select</option>
+                        <option value="BSCS">BSCS</option><option value="BSIT">BSIT</option><option value="BSCpE">BSCpE</option><option value="BSEE">BSEE</option><option value="BSME">BSME</option><option value="BSBA">BSBA</option><option value="BSHM">BSHM</option><option value="BSEd">BSEd</option><option value="__other">Other…</option>
+                    </select>
+                    <input type="text" id="class-program" class="hidden" placeholder="Type your program" maxlength="10" autocomplete="off">
+                </label>
+                <label>Year
+                    <select id="class-year">
+                        <option value="2" selected>2nd Year</option>
+                    </select>
+                </label>
+                <label>Section
+                    <select id="class-section">
+                        <option value="" selected disabled>Select</option>
+                        <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option><option value="H">H</option><option value="I">I</option><option value="J">J</option>
+                    </select>
+                </label>
             </div>
             <p id="class-error" class="class-error"></p>
 
