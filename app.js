@@ -166,6 +166,7 @@ function resetLocalState() {
     authToken = null;
     currentClass = null;
     lastClass = null;
+    returningFlow = false;
     activeSession = null;
     lastSession = null;
     shotLog = [];
@@ -315,6 +316,10 @@ function quickStart() {
 let currentClass = null;
 let lastClass = null;
 let classSetupFromDashboard = false;
+let returningFlow = false;          // true when the intro is skipped (instructor has used the kiosk before)
+const INTRO_KEY = 'shuttlefeedIntroSeen:';
+function introSeen(u) { try { return localStorage.getItem(INTRO_KEY + u) === '1'; } catch (e) { return false; } }
+function markIntroSeen(u) { try { if (u) localStorage.setItem(INTRO_KEY + u, '1'); } catch (e) {} }
 
 function classLabel(c) { return c ? `${c.program} ${c.year}-${c.section}` : 'No class set'; }
 
@@ -336,7 +341,9 @@ function prepareClassForm() {
     const hasLast = !!lastClass;
     document.getElementById('continue-class').classList.toggle('hidden', !hasLast);
     document.getElementById('or-divider').classList.toggle('hidden', !hasLast);
-    document.getElementById('class-dots').classList.toggle('hidden', classSetupFromDashboard);
+    document.getElementById('class-dots').classList.toggle('hidden', classSetupFromDashboard || returningFlow);
+    ['class-program', 'class-section'].forEach(id => { const i = document.getElementById(id); i.value = ''; i.classList.add('hidden'); });
+    document.querySelectorAll('#program-chips .cp-chip, #section-chips .cp-chip').forEach(c => c.classList.remove('on'));
     document.getElementById('class-error').innerText = '';
     if (hasLast) document.getElementById('continue-class-label').innerText = classLabel(lastClass);
 }
@@ -459,9 +466,11 @@ async function startIntro(source) {    // after login / sign up
         document.getElementById('intro-greeting').innerText = `${part}, Instructor!`;
         classSetupFromDashboard = false;
         currentClass = null;
+        returningFlow = !isSignup && !!(lastClass || introSeen(currentUser));   // first time only: show the intro
         ['password', 'new-password'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         playLoginAnimation(isSignup ? 'Account created!' : 'Welcome back!', () => {
-            navigate('onboarding-intro');
+            if (returningFlow) startClassSetup();            // lands on "Continue with <class>"
+            else navigate('onboarding-intro');
             if (isSignup) toast('Account created!');
         });
     } catch (e) {
@@ -472,8 +481,9 @@ async function startIntro(source) {    // after login / sign up
     }
 }
 
-function startClassSetup() {            // intro -> class details            
+function startClassSetup() {            // intro -> class details
     classSetupFromDashboard = false;
+    markIntroSeen(currentUser);
     prepareClassForm();
     navigate('onboarding-welcome');
 }
@@ -487,7 +497,8 @@ function changeClass() {                // from the dashboard chip
 function setCurrentClass(c) {
     currentClass = lastClass = c;
     api('saveClass', { program: c.program, year: c.year, section: c.section }).catch(e => toast('Class not saved: ' + e.message));
-    navigate(classSetupFromDashboard ? 'dashboard-screen' : 'onboarding-goals');
+    if (classSetupFromDashboard || returningFlow) navigate('dashboard-screen');
+    else showChecklist(false);
 }
 
 function continueClass() { setCurrentClass(lastClass); }
@@ -497,11 +508,11 @@ function saveClassAndContinue() {
     const section = document.getElementById('class-section').value.trim().toUpperCase();
     const year = '2';   // fixed to 2nd Year
     if (!program || !section) {
-        document.getElementById('class-error').innerText = 'Please enter the program and section.';
+        document.getElementById('class-error').innerText = 'Please tap your program and section.';
         return;
     }
     if (!/^[A-Z]$/.test(section)) {
-        document.getElementById('class-error').innerText = 'Section must be a single letter (e.g. A, B, C).';
+        document.getElementById('class-error').innerText = 'Section must be a single letter (A to Z).';
         return;
     }
     setCurrentClass({ program, year, section });
@@ -902,6 +913,7 @@ const INFO_DOCS = {
         groups: [
             { name: 'Getting started', items: [
                 { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). After several wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
+                { ic: '🚪', q: 'Why was I signed out?', a: '<p>To keep your account safe on a shared kiosk, SHUTTLEFEED signs you out after about <b>10 minutes</b> without use. A drill that is running is never interrupted. Log in again; your class, scores and history are saved.</p>' },
                 { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
                 { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class card</b> on the Home screen, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
             ]},
@@ -945,6 +957,21 @@ const INFO_DOCS = {
         foot: 'Last updated October 2026'
     },
 
+    about: {
+        title: 'About SHUTTLEFEED',
+        sub: 'What it is and why we built it',
+        search: true,
+        lead: 'SHUTTLEFEED is a multi-mode automated shuttlecock feeder kiosk for PHED 4 at Cavite State University – Carmona Campus.',
+        groups: [
+            { name: 'The project', items: [
+                { ic: '🏸', q: 'Why SHUTTLEFEED?', a: '<p>Badminton is a core part of PHED 4, and mastering services and smashes takes a lot of repetition. Manual feeding by peers or instructors is predictable, tiring, and becomes inconsistent over time. It also keeps students from practicing on their own.</p>' },
+                { ic: '🎯', q: 'The problem we address', a: '<p>Traditional feeding has limited variety and predictable patterns, and instructor fatigue makes delivery inconsistent. Commercial launchers are often expensive. SHUTTLEFEED offers automated, consistent feeding in Smash and Service modes, controlled from a simple kiosk for the instructor.</p>' },
+                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service, aimed left or right.</li><li><b>Simple controls</b>: set range, direction, interval and shuttle count in one screen.</li></ul>' }
+            ]}
+        ],
+        foot: 'Capstone design project, CvSU Carmona'
+    },
+
     manual: {
         title: 'User\'s manual',
         sub: 'How to use the SHUTTLEFEED software',
@@ -953,7 +980,7 @@ const INFO_DOCS = {
         groups: [
             { name: 'Basics', items: [
                 { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
-                { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Enter the <b>Program</b> (e.g. BSCpE), <b>Year</b> and <b>Section</b>.</li><li>Tap <b>Next</b>, then <b>Finish Setup</b> and <b>Go to Dashboard</b>.</li><li>Returning instructors can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
+                { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Tap your <b>Program</b> (e.g. BSCpE) and <b>Section</b>. Choose <b>Other…</b> if yours is not listed. The year is 2nd Year.</li><li>Tap <b>Next</b>, check the <b>Before you start</b> list, then tap <b>Finish Setup</b> and <b>Go to Home</b>.</li><li>Returning instructors skip the introduction and can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
                 { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
@@ -976,6 +1003,7 @@ const INFO_DOCS = {
 
 // ===== Kiosk help center (full screen). Used by the Settings links and by the manual panel on the welcome screen =====
 const INFO_META = {
+    about:  { tab: 'About',            short: 'About',  ic: 'ℹ️' },
     help:   { tab: 'Help & support',   short: 'Help',   ic: '❓' },
     terms:  { tab: 'Terms & policies', short: 'Terms',  ic: '🛡️' },
     manual: { tab: 'User\'s manual',   short: 'Manual', ic: '📖' }
@@ -1073,7 +1101,7 @@ function buildKiosk(root, d, opt) {
 function renderInfoTabs(active) {
     const tabs = document.getElementById('info-tabs');
     tabs.innerHTML = '';
-    ['help', 'terms', 'manual'].forEach(k => {
+    ['help', 'terms', 'manual', 'about'].forEach(k => {
         const m = INFO_META[k];
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'kiosk-tab' + (k === active ? ' on' : '');
@@ -1537,6 +1565,7 @@ function setUsbUi(text, on) {
     if (!b) return;
     b.innerText = text;
     b.classList.toggle('on', !!on);
+    try { refreshChecklist(); } catch (e) {}
 }
 
 async function usbSend(line) {
@@ -1821,6 +1850,8 @@ function summaryRunAgain() {
 
 // ---------- Idle / attract screen (2 minutes without a touch) ----------
 const IDLE_MS = 120000;
+const SIGNOUT_MS = 600000;                       // sign out after 10 minutes without use
+let signoutTimer = null;
 let idleTimer = null, idleClockTimer = null;
 
 function drillIsRunning() { const stopBtn = document.getElementById('btn-stop'); return !!(activeSession || (stopBtn && !stopBtn.classList.contains('hidden'))); }   // running or paused
@@ -1852,8 +1883,9 @@ function wakeIdle() {
     resetIdleTimer();
 }
 function resetIdleTimer() {
-    clearTimeout(idleTimer);
+    clearTimeout(idleTimer); clearTimeout(signoutTimer);
     if (!idleVisible()) idleTimer = setTimeout(goIdle, IDLE_MS);
+    signoutTimer = setTimeout(autoSignOut, SIGNOUT_MS);
 }
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (!idleVisible()) resetIdleTimer(); }, true));
 document.addEventListener('keydown', e => { if (idleVisible()) { e.preventDefault(); wakeIdle(); } }, true);
@@ -1861,6 +1893,7 @@ resetIdleTimer();
 
 // ---------- No shuttlecocks left (IR sensor) ----------
 let feederEmpty = false;
+let feederState = null;                          // null (unknown) | 'EMPTY' | 'LOADED'
 let audioCtx = null;
 
 function getAudio() {
@@ -1888,6 +1921,8 @@ function beepFor(ms, freq) {
 }
 
 function setFeederEmpty(empty, silent) {
+    feederState = silent ? null : (empty ? 'EMPTY' : 'LOADED');
+    try { refreshChecklist(); } catch (e) {}
     if (empty === feederEmpty) return;                         // the Arduino repeats its status; only act on a change
     feederEmpty = empty;
     const m = document.getElementById('empty-modal');
@@ -1900,3 +1935,56 @@ function setFeederEmpty(empty, silent) {
     }
 }
 function dismissEmptyAlert() { document.getElementById('empty-modal').classList.add('hidden'); }
+
+
+// ---------- Class picker: tap buttons ----------
+function pickChip(btn) {
+    const row = btn.parentNode;
+    const input = document.getElementById(row.dataset.target);
+    row.querySelectorAll('.cp-chip').forEach(c => c.classList.remove('on'));
+    btn.classList.add('on');
+    if (btn.dataset.other) { input.value = ''; input.classList.remove('hidden'); input.focus(); }
+    else { input.value = btn.dataset.v; input.classList.add('hidden'); }
+    setText('class-error', '');
+}
+document.querySelectorAll('.chip-row').forEach(row => row.addEventListener('click', e => {
+    const b = e.target.closest('.cp-chip');
+    if (b) pickChip(b);
+}));
+
+// ---------- "Before you start" checklist ----------
+let checklistFromHome = false;
+function showChecklist(fromHome) {
+    checklistFromHome = !!fromHome;
+    document.getElementById('ck-dots').classList.toggle('hidden', checklistFromHome);
+    setText('ck-next', checklistFromHome ? 'Done' : 'Finish Setup ➔');
+    navigate('onboarding-goals');
+    refreshChecklist();
+}
+function checklistBack() { navigate(checklistFromHome ? 'dashboard-screen' : 'onboarding-welcome'); }
+function checklistNext() { navigate(checklistFromHome ? 'dashboard-screen' : 'onboarding-ready'); }
+function refreshChecklist() {
+    const usbOn = usbIsConnected();
+    const ready = usbOn && usbReady;
+    const u = document.getElementById('ck-usb'), f = document.getElementById('ck-feeder');
+    if (!u || !f) return;
+    u.classList.toggle('ok', ready);
+    u.classList.toggle('wait', usbOn && !ready);
+    setText('ck-usb-sub', ready ? 'Machine connected and ready.' : usbOn ? 'Connected. Waiting for the machine to get ready…' : 'Not connected. Use Chrome or Edge and a USB data cable.');
+    setText('ck-usb-btn', usbOn ? 'Disconnect' : 'Connect');
+    f.classList.toggle('ok', feederState === 'LOADED');
+    f.classList.toggle('bad', feederState === 'EMPTY');
+    setText('ck-feeder-sub', feederState === 'LOADED' ? 'The sensor sees shuttlecocks. You are ready!' : feederState === 'EMPTY' ? 'No shuttlecocks detected. Please load the feeder.' : 'Connect the machine to check the sensor.');
+}
+
+// ---------- Auto sign-out (shared kiosk) ----------
+function autoSignOut() {
+    if (drillIsRunning()) { resetIdleTimer(); return; }          // never sign out in the middle of a drill
+    if (!authToken) return;                                       // already on the login screen
+    clearInterval(idleClockTimer);
+    document.getElementById('idle-screen').classList.add('hidden');
+    closeSummary(false);
+    logout();
+    toast('Signed out after 10 minutes without use. Please log in again.', 5000);
+    resetIdleTimer();
+}
