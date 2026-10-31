@@ -342,8 +342,10 @@ function prepareClassForm() {
     document.getElementById('continue-class').classList.toggle('hidden', !hasLast);
     document.getElementById('or-divider').classList.toggle('hidden', !hasLast);
     document.getElementById('class-dots').classList.toggle('hidden', classSetupFromDashboard || returningFlow);
-    ['class-program', 'class-section'].forEach(id => { const i = document.getElementById(id); i.value = ''; i.classList.add('hidden'); });
-    document.querySelectorAll('#program-chips .cp-chip, #section-chips .cp-chip').forEach(c => c.classList.remove('on'));
+    const progIn = document.getElementById('class-program');
+    progIn.value = ''; progIn.classList.add('hidden');
+    document.getElementById('class-program-select').selectedIndex = 0;
+    document.getElementById('class-section').selectedIndex = 0;
     document.getElementById('class-error').innerText = '';
     if (hasLast) document.getElementById('continue-class-label').innerText = classLabel(lastClass);
 }
@@ -508,7 +510,7 @@ function saveClassAndContinue() {
     const section = document.getElementById('class-section').value.trim().toUpperCase();
     const year = '2';   // fixed to 2nd Year
     if (!program || !section) {
-        document.getElementById('class-error').innerText = 'Please tap your program and section.';
+        document.getElementById('class-error').innerText = 'Please choose your program and section.';
         return;
     }
     if (!/^[A-Z]$/.test(section)) {
@@ -1937,20 +1939,13 @@ function setFeederEmpty(empty, silent) {
 function dismissEmptyAlert() { document.getElementById('empty-modal').classList.add('hidden'); }
 
 
-// ---------- Class picker: tap buttons ----------
-function pickChip(btn) {
-    const row = btn.parentNode;
-    const input = document.getElementById(row.dataset.target);
-    row.querySelectorAll('.cp-chip').forEach(c => c.classList.remove('on'));
-    btn.classList.add('on');
-    if (btn.dataset.other) { input.value = ''; input.classList.remove('hidden'); input.focus(); }
-    else { input.value = btn.dataset.v; input.classList.add('hidden'); }
+// ---------- Class form: program dropdown ("Other…" shows a text box) ----------
+document.getElementById('class-program-select').addEventListener('change', function () {
+    const input = document.getElementById('class-program');
+    if (this.value === '__other') { input.value = ''; input.classList.remove('hidden'); input.focus(); }
+    else { input.value = this.value; input.classList.add('hidden'); }
     setText('class-error', '');
-}
-document.querySelectorAll('.chip-row').forEach(row => row.addEventListener('click', e => {
-    const b = e.target.closest('.cp-chip');
-    if (b) pickChip(b);
-}));
+});
 
 // ---------- "Before you start" checklist ----------
 let checklistFromHome = false;
