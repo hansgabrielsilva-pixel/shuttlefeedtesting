@@ -175,6 +175,7 @@ function resetLocalState() {
     historyCache = [];
     statsCache = { sessions: 0, shuttles: 0 };
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+    try { loginPadReset(); } catch (e) {}
     setUserName('');
     ['username', 'password', 'new-fullname', 'new-username', 'new-password'].forEach(id => {
         const el = document.getElementById(id);
@@ -463,6 +464,7 @@ async function startIntro(source) {    // after login / sign up
         currentUser = res.user.username;
         applyUserData(res.data);
         setUserName(res.user.fullName, res.user.username);
+        rememberInstructor(res.user.username, res.user.fullName);
         const hour = new Date().getHours();
         const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
         document.getElementById('intro-greeting').innerText = `${part}, Instructor!`;
@@ -1447,6 +1449,11 @@ setInterval(function () {
 
 // Logic to simulate hardware response
 function sendCommand(command) {
+    if (command === 'RESUME' && feederState === 'EMPTY' && Date.now() > resumeOverrideUntil) {   // feeder still empty: ask twice before continuing
+        resumeOverrideUntil = Date.now() + 6000;
+        toast('The feeder looks empty. Load shuttlecocks, or tap RESUME again to continue anyway.', 4500);
+        return;
+    }
     if ((command === 'START' || command === 'RESUME') && !usbIsConnected()) {
         toast('Connect the machine first (press the USB button).');
         return;
@@ -1895,6 +1902,8 @@ resetIdleTimer();
 
 // ---------- No shuttlecocks left (IR sensor) ----------
 let feederEmpty = false;
+let pausedByFeeder = false;                      // the drill was paused automatically because the feeder ran empty
+let resumeOverrideUntil = 0;
 let feederState = null;                          // null (unknown) | 'EMPTY' | 'LOADED'
 let audioCtx = null;
 
@@ -1929,11 +1938,17 @@ function setFeederEmpty(empty, silent) {
     feederEmpty = empty;
     const m = document.getElementById('empty-modal');
     if (empty) {
+        const running = !document.getElementById('btn-pause').classList.contains('hidden');   // a drill is launching right now
+        if (running) { sendCommand('PAUSE'); pausedByFeeder = true; }
+        setText('empty-text', running
+            ? 'The drill has been paused. Please refill the feeder, then tap RESUME.'
+            : 'The sensor cannot see any shuttlecocks in the feeder. Please refill it before continuing.');
         m.classList.remove('hidden');
         beepFor(1500, 880);                                    // 1.5-second beep
     } else {
         m.classList.add('hidden');
-        if (!silent) toast('Shuttlecocks detected. The feeder is loaded.');
+        if (!silent) toast(pausedByFeeder && !document.getElementById('btn-resume').classList.contains('hidden') ? 'Feeder loaded. Tap RESUME to continue the drill.' : 'Shuttlecocks detected. The feeder is loaded.');
+        pausedByFeeder = false;
     }
 }
 function dismissEmptyAlert() { document.getElementById('empty-modal').classList.add('hidden'); }
@@ -1959,6 +1974,7 @@ function showChecklist(fromHome) {
 function checklistBack() { navigate(checklistFromHome ? 'dashboard-screen' : 'onboarding-welcome'); }
 function checklistNext() { navigate(checklistFromHome ? 'dashboard-screen' : 'onboarding-ready'); }
 function refreshChecklist() {
+    try { refreshStatusDots(); } catch (e) {}
     const usbOn = usbIsConnected();
     const ready = usbOn && usbReady;
     const u = document.getElementById('ck-usb'), f = document.getElementById('ck-feeder');
@@ -1983,3 +1999,109 @@ function autoSignOut() {
     toast('Signed out after 10 minutes without use. Please log in again.', 5000);
     resetIdleTimer();
 }
+
+
+// ---------- Header status dots (USB + feeder) ----------
+function buildStatusDots() {
+    document.querySelectorAll('#dashboard-screen .header-center, #mode-screen .header-center, #session-screen .header-center').forEach(c => {
+        const d = document.createElement('div');
+        d.className = 'hdr-status';
+        d.setAttribute('role', 'button');
+        d.innerHTML = '<span class="sdot" data-s="usb"></span><span class="slabel">USB</span><span class="sdot" data-s="feeder"></span><span class="slabel">Feeder</span>';
+        d.addEventListener('click', e => {
+            e.stopPropagation();
+            if (drillIsRunning()) { toast(d.title); return; }          // leaving the control screen would stop the drill
+            showChecklist(true);
+        });
+        c.appendChild(d);
+    });
+    refreshStatusDots();
+}
+function refreshStatusDots() {
+    const usbOn = usbIsConnected(), ready = usbOn && usbReady;
+    const usbV = ready ? 'ok' : usbOn ? 'wait' : 'bad';
+    const feedV = !usbOn ? 'off' : feederState === 'LOADED' ? 'ok' : feederState === 'EMPTY' ? 'bad' : 'wait';
+    const usbT = ready ? 'USB: machine ready' : usbOn ? 'USB: connected, getting ready' : 'USB: not connected';
+    const feedT = feederState === 'LOADED' ? 'Feeder: shuttlecocks loaded' : feederState === 'EMPTY' ? 'Feeder: EMPTY, please refill' : usbOn ? 'Feeder: checking…' : 'Feeder: unknown (connect the machine)';
+    document.querySelectorAll('.sdot[data-s="usb"]').forEach(d => { d.dataset.v = usbV; });
+    document.querySelectorAll('.sdot[data-s="feeder"]').forEach(d => { d.dataset.v = feedV; });
+    document.querySelectorAll('.hdr-status').forEach(d => { d.title = usbT + ' · ' + feedT; });
+}
+try { buildStatusDots(); } catch (e) { console.warn('status dots:', e); }
+
+// ---------- Easier login: recent instructors + PIN pad ----------
+const RECENT_KEY = 'shuttlefeedRecent';
+let pinMode = true;
+function getRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch (e) { return []; } }
+function saveRecent(list) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 4))); } catch (e) {} }
+function rememberInstructor(u, name) {
+    if (!u) return;
+    saveRecent([{ u, n: name || u }].concat(getRecent().filter(r => r.u !== u)));
+    renderRecent();
+}
+function forgetInstructor(u) { saveRecent(getRecent().filter(r => r.u !== u)); renderRecent(); }
+function renderRecent() {
+    const box = document.getElementById('recent-box'), row = document.getElementById('recent-row');
+    if (!box || !row) return;
+    const list = getRecent();
+    row.innerHTML = '';
+    list.forEach(r => {
+        const b = document.createElement('div');
+        b.className = 'recent-card'; b.setAttribute('role', 'button'); b.tabIndex = 0;
+        const av = document.createElement('span'); av.className = 'recent-av'; av.textContent = (r.n || r.u).trim().charAt(0).toUpperCase();
+        const tx = document.createElement('span'); tx.className = 'recent-tx';
+        const nm = document.createElement('b'); nm.textContent = r.n || r.u;
+        const id = document.createElement('small'); id.textContent = r.u;
+        tx.appendChild(nm); tx.appendChild(id);
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'recent-x'; x.textContent = '×'; x.title = 'Remove from this list'; x.setAttribute('aria-label', 'Remove ' + (r.n || r.u));
+        x.addEventListener('click', e => { e.stopPropagation(); forgetInstructor(r.u); });
+        const pick = () => pickRecent(r.u, b);
+        b.addEventListener('click', pick);
+        b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+        b.append(av, tx, x);
+        row.appendChild(b);
+    });
+    box.classList.toggle('hidden', list.length === 0);
+}
+function pickRecent(u, card) {
+    document.querySelectorAll('.recent-card').forEach(c => c.classList.remove('on'));
+    card.classList.add('on');
+    document.getElementById('username').value = u;
+    const pw = document.getElementById('password');
+    pw.value = '';
+    pw.focus();
+}
+function setPinMode(on) {
+    pinMode = on;
+    const pw = document.getElementById('password');
+    pw.inputMode = on ? 'none' : 'text';
+    document.getElementById('pin-switch').textContent = on ? 'Use keyboard instead' : 'Use PIN pad instead';
+    document.getElementById('pin-pad').classList.toggle('hidden', !on || document.activeElement !== pw);
+    if (!on) pw.focus();
+}
+function togglePinPad() { setPinMode(!pinMode); if (pinMode) document.getElementById('password').focus(); }
+function loginPadReset() {
+    pinMode = true;
+    const pw = document.getElementById('password');
+    if (pw) pw.inputMode = 'none';
+    const sw = document.getElementById('pin-switch'); if (sw) sw.textContent = 'Use keyboard instead';
+    const pad = document.getElementById('pin-pad'); if (pad) pad.classList.add('hidden');
+    document.querySelectorAll('.recent-card').forEach(c => c.classList.remove('on'));
+    renderRecent();
+}
+(function initLoginHelpers() {
+    const pw = document.getElementById('password'), pad = document.getElementById('pin-pad'), user = document.getElementById('username');
+    if (!pw || !pad) return;
+    pw.addEventListener('focus', () => { if (pinMode) pad.classList.remove('hidden'); });
+    user.addEventListener('focus', () => pad.classList.add('hidden'));
+    pad.addEventListener('mousedown', e => e.preventDefault());            // keep the focus on the password box
+    pad.addEventListener('click', e => {
+        const b = e.target.closest('button[data-k]');
+        if (!b) return;
+        const k = b.dataset.k;
+        if (k === 'back') pw.value = pw.value.slice(0, -1);
+        else if (k === 'clear') pw.value = '';
+        else if (pw.value.length < 20) pw.value += k;
+    });
+    renderRecent();
+})();
