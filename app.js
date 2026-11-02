@@ -1714,6 +1714,8 @@ setInterval(tickClock, 1000);
 // ============================================================
 let usbPort = null, usbWriter = null, usbReader = null, usbLoop = null;
 let usbKeepAlive = null, usbClosing = false, usbReady = false;
+let usbManualOff = false;          // the user pressed Disconnect on purpose: do not reconnect by itself
+let usbAutoBusy = false;
 const usbEncoder = new TextEncoder();
 
 function usbIsConnected() { return !!(usbPort && usbWriter); }
@@ -1765,13 +1767,24 @@ async function readUsbLoop() {
 }
 
 async function connectUsb() {
-    if (usbPort) { await disconnectUsb(); return; }
+    if (usbPort) { usbManualOff = true; await disconnectUsb(); return; }      // pressed Disconnect: stay disconnected
     if (!('serial' in navigator)) {
         toast('This browser cannot use USB. Use Chrome or Edge on a laptop.');
         return;
     }
+    usbManualOff = false;
     try {
-        usbPort = await navigator.serial.requestPort();      // the browser shows a picker (choose the Arduino / COM port)
+        const port = await navigator.serial.requestPort();   // the browser shows a picker (choose the Arduino / COM port)
+        await openUsbPort(port, false);
+    } catch (e) {
+        if (e && e.name !== 'NotFoundError') toast('Could not open USB: ' + e.message);   // NotFoundError = you closed the picker
+    }
+}
+
+// Opens a port and starts talking to the Arduino. quiet = automatic reconnect (no error messages).
+async function openUsbPort(port, quiet) {
+    usbPort = port;
+    try {
         await usbPort.open({ baudRate: 115200 });
         usbClosing = false; usbReady = false;
         usbWriter = usbPort.writable.getWriter();
@@ -1779,10 +1792,30 @@ async function connectUsb() {
         setUsbUi('🔌 USB connected - waiting for machine...', true);
         usbKeepAlive = setInterval(() => { usbSend('PING').catch(() => {}); }, 1000);
         usbSend('PING').catch(() => {});
-        toast('USB connected');
+        toast(quiet ? 'Machine connected automatically' : 'USB connected');
+        return true;
     } catch (e) {
         usbPort = null; usbWriter = null;
-        if (e && e.name !== 'NotFoundError') toast('Could not open USB: ' + e.message);   // NotFoundError = you closed the picker
+        if (!quiet && e) toast('Could not open USB: ' + e.message);
+        return false;
+    }
+}
+
+// Reconnects to the Arduino the browser already has permission for (granted once with the picker), so nobody has to tap
+// "Connect machine" after a reboot, a page refresh or a bumped cable.
+async function autoConnectUsb() {
+    if (!('serial' in navigator) || usbPort || usbManualOff || usbAutoBusy) return false;
+    usbAutoBusy = true;
+    try {
+        const ports = await navigator.serial.getPorts();
+        const arduinos = ports.filter(p => { try { return p.getInfo().usbVendorId === 0x2341; } catch (e) { return false; } });
+        const port = arduinos.length === 1 ? arduinos[0] : (ports.length === 1 ? ports[0] : null);   // never guess between several devices
+        if (!port) return false;
+        return await openUsbPort(port, true);
+    } catch (e) {
+        return false;
+    } finally {
+        usbAutoBusy = false;
     }
 }
 
@@ -1811,6 +1844,9 @@ if ('serial' in navigator) {
         toast('USB cable disconnected. The machine stops by itself.');
         setFeederEmpty(false, true);
     });
+    navigator.serial.addEventListener('connect', () => { setTimeout(autoConnectUsb, 1200); });   // cable plugged back in: give the Arduino a moment, then reconnect
+    setTimeout(autoConnectUsb, 600);                                                               // page just opened
+    setInterval(() => { if (document.visibilityState === 'visible') autoConnectUsb(); }, 10000);  // Arduino was still starting up, or the port was busy
 }
 
 // Sends the pressed button straight to the Arduino through the cable
