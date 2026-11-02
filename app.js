@@ -83,6 +83,9 @@ let lastSession = null;                   // same promise, kept after the sessio
 let shotLog = [];                         // one entry per launched shuttle: null (not scored) | 'hit' | 'miss'
 let resultsSaveTimer = null;
 let pendingFinish = Promise.resolve();    // resolves when the last session has been saved
+let serverOk = null;                      // null = unknown, true = the last request reached the server, false = it did not
+let sessionDraft = null;                  // the drill that is running right now (kept in the browser in case the page closes)
+let syncPromise = null;
 
 // --- Small on-screen message (replaces alert()) ---
 function toast(msg, ms = 3200) {
@@ -128,13 +131,20 @@ async function api(action, payload = {}) {
     let data;
     try {
         data = await Promise.race([callServer({ token: authToken, ...payload, action }), timeout]);
+    } catch (e) {
+        e.network = true;                 // could not reach the server (offline, slow or blocked)
+        setServerOk(false);
+        throw e;
     } finally {
         clearTimeout(timer);
     }
+    setServerOk(true);
     if (!data || typeof data !== 'object') throw new Error('Unexpected response from the server.');
     if (!data.ok) {
         if (data.code === 'AUTH' && authToken) handleAuthExpired();
-        throw new Error(data.error || 'Request failed.');
+        const err = new Error(data.error || 'Request failed.');
+        err.code = data.code;
+        throw err;
     }
     return data;
 }
@@ -190,11 +200,11 @@ function handleAuthExpired() {
 }
 
 function logout() {
-    const token = authToken;
+    const token = authToken, user = currentUser;
     navigate('login-screen');                 // also stops the machine and closes any running session
     const closing = pendingFinish;
     resetLocalState();
-    if (token) closing.then(() => api('logout', { token })).catch(() => {});
+    if (token) closing.then(() => syncPending({ token, username: user })).catch(() => {}).then(() => api('logout', { token })).catch(() => {});
 }
 
 function setText(id, text) {
@@ -266,6 +276,12 @@ function refreshDashboard() {
 }
 
 // --- Session logging (saved to the Sessions sheet) ---
+function makeCid() {
+    const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    for (let i = 0; i < 10; i++) id += c[Math.floor(Math.random() * c.length)];
+    return id;
+}
 function beginLoggedSession(intervalSec) {
     if (activeSession) finishLoggedSession('STOPPED');
     resetShotLog();                      // a fresh START begins a fresh score sheet
@@ -275,33 +291,145 @@ function beginLoggedSession(intervalSec) {
         angle: parseInt(document.getElementById('v-ang').value) || 0
     };
     refreshDashboard();
-    activeSession = api('startSession', {
-        cls: classLabel(currentClass), mode: lastDrill.mode, range: lastDrill.range,
-        direction: lastDrill.direction, angle: lastDrill.angle,
-        interval: intervalSec, planned: totalShuttles
-    }).then(r => r.id).catch(e => { toast('Session not saved: ' + e.message); return null; });
+    // The record is written once, when the drill ends (works offline too). Meanwhile a copy is kept in the browser.
+    sessionDraft = {
+        id: makeCid(), username: currentUser, cls: classLabel(currentClass), mode: lastDrill.mode, range: lastDrill.range,
+        direction: lastDrill.direction, angle: lastDrill.angle, interval: intervalSec, planned: totalShuttles,
+        launched: 0, hits: 0, misses: 0, startedAt: Date.now(), updatedAt: Date.now()
+    };
+    saveDraft();
+    activeSession = Promise.resolve(sessionDraft.id);
     lastSession = activeSession;
 }
-
-// Called on STOP / completion. Saves how many shuttles were ACTUALLY launched.
 function finishLoggedSession(status) {
     if (!activeSession) return;
-    const pending = activeSession;
-    const token = authToken;
-    const launched = shuttlesLaunched;
-    const { hits, misses } = shotCounts();
+    const draft = sessionDraft;
+    sessionDraft = null;
+    clearDraft();
     activeSession = null;
-    pendingFinish = (async () => {
-        const id = await pending;
-        if (!id) return;
-        try {
-            const r = await api('endSession', { token, id, launched, status, hits, misses });
-            if (token === authToken) { applyUserData(r.data); refreshDashboard(); }
-        } catch (e) {
-            toast('Could not save the session: ' + e.message);
-        }
-    })();
+    if (!draft) return;
+    const launched = shuttlesLaunched;
+    if (launched <= 0) { lastSession = null; return; }          // nothing was launched: nothing to record
+    const { hits, misses } = shotCounts();
+    const rec = Object.assign(draft, { launched, status, hits, misses, endedAt: Date.now() });
+    pendingFinish = submitSessionRecord(rec);
 }
+
+// ---------- Offline-safe saving: queue in the browser, upload when the server answers ----------
+const PENDING_KEY = 'shuttlefeedPending', DRAFT_KEY = 'shuttlefeedDraft';
+function loadPending() { try { return JSON.parse(localStorage.getItem(PENDING_KEY)) || []; } catch (e) { return []; } }
+function storePending(list) {
+    try { localStorage.setItem(PENDING_KEY, JSON.stringify(list.slice(-100))); } catch (e) {}
+    try { refreshStatusDots(); } catch (e) {}
+}
+function addPending(rec) { const l = loadPending(); l.push(Object.assign({ qid: makeCid(), tries: 0 }, rec)); storePending(l); }
+function removePending(qid) { storePending(loadPending().filter(i => i.qid !== qid)); }
+function updatePendingItem(item) { storePending(loadPending().map(i => i.qid === item.qid ? item : i)); }
+function pendingCount() { const u = currentUser; return loadPending().filter(i => !u || i.username === u).length; }
+function updatePendingScores(id, hits, misses) {              // true when the record is still waiting in the queue
+    const l = loadPending();
+    const it = l.find(i => i.id === id && !i.kind);
+    if (!it) return false;
+    it.hits = hits; it.misses = misses;
+    storePending(l);
+    return true;
+}
+function queueScoreFix(id, hits, misses) {
+    const l = loadPending().filter(i => !(i.kind === 'scores' && i.id === id));
+    l.push({ qid: makeCid(), tries: 0, kind: 'scores', id, username: currentUser, hits, misses });
+    storePending(l);
+}
+function saveDraft() { try { if (sessionDraft) { sessionDraft.updatedAt = Date.now(); localStorage.setItem(DRAFT_KEY, JSON.stringify(sessionDraft)); } } catch (e) {} }
+function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+function recoverDraft() {                                        // the page was closed in the middle of a drill
+    try {
+        const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+        if (!d || d.username !== currentUser) return;
+        clearDraft();
+        if (d.launched > 0) {
+            addPending(Object.assign(d, { status: 'STOPPED', endedAt: d.updatedAt || Date.now() }));
+            toast('An interrupted drill was saved.');
+            syncPending();
+        }
+    } catch (e) {}
+}
+function addLocalHistory(rec) {                                  // shows the drill in "Recent sessions" right away, even offline
+    if (rec.username !== currentUser) return;
+    historyCache = [{ id: rec.id, ts: rec.startedAt, cls: rec.cls, mode: rec.mode, range: rec.range, count: rec.launched,
+        planned: rec.planned, hits: rec.hits, misses: rec.misses, status: rec.status, pending: true }].concat(historyCache);
+    statsCache = { sessions: (statsCache.sessions || 0) + 1, shuttles: (statsCache.shuttles || 0) + rec.launched };
+    refreshDashboard();
+}
+function patchLocalHistory(id, hits, misses) {
+    const h = historyCache.find(x => x.id === id);
+    if (h) { h.hits = hits; h.misses = misses; }
+}
+async function submitSessionRecord(rec) {
+    addPending(rec);                                             // queue first, so nothing is lost if the server cannot be reached
+    addLocalHistory(rec);
+    await syncPending();
+    if (loadPending().some(i => i.id === rec.id)) toast('Saved on this kiosk. It will upload when the connection is back.', 4500);
+}
+function syncPending(opts) {
+    if (syncPromise) return syncPromise;                         // one upload run at a time
+    syncPromise = runSync(opts || {}).catch(() => {}).then(() => { syncPromise = null; try { refreshStatusDots(); } catch (e) {} });
+    return syncPromise;
+}
+async function runSync(opts) {
+    const user = opts.username || currentUser, token = opts.token || authToken;
+    if (!user || !token) return;
+    const tried = new Set();
+    for (;;) {
+        const item = loadPending().find(i => i.username === user && !tried.has(i.qid));
+        if (!item) break;
+        tried.add(item.qid);
+        try {
+            const r = await uploadPending(item, token);
+            removePending(item.qid);
+            if (r && r.data && user === currentUser && token === authToken) { applyUserData(r.data); refreshDashboard(); }
+        } catch (e) {
+            if (e.network || e.code === 'AUTH') break;           // still offline, or the login ended: keep it for later
+            item.tries = (item.tries || 0) + 1;
+            if (item.tries >= 5) { removePending(item.qid); toast('A saved drill could not be uploaded: ' + e.message, 6000); }
+            else updatePendingItem(item);
+        }
+    }
+}
+async function uploadPending(item, token) {
+    if (item.kind === 'scores') return api('saveResults', { token, id: item.id, hits: item.hits, misses: item.misses });
+    try {
+        return await api('logSession', {
+            token, id: item.id, cls: item.cls, mode: item.mode, range: item.range, direction: item.direction, angle: item.angle,
+            interval: item.interval, planned: item.planned, launched: item.launched, status: item.status,
+            hits: item.hits, misses: item.misses, startedAt: item.startedAt, endedAt: item.endedAt
+        });
+    } catch (e) {
+        if (e.network || e.message !== 'Unknown action.') throw e;
+        // Code.gs has not been updated yet: use the older two-step save
+        const st = await api('startSession', { token, cls: item.cls, mode: item.mode, range: item.range, direction: item.direction, angle: item.angle, interval: item.interval, planned: item.planned });
+        return api('endSession', { token, id: st.id, launched: item.launched, status: item.status, hits: item.hits, misses: item.misses });
+    }
+}
+async function pingServer() {
+    try {
+        await Promise.race([callServer({ action: 'ping' }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+        return true;                                              // any answer, even an error, means the server is reachable
+    } catch (e) { return false; }
+}
+function setServerOk(v) {
+    if (serverOk === v) return;
+    serverOk = v;
+    try { refreshStatusDots(); } catch (e) {}
+    if (v && authToken && pendingCount() > 0) syncPending();
+}
+window.addEventListener('online', async () => { if (await pingServer()) setServerOk(true); });
+window.addEventListener('offline', () => setServerOk(false));
+setInterval(async () => {
+    if (!authToken) return;
+    if (serverOk === false) { if (await pingServer()) setServerOk(true); }
+    else if (pendingCount() > 0) syncPending();
+}, 20000);
+
 
 // Loads the last drill's settings and opens the control screen (instructor still presses START)
 function quickStart() {
@@ -465,6 +593,8 @@ async function startIntro(source) {    // after login / sign up
         applyUserData(res.data);
         setUserName(res.user.fullName, res.user.username);
         rememberInstructor(res.user.username, res.user.fullName);
+        recoverDraft();
+        if (pendingCount() > 0) syncPending();
         const hour = new Date().getHours();
         const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
         document.getElementById('intro-greeting').innerText = `${part}, Instructor!`;
@@ -779,8 +909,8 @@ function renderResults() {
     }
 }
 
-// Saves the latest scores to the Sessions sheet (waits 0.7 s so quick taps are sent together).
-// Works during the session AND after it ends, so a wrong call can still be fixed.
+// Saves the latest scores (waits 0.7 s so quick taps are sent together).
+// During a drill the scores travel with the whole record at the end; after it, a wrong call can still be fixed.
 function scheduleResultsSave() {
     if (!lastSession) return;
     const pending = lastSession;
@@ -790,11 +920,15 @@ function scheduleResultsSave() {
     resultsSaveTimer = setTimeout(async () => {
         const id = await pending;
         if (!id || token !== authToken) return;
+        if (sessionDraft && sessionDraft.id === id) { sessionDraft.hits = hits; sessionDraft.misses = misses; saveDraft(); return; }
+        patchLocalHistory(id, hits, misses);
+        if (updatePendingScores(id, hits, misses)) { syncPending(); return; }       // the record has not been uploaded yet
         try {
             const r = await api('saveResults', { id, hits, misses });
             if (token === authToken) { historyCache = r.data.history; statsCache = r.data.stats; refreshDashboard(); }
         } catch (e) {
-            toast('Results not saved: ' + e.message);
+            if (e.network) { queueScoreFix(id, hits, misses); toast('Offline: the score change will upload later.'); }
+            else toast('Results not saved: ' + e.message);
         }
     }, 700);
 }
@@ -917,6 +1051,7 @@ const INFO_DOCS = {
         groups: [
             { name: 'Getting started', items: [
                 { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). After several wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
+                { ic: '📡', q: 'What if the internet is down?', a: '<p>You can keep running drills: the machine is controlled over the USB cable, not the internet. Each finished drill is saved on this kiosk and uploaded automatically when the connection is back. The <b>Online / Offline</b> dot on the Home screen shows the status and how many drills are waiting. Logging in and signing up still need the internet.</p>' },
                 { ic: '🚪', q: 'Why was I signed out?', a: '<p>To keep your account safe on a shared kiosk, SHUTTLEFEED signs you out after about <b>10 minutes</b> without use. A drill that is running is never interrupted. Log in again; your class, scores and history are saved.</p>' },
                 { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
                 { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class card</b> on the Home screen, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
@@ -1431,6 +1566,7 @@ function resetButtons() {
 
 function updateCounterDisplay() {
     totalShuttles = getCount();
+    if (sessionDraft) { sessionDraft.launched = shuttlesLaunched; saveDraft(); }
     document.getElementById('launch-counter').innerText = `${shuttlesLaunched} / ${totalShuttles}`;
 
     // Update progress ring (circumference = 326.7)
@@ -1553,6 +1689,8 @@ setInterval(tickClock, 1000);
         currentClass = lastClass;
         setUserName(r.user.fullName, r.user.username);
         navigate('dashboard-screen');
+        recoverDraft();
+        if (pendingCount() > 0) syncPending();
     } catch (e) {
         if (authToken === t) { authToken = null; try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} }
     }
@@ -2003,17 +2141,17 @@ function autoSignOut() {
 
 // ---------- Header status dots (USB + feeder) ----------
 function buildStatusDots() {
-    document.querySelectorAll('#dashboard-screen .header-center, #mode-screen .header-center, #session-screen .header-center').forEach(c => {
-        const d = document.createElement('div');
-        d.className = 'hdr-status';
+    document.querySelectorAll('#home-status, #mode-screen .header-center, #session-screen .header-center').forEach(c => {
+        const d = c.id === 'home-status' ? c : document.createElement('div');
+        if (c.id !== 'home-status') d.className = 'hdr-status';
         d.setAttribute('role', 'button');
-        d.innerHTML = '<span class="sdot" data-s="usb"></span><span class="slabel">USB</span><span class="sdot" data-s="feeder"></span><span class="slabel">Feeder</span>';
+        d.innerHTML = '<span class="sdot" data-s="usb"></span><span class="slabel">USB</span><span class="sdot" data-s="feeder"></span><span class="slabel">Feeder</span><span class="sdot" data-s="net"></span><span class="slabel" data-s="net">Online</span>';
         d.addEventListener('click', e => {
             e.stopPropagation();
             if (drillIsRunning()) { toast(d.title); return; }          // leaving the control screen would stop the drill
             showChecklist(true);
         });
-        c.appendChild(d);
+        if (c.id !== 'home-status') c.appendChild(d);
     });
     refreshStatusDots();
 }
@@ -2023,9 +2161,16 @@ function refreshStatusDots() {
     const feedV = !usbOn ? 'off' : feederState === 'LOADED' ? 'ok' : feederState === 'EMPTY' ? 'bad' : 'wait';
     const usbT = ready ? 'USB: machine ready' : usbOn ? 'USB: connected, getting ready' : 'USB: not connected';
     const feedT = feederState === 'LOADED' ? 'Feeder: shuttlecocks loaded' : feederState === 'EMPTY' ? 'Feeder: EMPTY, please refill' : usbOn ? 'Feeder: checking…' : 'Feeder: unknown (connect the machine)';
+    const online = serverOk === null ? navigator.onLine : serverOk;
+    const n = pendingCount();
+    const netV = !online ? 'bad' : n > 0 ? 'wait' : 'ok';
+    const netL = !online ? (n ? 'Offline · ' + n + ' waiting' : 'Offline') : n > 0 ? 'Syncing · ' + n : 'Online';
+    const netT = !online ? 'Server: offline. Drills are saved on this kiosk and upload when the connection is back.' : n > 0 ? 'Server: uploading ' + n + ' saved drill' + (n > 1 ? 's' : '') : 'Server: connected';
     document.querySelectorAll('.sdot[data-s="usb"]').forEach(d => { d.dataset.v = usbV; });
     document.querySelectorAll('.sdot[data-s="feeder"]').forEach(d => { d.dataset.v = feedV; });
-    document.querySelectorAll('.hdr-status').forEach(d => { d.title = usbT + ' · ' + feedT; });
+    document.querySelectorAll('.sdot[data-s="net"]').forEach(d => { d.dataset.v = netV; });
+    document.querySelectorAll('.slabel[data-s="net"]').forEach(d => { d.textContent = netL; });
+    document.querySelectorAll('.hdr-status').forEach(d => { d.title = usbT + ' · ' + feedT + ' · ' + netT; });
 }
 try { buildStatusDots(); } catch (e) { console.warn('status dots:', e); }
 
