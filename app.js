@@ -1622,6 +1622,7 @@ function sendCommand(command) {
 
         clearInterval(simulationTimer);
         simulationTimer = setInterval(() => {
+            sendFeed();                       // MG90S pusher: push one shuttle to the wheels
             shuttlesLaunched++;
             if (currentMode === 'Smash' && smashDir === 'MIXED') {          // this shuttle goes left or right
                 const side = mixedQueue.shift() || (Math.random() < 0.5 ? 'LEFT' : 'RIGHT');
@@ -1816,7 +1817,13 @@ function sendToMachine(command) {
 // ============================================================
 //  DIRECTION SERVO (MG996R on PCA9685 channel 0)
 // ============================================================
-const SERVO_MOVE_DELAY_MS = 600;   // wait after a shot before the servo moves to the next side
+const SERVO_MOVE_DELAY_MS = 800;   // wait after a shot (the pusher needs about 0.7 s) before the aim servo moves to the next side
+
+// Tells the Arduino to push ONE shuttle to the wheels (MG90S pusher on PCA9685 channel 1)
+function sendFeed() {
+    if (!usbIsConnected()) return;
+    usbSend('FEED').catch(() => {});
+}
 
 // Tells the Arduino where to aim: 'LEFT' | 'RIGHT' | 'CENTER'
 function sendDirection(side) {
