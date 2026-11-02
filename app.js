@@ -166,6 +166,7 @@ function applyImages() {
 function applyUserData(d) {
     d = d || {};
     lastDrill = { ...DEFAULT_DRILL, ...(d.lastDrill || {}) };
+    if (normMode(lastDrill.mode) === 'Service' && lastDrill.range === 'MEDIUM') lastDrill.range = 'SHORT';   // Service has no Medium range
     lastClass = d.lastClass || null;
     historyCache = d.history || [];
     statsCache = d.stats || { sessions: 0, shuttles: 0 };
@@ -757,10 +758,15 @@ function popEl(id) {
 function setRange(v) {
     if (blockedWhileLocked()) return;
     const s = String(v).toUpperCase();
-    selectedRange = RANGE_LABELS[s] ? s : (s === 'LOW' ? 'SHORT' : s === 'HIGH' ? 'LONG' : 'MEDIUM');
+    let r = RANGE_LABELS[s] ? s : (s === 'LOW' ? 'SHORT' : s === 'HIGH' ? 'LONG' : 'MEDIUM');
+    if (currentMode === 'Service' && r === 'MEDIUM') r = 'SHORT';          // Service has only Short and Long
+    selectedRange = r;
+    showRange();
+    popEl('range-name');
+}
+function showRange() {
     document.querySelectorAll('#range-opts button').forEach(b => b.classList.toggle('on', b.dataset.r === selectedRange));
     setText('range-name', RANGE_LABELS[selectedRange]);
-    popEl('range-name');
     setText('current-speed-display', RANGE_LABELS[selectedRange]);
 }
 function updateSliders() {
@@ -1527,6 +1533,10 @@ function applyModeLayout() {
     document.getElementById('free-inputs').classList.toggle('hidden', locked);      // interval + shuttles steppers
     document.getElementById('locked-inputs').classList.toggle('hidden', !locked);   // fixed 3 sec / 24 shuttles
     setText('current-angle-label', (smash || fixed) ? 'Direction' : 'Angle');
+    const service = currentMode === 'Service';                 // Service: Short and Long only (no Medium)
+    document.querySelector('#range-opts button[data-r="MEDIUM"]').classList.toggle('hidden', service);
+    document.getElementById('range-opts').classList.toggle('two', service);
+    if (service && selectedRange === 'MEDIUM') { selectedRange = 'SHORT'; showRange(); }
     if (fixed) {
         setAim('v', fixed.angle);
         setPosition(+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT');
@@ -2148,7 +2158,7 @@ function autoSignOut() {
 
 // ---------- Header status dots (USB + feeder) ----------
 function buildStatusDots() {
-    document.querySelectorAll('#home-status, #mode-screen .header-center, #session-screen .header-center').forEach(c => {
+    document.querySelectorAll('#home-status').forEach(c => {              // the dots live on the Home screen only
         const d = c.id === 'home-status' ? c : document.createElement('div');
         if (c.id !== 'home-status') d.className = 'hdr-status';
         d.setAttribute('role', 'button');
