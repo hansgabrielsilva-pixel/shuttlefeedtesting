@@ -1081,3 +1081,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .home-status .sdot { box-shadow: 0 0 0 2px rgba(0,0,0,0.10); }
 .home-status .sdot[data-v="bad"] { animation: sdotPulse 1.2s ease-in-out infinite; }
 .hdr-status .slabel[data-s="net"] { white-space: nowrap; }
+
+/* === Hide every scrollbar (scrolling still works with touch, wheel and drag) === */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.sidebar, .history-box ul { overflow-x: hidden; }
