@@ -118,7 +118,7 @@ function callServer(req) {
             // text/plain keeps this a "simple" request, so the browser skips the CORS preflight Apps Script can't answer
             fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) })
                 .then(r => r.json()).then(resolve)
-                .catch(() => reject(new Error('Cannot reach the server. Check the Wi-Fi connection.')));
+                .catch(() => reject(new Error('Cannot reach the server. Check the internet connection.')));
         } else {
             reject(new Error('Not connected to the server.'));
         }
@@ -1056,20 +1056,21 @@ const INFO_DOCS = {
         lead: 'Stuck? Tap a question below. If your problem is not listed, contact the support team.',
         groups: [
             { name: 'Getting started', items: [
-                { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). After several wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
-                { ic: '📡', q: 'What if the internet is down?', a: '<p>You can keep running drills: the machine is controlled over the USB cable, not the internet. Each finished drill is saved on this kiosk and uploaded automatically when the connection is back. The <b>Online / Offline</b> dot on the Home screen shows the status and how many drills are waiting. Logging in and signing up still need the internet.</p>' },
+                { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). On the on-screen keyboard, the <b>Enter</b> key also logs you in. After 5 wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
+                { ic: '📡', q: 'What if the internet is down?', a: '<p>You can keep running drills: the machine is controlled over the USB cable, not the internet. Each finished drill is saved on this kiosk and uploaded automatically when the connection is back. The status dots at the top of the Home screen (<b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>) show the status, and how many drills are waiting to upload. Logging in and signing up still need the internet.</p>' },
                 { ic: '🚪', q: 'Why was I signed out?', a: '<p>To keep your account safe on a shared kiosk, SHUTTLEFEED signs you out after about <b>10 minutes</b> without use. A drill that is running is never interrupted. Log in again; your class, scores and history are saved.</p>' },
                 { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
                 { ic: '🎓', q: 'How do I change my class?', a: '<p>Tap the <b>class card</b> on the Home screen, or open your profile (top left) and tap <b>Change</b> beside Current class.</p>' }
             ]},
             { name: 'Feeder and connection', items: [
-                { ic: '📶', q: 'The feeder does not respond', a: '<ol><li>Make sure the feeder is powered on and the Arduino UNO R4 WiFi is running.</li><li>Check the <b>Wi-Fi status</b> in Settings shows Connected.</li><li>Confirm the phone or laptop is on the <b>same Wi-Fi network</b> as the feeder.</li><li>If it still fails, restart the feeder and reload the page.</li></ol>' },
-                { ic: '🔌', q: '"Connect machine (USB)" does not work', a: '<ul><li>USB connection works in <b>Chrome or Edge</b> on a laptop. Other browsers cannot use it.</li><li>Use a USB <b>data</b> cable (some cables only charge).</li><li>Tap the button, choose the Arduino in the list, and wait for it to say connected.</li><li>If the browser blocks USB access, open the page in its own tab instead of inside an embedded frame.</li></ul>' }
+                { ic: '📶', q: 'The feeder does not respond', a: '<ol><li>Make sure the feeder is powered on and the Arduino is running.</li><li>Check that the <b>USB cable</b> is plugged firmly into the kiosk tablet and the feeder.</li><li>Tap <b>Connect machine (USB)</b> and choose the Arduino.</li><li>If it still fails, restart the feeder and refresh the screen.</li></ol>' },
+                { ic: '🔌', q: '"Connect machine (USB)" does not work', a: '<ul><li>USB connection works in <b>Chrome or Edge</b> on the kiosk tablet. Other browsers cannot use it.</li><li>Use a USB <b>data</b> cable (some cables only charge).</li><li>Tap the button, choose the Arduino in the list, and wait for it to say connected.</li><li>If the tablet blocks USB access, open SHUTTLEFEED directly in Chrome or Edge instead of inside another app.</li></ul>' }
             ]},
             { name: 'During a drill', items: [
                 { ic: '🔒', q: 'Why are my settings locked?', a: '<p>Launch settings are locked while a drill is running so they cannot change mid-session. Press <b>STOP</b> to unlock them.</p>' },
                 { ic: '🏸', q: 'The shuttles are not launching or are uneven', a: '<ul><li>Check there are shuttles in the feeder and nothing is jammed.</li><li>Try a different <b>range</b>; each range uses a different motor speed.</li><li>Motor vibration or noise can shift the aim, so make sure the feeder is on a stable surface.</li></ul>' },
-                { ic: '📊', q: 'My scores are missing from History', a: '<p>Scores are saved when a session ends. Press <b>STOP</b> to finish the drill, then open <b>History</b> in the session screen. The last 20 sessions are shown.</p>' }
+                { ic: '⏸️', q: 'The drill paused or stopped by itself', a: '<ul><li><b>Feeder empty</b>: when the sensor cannot see any shuttlecocks, the drill pauses, a beep sounds and an alert appears. Refill the feeder, then tap <b>RESUME</b>.</li><li><b>Machine stopped</b>: if the USB cable comes out, or the machine stops hearing from the screen, the motors stop by themselves. Check the cable, reconnect with <b>Connect machine (USB)</b> and start again.</li></ul>' },
+                { ic: '📊', q: 'A drill is missing from History', a: '<p>A drill is saved when it ends. Let it finish or press <b>STOP</b>, then open <b>History</b> on the session screen. The last 20 sessions are shown. If the kiosk was offline, the drill still appears and uploads when the connection is back.</p>' }
             ]}
         ],
         showContact: true,
@@ -1086,13 +1087,13 @@ const INFO_DOCS = {
                 { ic: '📜', q: 'Acceptance of terms', a: '<p>By creating an account or logging in you agree to these terms. If you do not agree, please do not use the system.</p>' },
                 { ic: '👤', q: 'Who may use it', a: '<p>SHUTTLEFEED is intended for <b>authorized instructors</b> and project personnel of CvSU Carmona. You are responsible for keeping your password private and for all activity under your account.</p>' },
                 { ic: '✅', q: 'Acceptable use', a: '<ul><li>Use the system only for badminton training and teaching.</li><li>Do not try to break into other accounts, overload the server or tamper with the hardware.</li><li>Do not share your account with students or other people.</li></ul>' },
-                { ic: '🛠️', q: 'Availability', a: '<p>The system is a prototype provided as-is. It may be updated, paused or changed without notice, and it depends on Wi-Fi/USB, the feeder hardware and Google services being available.</p>' }
+                { ic: '🛠️', q: 'Availability', a: '<p>The system is a prototype provided as-is. It may be updated, paused or changed without notice, and it depends on the internet connection, the USB connection, the feeder hardware and Google services being available.</p>' }
             ]},
             { name: 'Privacy policy', items: [
-                { ic: '🗂️', q: 'What we store', a: '<ul><li>Your <b>name</b>, <b>Instructor ID</b> and last login time.</li><li>Your <b>class</b> entries (program, year, section).</li><li>Your <b>session records</b>: date, mode, range, direction, shuttle count and hit/miss results.</li></ul>' },
+                { ic: '🗂️', q: 'What we store', a: '<ul><li>Your <b>name</b>, <b>Instructor ID</b> and last login time.</li><li>Your <b>class</b> entries (program, year, section).</li><li>Your <b>session records</b>: date, mode, range, direction, shuttle count and, when recorded, hit/miss results.</li></ul>' },
                 { ic: '🔐', q: 'How it is protected', a: '<p>Passwords are never stored as plain text; they are <b>salted and hashed</b>. Logins use a temporary token that expires after 12 hours, and repeated failed logins are temporarily blocked.</p><p>Data is kept in the project\'s Google Sheet and is accessible only to the project administrators.</p>' },
                 { ic: '🎯', q: 'How it is used', a: '<p>Your data is used only to run the app: showing your history and statistics, and for academic evaluation of the project. It is <b>not sold or shared</b> for advertising.</p>' },
-                { ic: '🧹', q: 'Your choices', a: '<p>You may ask the administrators to correct or delete your account and records. Your theme preference (light/dark) is saved only on your own device.</p>' }
+                { ic: '🧹', q: 'Your choices', a: '<p>You may ask the administrators to correct or delete your account and records. Your theme preference (light/dark) is saved only on this kiosk.</p>' }
             ]},
             { name: 'Safety policy', items: [
                 { ic: '⚠️', q: 'Hardware and court safety', a: '<div class="info-note warn"><b>The feeder launches shuttlecocks at speed and uses spinning motors.</b></div><ul><li>Keep hands, hair and loose clothing away from the launcher while it is powered.</li><li>Press <b>STOP</b> (or the <kbd>S</kbd> key) before reloading shuttles or adjusting the feeder.</li><li>Keep people out of the line of fire and wear eye protection if needed.</li><li>Place the feeder on a flat, stable surface and unplug it when not in use.</li><li>Only trained personnel should handle wiring, batteries and the Arduino.</li></ul>' },
@@ -1111,7 +1112,7 @@ const INFO_DOCS = {
             { name: 'The project', items: [
                 { ic: '🏸', q: 'Why SHUTTLEFEED?', a: '<p>Badminton is a core part of PHED 4, and mastering services and smashes takes a lot of repetition. Manual feeding by peers or instructors is predictable, tiring, and becomes inconsistent over time. It also keeps students from practicing on their own.</p>' },
                 { ic: '🎯', q: 'The problem we address', a: '<p>Traditional feeding has limited variety and predictable patterns, and instructor fatigue makes delivery inconsistent. Commercial launchers are often expensive. SHUTTLEFEED offers automated, consistent feeding in Smash and Service modes, controlled from a simple kiosk for the instructor.</p>' },
-                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service, aimed left or right.</li><li><b>Simple controls</b>: set range, direction, interval and shuttle count in one screen.</li></ul>' }
+                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service. Smash can be aimed left, right or mixed; Service left or right.</li><li><b>Simple controls</b>: choose the range and direction on one screen. Every drill runs 24 shuttles, one every 3 seconds.</li></ul>' }
             ]}
         ],
         foot: 'Capstone design project, CvSU Carmona'
@@ -1124,23 +1125,23 @@ const INFO_DOCS = {
         lead: 'A step-by-step guide to the SHUTTLEFEED instructor console, from logging in to reviewing your scores.',
         groups: [
             { name: 'Basics', items: [
-                { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b>.</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
+                { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b> (or press <b>Enter</b>).</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
                 { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Tap your <b>Program</b> (e.g. BSCpE) and <b>Section</b>. Choose <b>Other…</b> if yours is not listed. The year is 2nd Year.</li><li>Tap <b>Next</b>, check the <b>Before you start</b> list, then tap <b>Finish Setup</b> and <b>Go to Home</b>.</li><li>Returning instructors skip the introduction and can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
-                { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
+                { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li>The dots at the top show <b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>. Tap them to open the <b>Before you start</b> checklist.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
-                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose range, direction, interval and shuttle count.</li><li><b>Service Mode</b>: consistent serves. You choose range and direction (Left or Right); interval and shuttle count are fixed.</li></ul>' },
-                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b>: Short, Medium or Long (how far it throws).</li><li><b>Direction</b>: where shuttles are thrown. Smash offers Left, Right or Mixed (Mixed alternates left and right in random order); Service offers Left or Right.</li><li><b>Interval</b> and <b>Shuttles</b> (Smash): tap <b>+</b> / <b>−</b> to change them. In Service they are fixed at 3 seconds and 24 shuttles.</li></ul>' },
-                { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>(Laptop only) tap <b>Connect machine (USB)</b> if you are using a USB cable.</li><li>Tap <b>START ▶</b> to begin the drill.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
-                { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>On the session screen of a laptop:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li><li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li></ul>' }
+                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s). You choose the range and the direction (Left, Right or Mixed).</li><li><b>Service Mode</b>: consistent serves. You choose the range and the direction (Left or Right).</li></ul><p>In both modes a drill launches <b>24 shuttles, one every 3 seconds</b>.</p>' },
+                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b>: Short, Medium or Long (how far it throws).</li><li><b>Direction</b>: where shuttles are thrown. Smash offers Left, Right or Mixed (Mixed alternates left and right in random order); Service offers Left or Right.</li><li><b>Interval</b> and <b>Shuttles</b> are fixed at 3 seconds and 24 shuttles, so there is nothing to type.</li></ul>' },
+                { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>If the feeder is not connected yet, tap <b>Connect machine (USB)</b> and choose the Arduino. START only works once it is connected.</li><li>Tap <b>START ▶</b>. The <b>Ready to launch?</b> screen shows your range, direction and estimated drill time. Tap a tile to change it.</li><li>Tick <b>Court is clear</b>, then tap <b>Confirm &amp; start ▶</b>. A 3-second countdown runs before the machine starts.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
+                { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>If a keyboard is attached to the kiosk tablet, these work on the session screen:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li>' + (SHOW_SCORING ? '<li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li>' : '') + '</ul>' }
             ]},
             { name: 'Scores and history', items: [
-                { ic: '🎯', q: 'Record shot results', a: '<p>After each shuttle tap <b>HIT ✓</b> or <b>MISS ✗</b>. The bar and shot strip show your running accuracy. Made a mistake? Tap <b>↶ Undo</b> to clear the last score.</p>' },
+                ...(SHOW_SCORING ? [{ ic: '🎯', q: 'Record shot results', a: '<p>After each shuttle tap <b>HIT ✓</b> or <b>MISS ✗</b>. The bar and shot strip show your running accuracy. Made a mistake? Tap <b>↶ Undo</b> to clear the last score.</p>' }] : []),
                 { ic: '📈', q: 'View previous scores', a: '<p>Tap <b>History</b> on the session screen to see your last 20 sessions. Filter them, sort by <b>Newest</b> or <b>Best</b>, and tap a row to see its details.</p>' },
-                { ic: '👤', q: 'Your profile', a: '<p>The profile panel (top left) shows your current class, sessions run, shuttles launched and classes attended. Use <b>Log Out</b> when you are finished.</p>' }
+                { ic: '👤', q: 'Your profile', a: '<p>The profile panel (top left) shows your current class (tap <b>Change</b> to switch) and the classes you attended. Use <b>Log Out</b> when you are finished.</p>' }
             ]},
             { name: 'Settings', items: [
-                { ic: '⚙️', q: 'System settings', a: '<ul><li><b>Wi-Fi status</b>: whether the feeder is connected.</li><li><b>Hardware / Firmware</b>: the board and version in use.</li><li><b>Appearance</b>: switch between light and dark mode. It is remembered on your device.</li></ul>' }
+                { ic: '⚙️', q: 'System settings', a: '<ul><li><b>Machine connection</b>: whether the feeder is connected over USB.</li><li><b>Hardware / Firmware</b>: the board and version in use.</li><li><b>Appearance</b>: switch between light and dark mode. It is remembered on this kiosk.</li></ul>' }
             ]}
         ]
     }
@@ -1770,7 +1771,7 @@ async function readUsbLoop() {
 async function connectUsb() {
     if (usbPort) { usbManualOff = true; await disconnectUsb(); return; }      // pressed Disconnect: stay disconnected
     if (!('serial' in navigator)) {
-        toast('This browser cannot use USB. Use Chrome or Edge on a laptop.');
+        toast('This browser cannot use USB. Use Chrome or Edge on the kiosk tablet.');
         return;
     }
     usbManualOff = false;
@@ -2169,6 +2170,8 @@ function refreshChecklist() {
     try { refreshStatusDots(); } catch (e) {}
     const usbOn = usbIsConnected();
     const ready = usbOn && usbReady;
+    const sc = document.getElementById('set-conn');                // Settings panel: live machine status
+    if (sc) { sc.classList.toggle('off', !ready); setText('set-conn-val', ready ? 'Connected (USB)' : usbOn ? 'Connecting…' : 'Not connected'); }
     const u = document.getElementById('ck-usb'), f = document.getElementById('ck-feeder');
     if (!u || !f) return;
     u.classList.toggle('ok', ready);
