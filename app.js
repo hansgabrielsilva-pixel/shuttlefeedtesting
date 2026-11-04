@@ -186,7 +186,6 @@ function resetLocalState() {
     historyCache = [];
     statsCache = { sessions: 0, shuttles: 0 };
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
-    try { loginPadReset(); } catch (e) {}
     setUserName('');
     ['username', 'password', 'new-fullname', 'new-username', 'new-password'].forEach(id => {
         const el = document.getElementById(id);
@@ -593,7 +592,6 @@ async function startIntro(source) {    // after login / sign up
         currentUser = res.user.username;
         applyUserData(res.data);
         setUserName(res.user.fullName, res.user.username);
-        rememberInstructor(res.user.username, res.user.fullName);
         recoverDraft();
         if (pendingCount() > 0) syncPending();
         const hour = new Date().getHours();
@@ -2224,49 +2222,25 @@ function refreshStatusDots() {
 }
 try { buildStatusDots(); } catch (e) { console.warn('status dots:', e); }
 
-// ---------- Easier login: recent instructors + PIN pad ----------
-const RECENT_KEY = 'shuttlefeedRecent';
-function getRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch (e) { return []; } }
-function saveRecent(list) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 4))); } catch (e) {} }
-function rememberInstructor(u, name) {
-    if (!u) return;
-    saveRecent([{ u, n: name || u }].concat(getRecent().filter(r => r.u !== u)));
-    renderRecent();
-}
-function forgetInstructor(u) { saveRecent(getRecent().filter(r => r.u !== u)); renderRecent(); }
-function renderRecent() {
-    const box = document.getElementById('recent-box'), row = document.getElementById('recent-row');
-    if (!box || !row) return;
-    const list = getRecent();
-    row.innerHTML = '';
-    list.forEach(r => {
-        const b = document.createElement('div');
-        b.className = 'recent-card'; b.setAttribute('role', 'button'); b.tabIndex = 0;
-        const av = document.createElement('span'); av.className = 'recent-av'; av.textContent = (r.n || r.u).trim().charAt(0).toUpperCase();
-        const tx = document.createElement('span'); tx.className = 'recent-tx';
-        const nm = document.createElement('b'); nm.textContent = r.n || r.u;
-        const id = document.createElement('small'); id.textContent = r.u;
-        tx.appendChild(nm); tx.appendChild(id);
-        const x = document.createElement('button'); x.type = 'button'; x.className = 'recent-x'; x.textContent = '×'; x.title = 'Remove from this list'; x.setAttribute('aria-label', 'Remove ' + (r.n || r.u));
-        x.addEventListener('click', e => { e.stopPropagation(); forgetInstructor(r.u); });
-        const pick = () => pickRecent(r.u, b);
-        b.addEventListener('click', pick);
-        b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-        b.append(av, tx, x);
-        row.appendChild(b);
-    });
-    box.classList.toggle('hidden', list.length === 0);
-}
-function pickRecent(u, card) {
-    document.querySelectorAll('.recent-card').forEach(c => c.classList.remove('on'));
-    card.classList.add('on');
-    document.getElementById('username').value = u;
-    const pw = document.getElementById('password');
-    pw.value = '';
-    pw.focus();
-}
-function loginPadReset() {
-    document.querySelectorAll('.recent-card').forEach(c => c.classList.remove('on'));
-    renderRecent();
-}
-renderRecent();
+// ---------- Login: press Enter on the keyboard to submit ----------
+try { localStorage.removeItem('shuttlefeedRecent'); } catch (e) {}   // the old "recent instructors" list is gone
+(function enterToSubmit() {
+    const onEnter = (id, action) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('keydown', e => {
+            if (e.key !== 'Enter' || e.isComposing) return;
+            e.preventDefault();
+            action();
+        });
+    };
+    const focusId = id => { const el = document.getElementById(id); if (el) el.focus(); };
+    const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    // Log in: ID -> (jump to password if empty) -> log in
+    onEnter('username', () => { if (!val('password')) focusId('password'); else startIntro(); });
+    onEnter('password', () => startIntro());
+    // Sign up: name -> ID -> password -> create account
+    onEnter('new-fullname', () => focusId('new-username'));
+    onEnter('new-username', () => focusId('new-password'));
+    onEnter('new-password', () => startIntro('signup'));
+})();
