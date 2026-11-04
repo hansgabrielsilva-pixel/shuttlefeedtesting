@@ -709,9 +709,6 @@ function openSidebar(id) {
     if (id === 'user-sidebar') {
         document.getElementById('sb-class-label').innerText = currentClass ? `${classLabel(currentClass)} · PHED 4` : 'No class set';
         renderHistory();
-        const nums = document.querySelectorAll('#user-sidebar .sb-stat b');
-        if (nums[0]) nums[0].dataset.count = statsCache.sessions;
-        if (nums[1]) nums[1].dataset.count = statsCache.shuttles;
     }
     animateCounts(sidebar);
 }
@@ -2229,7 +2226,6 @@ try { buildStatusDots(); } catch (e) { console.warn('status dots:', e); }
 
 // ---------- Easier login: recent instructors + PIN pad ----------
 const RECENT_KEY = 'shuttlefeedRecent';
-let pinMode = true;
 function getRecent() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch (e) { return []; } }
 function saveRecent(list) { try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 4))); } catch (e) {} }
 function rememberInstructor(u, name) {
@@ -2269,37 +2265,8 @@ function pickRecent(u, card) {
     pw.value = '';
     pw.focus();
 }
-function setPinMode(on) {
-    pinMode = on;
-    const pw = document.getElementById('password');
-    pw.inputMode = on ? 'none' : 'text';
-    document.getElementById('pin-switch').textContent = on ? 'Use keyboard instead' : 'Use PIN pad instead';
-    document.getElementById('pin-pad').classList.toggle('hidden', !on || document.activeElement !== pw);
-    if (!on) pw.focus();
-}
-function togglePinPad() { setPinMode(!pinMode); if (pinMode) document.getElementById('password').focus(); }
 function loginPadReset() {
-    pinMode = true;
-    const pw = document.getElementById('password');
-    if (pw) pw.inputMode = 'none';
-    const sw = document.getElementById('pin-switch'); if (sw) sw.textContent = 'Use keyboard instead';
-    const pad = document.getElementById('pin-pad'); if (pad) pad.classList.add('hidden');
     document.querySelectorAll('.recent-card').forEach(c => c.classList.remove('on'));
     renderRecent();
 }
-(function initLoginHelpers() {
-    const pw = document.getElementById('password'), pad = document.getElementById('pin-pad'), user = document.getElementById('username');
-    if (!pw || !pad) return;
-    pw.addEventListener('focus', () => { if (pinMode) pad.classList.remove('hidden'); });
-    user.addEventListener('focus', () => pad.classList.add('hidden'));
-    pad.addEventListener('mousedown', e => e.preventDefault());            // keep the focus on the password box
-    pad.addEventListener('click', e => {
-        const b = e.target.closest('button[data-k]');
-        if (!b) return;
-        const k = b.dataset.k;
-        if (k === 'back') pw.value = pw.value.slice(0, -1);
-        else if (k === 'clear') pw.value = '';
-        else if (pw.value.length < 20) pw.value += k;
-    });
-    renderRecent();
-})();
+renderRecent();
