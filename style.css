@@ -1094,3 +1094,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .results-card.scoring-off .res-acc,
 .results-card.scoring-off [onclick="undoResult()"] { display: none; }
 .results-card.scoring-off [onclick="openHistory()"] { margin-left: auto; }
+
+/* === Balanced session layout: the START button no longer stretches to fill the whole column === */
+.right-column { align-self: start; }
+.right-column .action-card { flex: 0 0 auto; height: clamp(84px, 13vh, 110px); }
+.right-column .action-btn { font-size: 24px; }
