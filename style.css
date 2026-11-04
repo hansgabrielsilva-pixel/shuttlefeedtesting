@@ -1103,3 +1103,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 /* Settings: machine status turns grey when the machine is not connected */
 .conn-card.off .live-dot { background: #9a9a9a; animation: none; }
 .conn-card.off .signal i { animation: none; opacity: 0.35; }
+
+/* Bigger shuttle counter ring */
+.right-column .ring-wrap, .right-column.has-results .ring-wrap { width: 132px; height: 132px; }
+.right-column .progress-text, .right-column.has-results .progress-text { font-size: 30px; }
+.right-column .ring-center .status-label { font-size: 12px; }
