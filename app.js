@@ -815,6 +815,8 @@ function navigate(screenId) {
 
 // Setup Session based on chosen mode
 // --- Hit / miss scoring (all modes). The instructor taps HIT or MISS; no sensors involved. ---
+// Hit / miss scoring buttons: set to true to show them again (the History button is always shown)
+const SHOW_SCORING = false;
 function resultsEnabled() { return true; }   // scoring is on for every mode (Smash, Service)
 
 function shotCounts() {
@@ -831,6 +833,7 @@ function registerShot() { shotLog.push(null); renderResults(); fireAnim(); }
 
 // HIT / MISS buttons score the oldest launched shot that has no call yet
 function scoreShot(result) {
+    if (!SHOW_SCORING) return;
     const i = shotLog.indexOf(null);
     if (i === -1) {
         toast(shotLog.length ? 'Every launched shot is already scored.' : 'No shot has been launched yet.');
@@ -842,6 +845,7 @@ function scoreShot(result) {
 
 // Tap a numbered shot to fix a wrong call (hit <-> miss)
 function flipShot(i) {
+    if (!SHOW_SCORING) return;
     if (shotLog[i] === 'hit') shotLog[i] = 'miss';
     else if (shotLog[i] === 'miss') shotLog[i] = 'hit';
     else return;
@@ -850,6 +854,7 @@ function flipShot(i) {
 
 // Clears the most recent call
 function undoResult() {
+    if (!SHOW_SCORING) return;
     let i = shotLog.length - 1;
     while (i >= 0 && shotLog[i] === null) i--;
     if (i < 0) { toast('Nothing to undo.'); return; }
@@ -1550,6 +1555,7 @@ function setupSession(modeName) {
     shuttlesLaunched = 0;
     lastSession = null;
     document.getElementById('results-card').classList.toggle('hidden', !resultsEnabled());
+    document.getElementById('results-card').classList.toggle('scoring-off', !SHOW_SCORING);
     document.getElementById('right-column').classList.toggle('has-results', resultsEnabled());
     resetShotLog();
     applyModeLayout();
