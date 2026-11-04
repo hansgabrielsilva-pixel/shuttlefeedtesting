@@ -1099,3 +1099,7 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .right-column { align-self: start; }
 .right-column .action-card { flex: 0 0 auto; height: clamp(84px, 13vh, 110px); }
 .right-column .action-btn { font-size: 24px; }
+
+/* Settings: machine status turns grey when the machine is not connected */
+.conn-card.off .live-dot { background: #9a9a9a; animation: none; }
+.conn-card.off .signal i { animation: none; opacity: 0.35; }
