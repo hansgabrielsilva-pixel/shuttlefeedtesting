@@ -1086,3 +1086,11 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 * { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .sidebar, .history-box ul { overflow-x: hidden; }
+
+/* === Hit / miss scoring hidden (set SHOW_SCORING = true in the JS to bring it back). The History button stays. === */
+.results-card.scoring-off .results-row,
+.results-card.scoring-off .res-bar,
+.results-card.scoring-off .shot-strip,
+.results-card.scoring-off .res-acc,
+.results-card.scoring-off [onclick="undoResult()"] { display: none; }
+.results-card.scoring-off [onclick="openHistory()"] { margin-left: auto; }
