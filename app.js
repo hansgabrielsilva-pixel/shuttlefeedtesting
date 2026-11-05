@@ -1928,7 +1928,8 @@ function cfSyncSafety() {
     chk.setAttribute('aria-disabled', locked ? 'true' : 'false');
     const sb = document.getElementById('cf-safety');
     sb.classList.toggle('done', cfSafetyRead);
-    setText('cf-safety-sub', cfSafetyRead ? 'You have read the safety policy. Tap to read it again.' : 'Tap to read this first. Required before you can start.');
+    sb.setAttribute('aria-checked', cfSafetyRead ? 'true' : 'false');
+    setText('cf-safety-sub', cfSafetyRead ? 'Thank you for reading. Tap to read it again.' : 'Tap to read this first. Required before you can start.');
     setText('cf-safety-state', cfSafetyRead ? '✓ Read' : 'Read ➔');
 }
 function cfOpenSafety() {
