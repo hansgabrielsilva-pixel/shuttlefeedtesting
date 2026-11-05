@@ -324,14 +324,7 @@
                 <div class="dash-actions">
                     <div class="hdr-status home-status" id="home-status"></div>
 
-                    <div class="quick-action class-action" onclick="changeClass()">
-                        <div>
-                            <small>Your class · year &amp; program</small>
-                            <div class="qs-detail" id="class-chip-label">Set your class</div>
-                        </div>
-                        <span class="round-go green" title="Change class">✎</span>
-                    </div>
-
+                    <div class="dash-grid">
                     <div class="main-action" onclick="navigate('mode-screen')">
                         <img data-img="shuttles" alt="Shuttlecock" class="main-icon">
                         <div class="main-text">
@@ -341,6 +334,15 @@
                         <span class="round-go red">➔</span>
                     </div>
 
+                    <div class="dash-stack">
+                    <div class="quick-action class-action" onclick="changeClass()">
+                        <div>
+                            <small>Your class · year &amp; program</small>
+                            <div class="qs-detail" id="class-chip-label">Set your class</div>
+                        </div>
+                        <span class="round-go green" title="Change class">✎</span>
+                    </div>
+
                     <div class="quick-action" onclick="quickStart()">
                         <div>
                             <small>Quick Start · last drill</small>
@@ -348,6 +350,9 @@
                         </div>
                         <span class="round-go green">▶</span>
                     </div>
+                    </div>
+                    </div>
+
                     <button type="button" class="dash-link" onclick="showChecklist(true)">✔ Before you start checklist</button>
                 </div>
             </div>
