@@ -1109,7 +1109,7 @@ const INFO_DOCS = {
                 { ic: '🧹', q: 'Your choices', a: '<p>You may ask the administrators to correct or delete your account and records. Your theme preference (light/dark) is saved only on this kiosk.</p>' }
             ]},
             { name: 'Safety policy', items: [
-                { ic: '⚠️', q: 'Hardware and court safety', a: '<div class="info-note warn"><b>The feeder launches shuttlecocks at speed and uses spinning motors.</b></div><ul><li>Keep hands, hair and loose clothing away from the launcher while it is powered.</li><li>Press <b>STOP</b> (or the <kbd>S</kbd> key) before reloading shuttles or adjusting the feeder.</li><li>Keep people out of the line of fire and wear eye protection if needed.</li><li>Place the feeder on a flat, stable surface and unplug it when not in use.</li><li>Only trained personnel should handle wiring, batteries and the Arduino.</li></ul>' },
+                { ic: '⚠️', q: 'Hardware and court safety', a: '<div class="info-note warn"><b>The feeder launches shuttlecocks at speed and uses spinning motors.</b> Read every point below before you start a drill.</div><p><b>1. Before you start</b></p><ul><li>Place the feeder on a flat, stable surface and make sure it cannot tip or slide.</li><li>Check that the cables, the USB connection and the power supply are secure and not damaged.</li><li>Check that the feeder is loaded with undamaged shuttlecocks and that nothing is stuck in the launcher.</li><li>Keep hands, hair and loose clothing away from the launcher while it is powered.</li><li>Only trained personnel should handle wiring, batteries and the Arduino.</li></ul><p><b>2. Court safety</b></p><ul><li>Make sure nobody is standing in front of the machine or in the line of fire.</li><li>Keep people out of the line of fire and wear eye protection if needed.</li><li>Tell students to stay clear of the feeder until the instructor says the court is clear.</li><li>Only one instructor should operate the feeder at a time.</li></ul><p><b>3. During the drill</b></p><ul><li>Stay near the screen so you can stop the machine immediately.</li><li>Press <b>STOP</b> (or the <kbd>S</kbd> key) before reloading shuttles or adjusting the feeder.</li><li>If something looks or sounds wrong, such as a jam, a strange noise or a burning smell, press <b>STOP</b> and unplug the feeder.</li><li>Never reach into the launcher or put your face near it while the motors are spinning.</li></ul><p><b>4. After the drill</b></p><ul><li>Wait for the motors to stop completely before touching the feeder.</li><li>Unplug the feeder when it is not in use.</li><li>Report any damage or problem to the instructor in charge before the next use.</li></ul><div class="info-note">Ticking the Safety policy box means you have read and understood these rules.</div>' },
                 { ic: '⚖️', q: 'Limitation of liability', a: '<p>The developers and CvSU Carmona are not liable for injury, damage or data loss arising from misuse of the system or hardware. Always supervise the drill.</p>' }
             ]}
         ],
@@ -1934,8 +1934,18 @@ function cfSyncSafety() {
 }
 function cfOpenSafety() {
     document.getElementById('cf-safe-body').innerHTML = cfSafetyHtml();
-    const sc = document.querySelector('#cf-safe-panel .cf-safe-scroll'); if (sc) sc.scrollTop = 0;
+    const sc = document.querySelector('#cf-safe-panel .cf-safe-scroll');
     document.getElementById('cf-card').classList.add('reading');
+    if (sc) { sc.scrollTop = 0; sc.onscroll = cfCheckScrolled; }
+    cfCheckScrolled();
+}
+function cfCheckScrolled() {                 // the "I have read" button unlocks once the user has scrolled to the end
+    const sc = document.querySelector('#cf-safe-panel .cf-safe-scroll');
+    const btn = document.getElementById('cf-safe-ok');
+    if (!sc || !btn) return;
+    const atEnd = sc.scrollHeight - sc.scrollTop - sc.clientHeight <= 12;
+    btn.disabled = !atEnd;
+    btn.textContent = atEnd ? 'I have read and understood ✓' : 'Scroll down to read all ↓';
 }
 function cfCloseSafety(understood) {
     document.getElementById('cf-card').classList.remove('reading');
