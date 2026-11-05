@@ -1257,9 +1257,13 @@ function buildKiosk(root, d, opt) {
     show(0, 1);
 }
 
+let infoOnly = false;      // true when opened from the login screen: show the User's manual alone, no other tabs
 function renderInfoTabs(active) {
     const tabs = document.getElementById('info-tabs');
     tabs.innerHTML = '';
+    const ttl = document.getElementById('info-title');
+    if (ttl) ttl.textContent = infoOnly ? INFO_META[active].tab : 'Help Center';
+    if (infoOnly) return;
     ['help', 'terms', 'manual', 'about'].forEach(k => {
         const m = INFO_META[k];
         const b = document.createElement('button');
@@ -1278,8 +1282,9 @@ function switchInfo(key) {
     buildKiosk(document.getElementById('info-body'), d);
     infoIdleReset();
 }
-function openInfo(key) {
+function openInfo(key, only) {
     if (!INFO_DOCS[key]) return;
+    infoOnly = !!only;
     closeAllSidebars();
     infoReturnFocus = document.activeElement;
     switchInfo(key);
