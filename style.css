@@ -1117,3 +1117,13 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .right-column .ring-wrap, .right-column.has-results .ring-wrap { width: 132px; height: 132px; }
 .right-column .progress-text, .right-column.has-results .progress-text { font-size: 30px; }
 .right-column .ring-center .status-label { font-size: 12px; }
+/* === Login: User's manual link + loading button === */
+.manual-link { display: flex; flex-direction: column; align-items: center; gap: 1px; margin: 14px auto 0; padding: 8px 18px; background: none; border: 2px solid var(--green-text); border-radius: 30px; color: var(--green-text); font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.2s; }
+.manual-link small { font-size: 11px; font-weight: 400; opacity: 0.75; }
+.manual-link:hover { background: var(--sec-green); color: var(--white); }
+.manual-link:active { transform: scale(0.97); }
+
+.btn-primary.is-loading { display: inline-flex; align-items: center; justify-content: center; gap: 10px; opacity: 1 !important; cursor: progress; }
+.btn-spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); border-top-color: #fff; animation: btnSpin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes btnSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn-spin { animation-duration: 2.4s; } }
