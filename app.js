@@ -1910,6 +1910,39 @@ syncThemeUi();
 const CONFIRM_REQUIRE_CLEAR = true;       // true = instructor must tick "court is clear" before Confirm works
 const CONFIRM_COUNTDOWN = 3;              // seconds counted down after Confirm (0 = start right away)
 let cfTimer = null, cfRunning = false;
+const SAFETY_READ_EVERY_LAUNCH = true;   // true = the safety policy must be opened and read before every launch; false = once until the page is reloaded
+let cfSafetyRead = false;
+
+// the safety policy text comes from the Terms & policies page, so it is written in one place only
+function cfSafetyHtml() {
+    try {
+        const t = INFO_DOCS.terms;
+        for (const g of (t.groups || [])) for (const it of (g.items || [])) if (/court safety/i.test(it.q)) return it.a;
+    } catch (e) {}
+    return '<div class="info-note warn"><b>The feeder launches shuttlecocks at speed and uses spinning motors.</b></div><ul><li>Keep hands, hair and loose clothing away from the launcher while it is powered.</li><li>Press <b>STOP</b> (or the <kbd>S</kbd> key) before reloading shuttles or adjusting the feeder.</li><li>Keep people out of the line of fire and wear eye protection if needed.</li><li>Place the feeder on a flat, stable surface and unplug it when not in use.</li><li>Only trained personnel should handle wiring, batteries and the Arduino.</li></ul>';
+}
+function cfSyncSafety() {
+    const chk = document.getElementById('cf-check');
+    const locked = CONFIRM_REQUIRE_CLEAR && !cfSafetyRead;
+    chk.classList.toggle('locked', locked);
+    chk.setAttribute('aria-disabled', locked ? 'true' : 'false');
+    const sb = document.getElementById('cf-safety');
+    sb.classList.toggle('done', cfSafetyRead);
+    setText('cf-safety-sub', cfSafetyRead ? 'You have read the safety policy. Tap to read it again.' : 'Tap to read this first. Required before you can start.');
+    setText('cf-safety-state', cfSafetyRead ? '✓ Read' : 'Read ➔');
+}
+function cfOpenSafety() {
+    document.getElementById('cf-safe-body').innerHTML = cfSafetyHtml();
+    const sc = document.querySelector('#cf-safe-panel .cf-safe-scroll'); if (sc) sc.scrollTop = 0;
+    document.getElementById('cf-card').classList.add('reading');
+}
+function cfCloseSafety(understood) {
+    document.getElementById('cf-card').classList.remove('reading');
+    if (understood) cfSafetyRead = true;
+    cfSyncSafety();
+    cfSyncGo();
+    setTimeout(() => { try { document.getElementById(cfSafetyRead ? 'cf-check' : 'cf-safety').focus(); } catch (e) {} }, 60);
+}
 
 function cfDirKey() {
     if (currentMode === 'Smash') return smashDir;                                   // LEFT | RIGHT | MIXED
@@ -1944,11 +1977,15 @@ function openLaunchConfirm() {
     const chk = document.getElementById('cf-check');
     chk.classList.toggle('hidden', !CONFIRM_REQUIRE_CLEAR);
     chk.setAttribute('aria-checked', 'false'); chk.classList.remove('on');
+    document.getElementById('cf-safety').classList.toggle('hidden', !CONFIRM_REQUIRE_CLEAR);
+    if (SAFETY_READ_EVERY_LAUNCH) cfSafetyRead = false;
+    document.getElementById('cf-card').classList.remove('reading');
+    cfSyncSafety();
     cfSyncGo();
 
     cfReset();
     document.getElementById('confirm-modal').classList.remove('hidden');
-    setTimeout(() => { try { document.getElementById(CONFIRM_REQUIRE_CLEAR ? 'cf-check' : 'cf-go').focus(); } catch (e) {} }, 60);
+    setTimeout(() => { try { document.getElementById(CONFIRM_REQUIRE_CLEAR ? (cfSafetyRead ? 'cf-check' : 'cf-safety') : 'cf-go').focus(); } catch (e) {} }, 60);
 }
 function cfSyncGo() {
     const ok = !CONFIRM_REQUIRE_CLEAR || document.getElementById('cf-check').classList.contains('on');
@@ -1958,6 +1995,7 @@ function cfSyncGo() {
 }
 function cfToggleClear() {
     const c = document.getElementById('cf-check');
+    if (!cfSafetyRead) { toast('Please read the safety policy first.'); cfOpenSafety(); return; }
     const on = !c.classList.contains('on');
     c.classList.toggle('on', on); c.setAttribute('aria-checked', on ? 'true' : 'false');
     cfSyncGo();
@@ -1965,6 +2003,7 @@ function cfToggleClear() {
 function cfReset() {
     clearInterval(cfTimer); cfTimer = null; cfRunning = false;
     document.getElementById('cf-card').classList.remove('counting');
+    document.getElementById('cf-card').classList.remove('reading');
 }
 function closeLaunchConfirm() {
     cfReset();
@@ -1982,7 +2021,7 @@ function cfEdit(which) {
 }
 function cfConfirm() {
     if (cfRunning) return;
-    if (CONFIRM_REQUIRE_CLEAR && !document.getElementById('cf-check').classList.contains('on')) return;
+    if (CONFIRM_REQUIRE_CLEAR && (!cfSafetyRead || !document.getElementById('cf-check').classList.contains('on'))) return;
     if (!usbIsConnected()) { closeLaunchConfirm(); toast('Connect the machine first (press the USB button).'); return; }
     if (CONFIRM_COUNTDOWN <= 0) { closeLaunchConfirm(); sendCommand('START'); return; }
     cfRunning = true;
@@ -2009,8 +2048,8 @@ document.getElementById('cf-tiles').addEventListener('click', e => {
 document.addEventListener('keydown', e => {
     const m = document.getElementById('confirm-modal');
     if (m.classList.contains('hidden')) return;
-    if (e.key === 'Escape') closeLaunchConfirm();
-    else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check') { e.preventDefault(); cfConfirm(); }
+    if (e.key === 'Escape') { if (document.getElementById('cf-card').classList.contains('reading')) cfCloseSafety(false); else closeLaunchConfirm(); }
+    else if (e.key === 'Enter' && !cfRunning && !document.getElementById('cf-go').disabled && document.activeElement.id !== 'cf-check' && document.activeElement.id !== 'cf-safety' && !document.getElementById('cf-card').classList.contains('reading')) { e.preventDefault(); cfConfirm(); }
 });
 
 
