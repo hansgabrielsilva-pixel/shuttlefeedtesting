@@ -274,7 +274,7 @@ input[type=range] { width: 100%; margin: 10px 0 4px; accent-color: var(--red-tex
 .dash-court rect, .dash-court line { fill: none; stroke: currentColor; stroke-width: 2px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .dash-court .court-net { stroke-width: 3px; stroke-dasharray: 2 7; }
 
-.dash-simple { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 560px); justify-content: center; align-items: center; column-gap: 28px; padding: 20px 28px; }
+.dash-simple { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 880px); justify-content: center; align-items: center; column-gap: 28px; padding: 20px 28px; }
 .dash-center { display: flex; flex-direction: column; align-items: center; gap: 26px; }
 .dash-greeting { text-align: center; }
 .dash-greeting h2 { font-size: 28px; color: var(--green-text); }
@@ -307,7 +307,16 @@ input[type=range] { width: 100%; margin: 10px 0 4px; accent-color: var(--red-tex
     .sys-card b { font-size: 15px; }
 }
 
-.dash-actions { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 14px; }
+.dash-actions { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Home layout: START A DRILL on the left, Set your class (top) + Quick start (bottom) stacked on the right */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.dash-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dash-stack .quick-action { flex: 1; padding: 14px 20px; }
+.dash-stack .quick-action > div:first-child { min-width: 0; }
+.dash-stack .quick-action .qs-detail { font-size: 16px; }
+.dash-grid .main-action { padding: 24px; }
+@media (max-width: 700px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .main-action { display: flex; align-items: center; gap: 20px; background: var(--card-bg); border-radius: 24px; padding: 28px; cursor: pointer; border: 2px solid transparent; box-shadow: 0 6px 16px rgba(0,0,0,0.08); transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; }
 .main-action:hover { transform: translateY(-4px); border-color: var(--red-text); box-shadow: 0 12px 24px rgba(124,0,5,0.15); }
