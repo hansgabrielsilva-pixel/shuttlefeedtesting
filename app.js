@@ -480,8 +480,21 @@ function prepareClassForm() {
 }
 
 let authBusy = false;
-function setAuthButtons(disabled) {
+function setAuthButtons(disabled, source) {
     document.querySelectorAll('#login-screen .btn-primary, #signup-screen .btn-primary').forEach(b => { b.disabled = disabled; });
+    // spinner + text on the button that was pressed, so the user can see it is still working
+    const btn = document.querySelector(source === 'signup' ? '#signup-screen .btn-primary' : '#login-screen .btn-primary');
+    if (!btn) return;
+    if (disabled) {
+        if (!btn.dataset.label) btn.dataset.label = btn.innerHTML;
+        btn.classList.add('is-loading');
+        btn.setAttribute('aria-busy', 'true');
+        btn.innerHTML = '<span class="btn-spin" aria-hidden="true"></span>' + (source === 'signup' ? 'Creating account…' : 'Logging in…');
+    } else {
+        btn.classList.remove('is-loading');
+        btn.removeAttribute('aria-busy');
+        if (btn.dataset.label) { btn.innerHTML = btn.dataset.label; delete btn.dataset.label; }
+    }
 }
 
 // --- Login animation: a shuttlecock rally between two rackets ---
@@ -584,7 +597,7 @@ async function startIntro(source) {    // after login / sign up
     if (isSignup && !fullName) return toast('Please enter your full name.');
 
     authBusy = true;
-    setAuthButtons(true);
+    setAuthButtons(true, source);
     try {
         const res = await api(isSignup ? 'signup' : 'login', { token: null, username, password, fullName });
         authToken = res.token;
@@ -610,7 +623,7 @@ async function startIntro(source) {    // after login / sign up
         toast(e.message);
     } finally {
         authBusy = false;
-        setAuthButtons(false);
+        setAuthButtons(false, source);
     }
 }
 
@@ -1307,11 +1320,6 @@ document.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft') kb._kb.prev();
 });
 
-// the User's manual on the right side of the welcome screen (wide screens only; hidden by CSS on narrow ones)
-(function () {
-    const el = document.getElementById('intro-manual-body');
-    if (el && typeof INFO_DOCS !== 'undefined') buildKiosk(el, INFO_DOCS.manual, { contact: false });
-})();
 
 
 function hmRender() {
