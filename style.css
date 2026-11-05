@@ -1127,3 +1127,26 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .btn-spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); border-top-color: #fff; animation: btnSpin 0.8s linear infinite; flex-shrink: 0; }
 @keyframes btnSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn-spin { animation-duration: 2.4s; } }
+
+/* === Launch confirmation: safety policy must be read before "Court is clear" === */
+.cf-safety { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 76px; padding: 12px 18px; margin-bottom: 12px; border-radius: 22px; text-align: left; background: var(--card-bg); color: var(--green-text); border: 3px solid var(--red-text); box-shadow: none; cursor: pointer; }
+.cf-safety:hover { transform: none; background: rgba(124,0,5,0.06); }
+.cf-safety:active { transform: scale(0.99); }
+.cf-safe-ic { width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; background: var(--sec-bg); }
+.cf-safety .cf-ct { flex: 1; min-width: 0; }
+.cf-safe-state { flex-shrink: 0; font-size: 15px; font-weight: 800; color: var(--red-text); padding: 8px 14px; border-radius: 14px; background: rgba(124,0,5,0.09); }
+.cf-safety.done { border-color: var(--sec-green); }
+.cf-safety.done .cf-safe-state { color: #fff; background: var(--sec-green); }
+.cf-check.locked { opacity: 0.45; cursor: not-allowed; border-color: var(--line); }
+.cf-check.locked:hover { border-color: var(--line); }
+
+.cf-safe-panel { position: absolute; inset: 0; display: none; flex-direction: column; background: var(--main-bg); }
+.cf-card.reading .cf-safe-panel { display: flex; animation: hmFade 0.2s ease-out; }
+.cf-safe-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 16px 16px 0; padding: 22px 24px; border-radius: 26px; background: var(--card-bg); }
+.cf-safe-scroll .kb-body { font-size: 17px; line-height: 1.55; }
+.cf-safe-scroll .kb-card-head { margin-bottom: 14px; padding-bottom: 14px; }
+.cf-safe-scroll .kb-card-head h4 { font-size: 25px; }
+.cf-safe-scroll .kb-body .info-note { font-size: 16px; }
+.cf-safe-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; padding: 14px 16px 18px; }
+@media (max-width: 700px) { .cf-safe-foot { grid-template-columns: 1fr; } .cf-safe-foot .cf-go { order: -1; } .cf-safe-state { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cf-card.reading .cf-safe-panel { animation: none !important; } }
