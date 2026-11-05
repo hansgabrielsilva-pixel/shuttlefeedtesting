@@ -565,9 +565,9 @@
                 <p class="cf-sub">Please check your settings before the machine starts.</p>
                 <div class="cf-tiles" id="cf-tiles"></div>
                 <div class="cf-time"><span>Estimated drill time</span><b id="cf-time">-</b></div>
-                <button type="button" class="cf-safety" id="cf-safety" onclick="cfOpenSafety()">
-                    <span class="cf-safe-ic" aria-hidden="true">⚠️</span>
-                    <span class="cf-ct"><b>Safety policy</b><em id="cf-safety-sub">Tap to read this first. Required before you can start.</em></span>
+                <button type="button" class="cf-safety" id="cf-safety" role="checkbox" aria-checked="false" onclick="cfOpenSafety()">
+                    <span class="cf-box" aria-hidden="true">✓</span>
+                    <span class="cf-ct"><b>⚠️ Safety policy</b><em id="cf-safety-sub">Tap to read this first. Required before you can start.</em></span>
                     <span class="cf-safe-state" id="cf-safety-state" aria-hidden="true">Read ➔</span>
                 </button>
                 <button type="button" class="cf-check" id="cf-check" role="checkbox" aria-checked="false" aria-disabled="true" onclick="cfToggleClear()">
