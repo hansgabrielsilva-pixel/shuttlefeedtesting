@@ -565,13 +565,31 @@
                 <p class="cf-sub">Please check your settings before the machine starts.</p>
                 <div class="cf-tiles" id="cf-tiles"></div>
                 <div class="cf-time"><span>Estimated drill time</span><b id="cf-time">-</b></div>
-                <button type="button" class="cf-check" id="cf-check" role="checkbox" aria-checked="false" onclick="cfToggleClear()">
+                <button type="button" class="cf-safety" id="cf-safety" onclick="cfOpenSafety()">
+                    <span class="cf-safe-ic" aria-hidden="true">⚠️</span>
+                    <span class="cf-ct"><b>Safety policy</b><em id="cf-safety-sub">Tap to read this first. Required before you can start.</em></span>
+                    <span class="cf-safe-state" id="cf-safety-state" aria-hidden="true">Read ➔</span>
+                </button>
+                <button type="button" class="cf-check" id="cf-check" role="checkbox" aria-checked="false" aria-disabled="true" onclick="cfToggleClear()">
                     <span class="cf-box" aria-hidden="true">✓</span>
                     <span class="cf-ct"><b>Court is clear</b><em>Nobody is in front of the machine and shuttles are loaded.</em></span>
                 </button>
                 <div class="cf-actions">
                     <button type="button" class="cf-back" onclick="closeLaunchConfirm()">← Edit settings</button>
                     <button type="button" class="cf-go" id="cf-go" onclick="cfConfirm()" disabled>Confirm &amp; start ▶</button>
+                </div>
+            </div>
+            <div class="cf-safe-panel" id="cf-safe-panel" role="dialog" aria-modal="true" aria-labelledby="cf-safe-title">
+                <div class="cf-safe-scroll">
+                    <div class="kb-card-head">
+                        <span class="kb-cic" aria-hidden="true">⚠️</span>
+                        <div><small>Safety policy</small><h4 id="cf-safe-title">Hardware and court safety</h4></div>
+                    </div>
+                    <div class="kb-body" id="cf-safe-body"></div>
+                </div>
+                <div class="cf-safe-foot">
+                    <button type="button" class="cf-back" onclick="cfCloseSafety(false)">← Back</button>
+                    <button type="button" class="cf-go ready" onclick="cfCloseSafety(true)">I have read and understood ✓</button>
                 </div>
             </div>
             <div class="cf-count" aria-live="assertive">
