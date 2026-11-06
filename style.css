@@ -1167,7 +1167,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
    Fewer controls, so they are drawn bigger and fill the screen instead of leaving empty space. */
 .control-grid { align-items: stretch; }
 .right-column { align-self: stretch; }
-.right-column .action-card { flex: 1 1 auto; height: auto; min-height: clamp(84px, 13vh, 110px); }
+.right-column .status-card { flex: 0 0 auto; align-items: center; min-height: clamp(200px, 30vh, 290px); padding: 20px 26px; }   /* bigger progress card */
+.right-column .action-card { flex: 1 1 auto; height: auto; min-height: clamp(84px, 13vh, 110px); }                              /* START keeps filling the rest */
 .right-column .action-btn { font-size: clamp(26px, 3.6vh, 40px); }
 
 .params-card.roomy { padding: 22px 26px; gap: 16px; }
@@ -1190,8 +1191,12 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .params-card.roomy .locked-val em { font-size: 13px; padding: 5px 12px; }
 
 @media (min-height: 800px) {
-    .right-column .ring-wrap, .right-column.has-results .ring-wrap { width: 160px; height: 160px; }
-    .right-column .progress-text, .right-column.has-results .progress-text { font-size: 36px; }
+    .right-column .ring-wrap, .right-column.has-results .ring-wrap { width: 170px; height: 170px; }
+    .right-column .progress-text, .right-column.has-results .progress-text { font-size: 38px; }
+    .right-column .status-row, .right-column.has-results .status-row { gap: 12px; }
+    .right-column .status-box, .right-column.has-results .status-box { padding: 12px 18px; }
+    .right-column .status-label { font-size: 13px; }
+    .right-column .status-value { font-size: 22px; }
 }
 @media (max-height: 700px) {
     .params-card.roomy .angle-opts svg { width: 84px; }
