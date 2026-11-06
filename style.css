@@ -34,7 +34,7 @@ body { background-color: var(--main-bg); color: var(--text); height: 100vh; heig
 
 /* Login/Setup Screen Background */
 #login-screen, .setup-bg { justify-content: center; align-items: flex-start; padding-left: 8%; background: linear-gradient(rgba(246, 235, 226, 0.8), rgba(246, 235, 226, 0.8)), var(--bg-img, none) no-repeat right center; background-size: cover; }
-#signup-screen { justify-content: center; align-items: center; background-color: #dbe4e4; background-image: none; }
+#signup-screen { justify-content: center; align-items: center; background: linear-gradient(rgba(246, 235, 226, 0.8), rgba(246, 235, 226, 0.8)), var(--bg-img, none) no-repeat right center; background-size: cover; background-color: #dbe4e4; }
 
 /* Login/Onboarding Card Styling */
 .login-card, .onboarding-card { background: var(--main-bg); padding: 40px 50px; border-radius: 40px; text-align: center; width: 420px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); transition: transform 0.3s; }
@@ -696,7 +696,7 @@ img[data-img]:not([src]) { display: none; }
    Switch: moon/sun button on the dashboard header, or Settings > Appearance. Saved per device. */
 [data-theme="dark"] { color-scheme: dark; --main-bg: #151a0f; --sec-bg: #3a4526; --primary-red: #b3262d; --sec-green: #3d4f1f; --card-bg: #212a16; --green-text: #c3dc92; --red-text: #f08a82; --text: #ebe6d6; --text-mid: #c9c4b2; --text-soft: #a29d8b; --line: #36422a; --hit: #4f7f2a; --miss: #b3262d; }
 :where([data-theme="dark"]) #login-screen, :where([data-theme="dark"]) .setup-bg { background: linear-gradient(rgba(21,26,15,0.88), rgba(21,26,15,0.88)), var(--bg-img, none) no-repeat right center; background-size: cover; }
-:where([data-theme="dark"]) #signup-screen { background-color: #0f130a; }
+:where([data-theme="dark"]) #signup-screen { background: linear-gradient(rgba(21,26,15,0.88), rgba(21,26,15,0.88)), var(--bg-img, none) no-repeat right center; background-size: cover; background-color: #0f130a; }
 :where([data-theme="dark"]) .login-card, :where([data-theme="dark"]) .onboarding-card { background: var(--card-bg); }
 :where([data-theme="dark"]) .input-wrapper input { background: var(--main-bg); }
 :where([data-theme="dark"]) .signup-card { background: var(--card-bg); }
