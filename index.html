@@ -419,7 +419,7 @@
             <div class="params-card">
                 <div class="params-head"><h3 class="dark-red">Launch Settings</h3><span class="lock-pill hidden" id="lock-pill">🔒 Locked while launching</span></div>
 
-                <div class="speed-tile">
+                <div class="speed-tile" id="range-tile">
                     <div class="slider-header"><label class="field-label">Range · how far it throws</label><span id="range-name">Medium</span></div>
                     <div class="angle-opts" id="range-opts">
                         <button data-r="SHORT" onclick="setRange('SHORT')"><svg viewBox="0 0 60 36"><line x1="4" y1="30" x2="56" y2="30" stroke="#E1C6AF" stroke-width="2"/><path d="M8 30 Q16 2 24 30" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="1 6"/><circle cx="8" cy="30" r="3.5" fill="currentColor"/><circle cx="24" cy="30" r="3.5" fill="currentColor"/></svg><b>Short</b></button>
@@ -429,11 +429,10 @@
                 </div>
                 <div class="speed-tile hidden" id="smash-dir-tile">
                     <div class="slider-header"><label class="field-label">Direction · where it throws</label><span id="smash-dir-name">Mixed</span></div>
-                    <div class="angle-opts four" id="smash-dir-opts">
+                    <div class="angle-opts" id="smash-dir-opts">
                         <button data-d="LEFT" onclick="setSmashDirection('LEFT')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L14 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="14" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Left</b></button>
                         <button data-d="CENTER" onclick="setSmashDirection('CENTER')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 24 V8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Center</b></button>
                         <button data-d="RIGHT" onclick="setSmashDirection('RIGHT')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L46 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="46" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Right</b></button>
-                        <button data-d="MIXED" onclick="setSmashDirection('MIXED')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L14 8 M30 25 L46 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="14" cy="8" r="2.8" fill="currentColor"/><circle cx="46" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Mixed</b></button>
                     </div>
                 </div>
                 <div class="aim-pads single hidden" id="fixed-tiles">
