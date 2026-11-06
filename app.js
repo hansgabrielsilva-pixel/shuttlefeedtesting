@@ -44,7 +44,7 @@ let shuttlesLaunched = 0;
 let totalShuttles = 50;
 let rangePicked = false, dirPicked = false;   // false until the instructor taps a Range / Direction button
 let selectedRange = 'MEDIUM';           // SHORT | MEDIUM | LONG - how far the shuttle is thrown
-const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long' };
+const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long', SMASH: 'Smash' };   // SMASH = the one fixed speed of Smash mode (no range buttons)
 let currentMode = 'Smash';
 
 // --- Dashboard: last drill (for Quick Start) ---
@@ -769,6 +769,8 @@ function setRange(v) {
     if (blockedWhileLocked()) return;
     const s = String(v).toUpperCase();
     let r = RANGE_LABELS[s] ? s : (s === 'LOW' ? 'SHORT' : s === 'HIGH' ? 'LONG' : 'MEDIUM');
+    if (currentMode === 'Smash') r = 'SMASH';                                // Smash has one fixed speed, no range choice
+    else if (r === 'SMASH') r = 'MEDIUM';
     if (currentMode === 'Service' && r === 'MEDIUM') r = 'SHORT';          // Service has only Short and Long
     selectedRange = r;
     rangePicked = true;
@@ -1509,12 +1511,12 @@ document.addEventListener('keyup', e => { if (e.key === ' ' && onSessionScreen(e
 const SMASH_ANGLE = 35;
 const SMASH_DIR_NAMES = { LEFT: 'Left', CENTER: 'Center', RIGHT: 'Right', MIXED: 'Mixed' };
 let posDir = 'LEFT';                     // Service: LEFT | CENTER | RIGHT
-let smashDir = 'MIXED';                 // LEFT | RIGHT | MIXED (MIXED = shuttles alternate between left and right in a random order)
+let smashDir = 'CENTER';                 // LEFT | RIGHT | MIXED (MIXED = shuttles alternate between left and right in a random order)
 let mixedQueue = [];
-function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'MIXED'; }
+function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'CENTER'; }
 function setSmashDirection(d) {
     if (blockedWhileLocked()) return;
-    smashDir = SMASH_DIR_NAMES[d] ? d : 'MIXED';
+    smashDir = (SMASH_DIR_NAMES[d] && d !== 'MIXED') ? d : 'CENTER';   // Smash: Left, Center or Right (Mixed was removed)
     dirPicked = true;
     sendDirection(smashDir === 'MIXED' ? 'CENTER' : smashDir);          // servo preview
     setAim('h', smashDir === 'MIXED' ? 0 : POSITION_DIRS[smashDir]);
@@ -1557,6 +1559,9 @@ function applyModeLayout() {
     const service = currentMode === 'Service';                 // Service: Short and Long only (no Medium)
     document.querySelector('#range-opts button[data-r="MEDIUM"]').classList.toggle('hidden', service);
     document.getElementById('range-opts').classList.toggle('two', service);
+    document.getElementById('range-tile').classList.toggle('hidden', smash);   // Smash: no Short / Medium / Long buttons
+    if (smash) { selectedRange = 'SMASH'; rangePicked = true; showRange(); }  // Smash always runs at its fixed speed
+    else if (selectedRange === 'SMASH') { selectedRange = service ? 'SHORT' : 'MEDIUM'; showRange(); }
     if (service && selectedRange === 'MEDIUM') { selectedRange = 'SHORT'; showRange(); }
     if (fixed) {
         setAim('v', fixed.angle);
@@ -1566,7 +1571,7 @@ function applyModeLayout() {
     if (smash) {
         setAim('v', SMASH_ANGLE);                         // angle is fixed in Smash
         const savedDir = String(lastDrill.dir || '');
-        setSmashDirection(SMASH_DIR_NAMES[savedDir] ? savedDir : smashDirFromAim(+document.getElementById('h-dir').value));
+        setSmashDirection((SMASH_DIR_NAMES[savedDir] && savedDir !== 'MIXED') ? savedDir : smashDirFromAim(+document.getElementById('h-dir').value));
     }
 }
 
@@ -1591,9 +1596,10 @@ function setupSession(modeName, keepChoices) {
 
 // Un-highlights Range and Direction so the instructor has to choose them
 function clearChoices() {
-    rangePicked = false; dirPicked = false;
+    rangePicked = currentMode === 'Smash'; dirPicked = false;   // Smash has no range to pick
     document.querySelectorAll('#range-opts button, #smash-dir-opts button, #position-opts button').forEach(b => b.classList.remove('on'));
     ['range-name', 'smash-dir-name', 'position-name', 'current-speed-display', 'current-angle-display'].forEach(id => setText(id, 'Not set'));
+    if (currentMode === 'Smash') showRange();   // shows the fixed Smash speed
 }
 
 // Handle UI button states
@@ -1999,10 +2005,13 @@ function openLaunchConfirm() {
     const rangeIcon = cfIcon('#range-opts button[data-r="' + selectedRange + '"] svg');
     const dirIcon = currentMode === 'Smash' ? cfIcon('#smash-dir-opts button[data-d="' + dir + '"] svg') : cfIcon('#position-opts button[data-p="' + dir + '"] svg');
 
+    const rangeTile = currentMode === 'Smash'
+        ? '<div class="cf-tile static"><span class="cf-k">Speed</span><span class="cf-ic big">⚡</span><b>Smash</b><em>fixed speed</em></div>'
+        : '<button type="button" class="cf-tile" data-edit="range"><span class="cf-k">Range</span><span class="cf-ic">' + rangeIcon + '</span><b>' + RANGE_LABELS[selectedRange] + '</b><em>Tap to change</em></button>';
     setText('cf-mode', currentMode.toUpperCase() + ' MODE');
     setText('cf-class', document.getElementById('session-class').innerText || '');
     document.getElementById('cf-tiles').innerHTML =
-        '<button type="button" class="cf-tile" data-edit="range"><span class="cf-k">Range</span><span class="cf-ic">' + rangeIcon + '</span><b>' + RANGE_LABELS[selectedRange] + '</b><em>Tap to change</em></button>' +
+        rangeTile +
         '<button type="button" class="cf-tile" data-edit="dir"><span class="cf-k">Direction</span><span class="cf-ic">' + dirIcon + '</span><b>' + SMASH_DIR_NAMES[dir] + '</b><em>Tap to change</em></button>' +
         '<div class="cf-tile static"><span class="cf-k">Interval</span><span class="cf-ic big">⏱️</span><b>' + sec + ' sec</b><em>between shuttles</em></div>' +
         '<div class="cf-tile static"><span class="cf-k">Shuttles</span><span class="cf-ic big">🏸</span><b>' + n + '</b><em>to launch</em></div>';
