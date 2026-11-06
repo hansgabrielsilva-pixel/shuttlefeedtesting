@@ -42,6 +42,7 @@ function toggleTheme() { applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'
 let simulationTimer;
 let shuttlesLaunched = 0;
 let totalShuttles = 50;
+let rangePicked = false, dirPicked = false;   // false until the instructor taps a Range / Direction button
 let selectedRange = 'MEDIUM';           // SHORT | MEDIUM | LONG - how far the shuttle is thrown
 const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long' };
 let currentMode = 'Smash';
@@ -437,7 +438,7 @@ function quickStart() {
     document.getElementById('count').value = lastDrill.count;
     document.getElementById('h-dir').value = lastDrill.direction ?? 0;
     document.getElementById('v-ang').value = lastDrill.angle ?? 30;
-    setupSession(normMode(lastDrill.mode));
+    setupSession(normMode(lastDrill.mode), true);   // true = keep the loaded settings selected
     setRange(lastDrill.range);
 }
 
@@ -769,6 +770,7 @@ function setRange(v) {
     let r = RANGE_LABELS[s] ? s : (s === 'LOW' ? 'SHORT' : s === 'HIGH' ? 'LONG' : 'MEDIUM');
     if (currentMode === 'Service' && r === 'MEDIUM') r = 'SHORT';          // Service has only Short and Long
     selectedRange = r;
+    rangePicked = true;
     showRange();
     popEl('range-name');
 }
@@ -1475,7 +1477,7 @@ function repeatDrill(it) {
     if (st.includes('RUN') || st.includes('SHOT') || st.includes('PAUSE')) { toast('Stop the current session first.'); return; }
     closeHistory();
     document.getElementById('count').value = it.planned || it.count || 50;
-    setupSession(normMode(it.mode));
+    setupSession(normMode(it.mode), true);
     setRange(it.range);
     toast(`${normMode(it.mode)} · ${RANGE_LABELS[it.range] || ''} range loaded. Press START when ready.`);
 }
@@ -1511,6 +1513,7 @@ function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'MIXED';
 function setSmashDirection(d) {
     if (blockedWhileLocked()) return;
     smashDir = SMASH_DIR_NAMES[d] ? d : 'MIXED';
+    dirPicked = true;
     sendDirection(smashDir === 'MIXED' ? 'CENTER' : smashDir);          // servo preview
     setAim('h', smashDir === 'MIXED' ? 0 : POSITION_DIRS[smashDir]);
     document.querySelectorAll('#smash-dir-opts button').forEach(b => b.classList.toggle('on', b.dataset.d === smashDir));
@@ -1530,6 +1533,7 @@ const POSITION_DIRS = { LEFT: -30, RIGHT: 30 };     // assumed aim for each posi
 const FIXED_ANGLES = { 'Service': { angle: 55, name: 'High' } };
 function setPosition(p) {
     if (blockedWhileLocked()) return;
+    dirPicked = true;
     sendDirection(p);                                                   // servo preview
     setAim('h', POSITION_DIRS[p]);
     document.querySelectorAll('#position-opts button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
@@ -1561,7 +1565,7 @@ function applyModeLayout() {
     }
 }
 
-function setupSession(modeName) {
+function setupSession(modeName, keepChoices) {
     setControlsLocked(false);                 // a fresh control screen is always editable
     currentMode = modeName;
     document.getElementById('session-title').innerText = modeName.toUpperCase() + " MODE CONTROL";
@@ -1576,7 +1580,15 @@ function setupSession(modeName) {
     updateCounterDisplay();
     resetButtons();
     updateSliders();
+    if (!keepChoices) clearChoices();         // opening Smash / Service from the menu: nothing is pre-selected
     navigate('session-screen');
+}
+
+// Un-highlights Range and Direction so the instructor has to choose them
+function clearChoices() {
+    rangePicked = false; dirPicked = false;
+    document.querySelectorAll('#range-opts button, #smash-dir-opts button, #position-opts button').forEach(b => b.classList.remove('on'));
+    ['range-name', 'smash-dir-name', 'position-name', 'current-speed-display', 'current-angle-display'].forEach(id => setText(id, 'Not set'));
 }
 
 // Handle UI button states
@@ -1968,6 +1980,10 @@ function cfIcon(sel) { const s = document.querySelector(sel); return s ? s.outer
 
 function requestStart() {
     if (!usbIsConnected()) { toast('Connect the machine first (press the USB button).'); return; }
+    if (!rangePicked || !dirPicked) {
+        toast(!rangePicked && !dirPicked ? 'Choose a Range and a Direction first.' : !rangePicked ? 'Choose a Range first.' : 'Choose a Direction first.');
+        return;
+    }
     openLaunchConfirm();
 }
 function openLaunchConfirm() {
