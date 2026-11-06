@@ -1553,6 +1553,7 @@ function applyModeLayout() {
     document.getElementById('fixed-tiles').classList.toggle('hidden', !fixed);
     document.getElementById('smash-dir-tile').classList.toggle('hidden', !smash);
     const locked = isLockedMode();
+    document.querySelector('.control-grid .params-card').classList.toggle('roomy', locked);   // Smash / Service: bigger controls that fill the screen
     document.getElementById('free-inputs').classList.toggle('hidden', locked);      // interval + shuttles steppers
     document.getElementById('locked-inputs').classList.toggle('hidden', !locked);   // fixed 3 sec / 24 shuttles
     setText('current-angle-label', (smash || fixed) ? 'Direction' : 'Angle');
