@@ -153,8 +153,8 @@
 
             <div class="intro-points">
                 <div class="intro-point"><span>🎯</span><div><b>Consistent feeding</b><small>No arm fatigue, so every shuttle is delivered the same way.</small></div></div>
-                <div class="intro-point"><span>🏸</span><div><b>Two drill modes</b><small>Smash (40–70 m/s) and Service. Smash can be aimed left, right or mixed; Service left or right.</small></div></div>
-                <div class="intro-point"><span>🎛️</span><div><b>Simple controls</b><small>Choose the range and direction on one screen. Every drill runs 24 shuttles, one every 3 seconds.</small></div></div>
+                <div class="intro-point"><span>🏸</span><div><b>Two drill modes</b><small>Smash (40–70 m/s) and Service. Smash runs at one fixed speed; Service has a short or long range. Both can be aimed left, center or right.</small></div></div>
+                <div class="intro-point"><span>🎛️</span><div><b>Simple controls</b><small>Choose the direction (and the range in Service) on one screen. Every drill runs 24 shuttles, one every 3 seconds.</small></div></div>
             </div>
 
             <div class="progress-dots">
@@ -428,7 +428,7 @@
                     </div>
                 </div>
                 <div class="speed-tile hidden" id="smash-dir-tile">
-                    <div class="slider-header"><label class="field-label">Direction · where it throws</label><span id="smash-dir-name">Mixed</span></div>
+                    <div class="slider-header"><label class="field-label">Direction · where it throws</label><span id="smash-dir-name">Not set</span></div>
                     <div class="angle-opts" id="smash-dir-opts">
                         <button data-d="LEFT" onclick="setSmashDirection('LEFT')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L14 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="14" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Left</b></button>
                         <button data-d="CENTER" onclick="setSmashDirection('CENTER')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 24 V8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Center</b></button>
