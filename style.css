@@ -561,6 +561,9 @@ img[data-img]:not([src]) { display: none; }
 
 /* --- High Service: machine position (Left / Right) + fixed High angle --- */
 .angle-opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.angle-opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.angle-opts.four svg { width: 56px; height: 36px; }
+.angle-opts.four b { font-size: 18px; }
 #position-name { background: var(--card-bg); border-radius: 12px; padding: 3px 12px; font-weight: bold; color: var(--red-text); font-size: 14px; }
 .fixed-angle { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; padding: 12px 6px 10px; border-radius: 16px; background: var(--card-bg); color: var(--red-text); }
 .fixed-angle svg { width: 70px; height: 42px; }
