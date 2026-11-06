@@ -289,13 +289,14 @@ function beginLoggedSession(intervalSec) {
     lastDrill = {
         mode: currentMode, range: selectedRange, interval: intervalSec, count: totalShuttles,
         direction: parseInt(document.getElementById('h-dir').value) || 0,
+        dir: dirNow(),                   // LEFT | CENTER | RIGHT | MIXED (the degrees above cannot tell Center from Mixed)
         angle: parseInt(document.getElementById('v-ang').value) || 0
     };
     refreshDashboard();
     // The record is written once, when the drill ends (works offline too). Meanwhile a copy is kept in the browser.
     sessionDraft = {
         id: makeCid(), username: currentUser, cls: classLabel(currentClass), mode: lastDrill.mode, range: lastDrill.range,
-        direction: lastDrill.direction, angle: lastDrill.angle, interval: intervalSec, planned: totalShuttles,
+        direction: lastDrill.dir, angle: lastDrill.angle, interval: intervalSec, planned: totalShuttles,
         launched: 0, hits: 0, misses: 0, startedAt: Date.now(), updatedAt: Date.now()
     };
     saveDraft();
@@ -1506,7 +1507,8 @@ document.addEventListener('keyup', e => { if (e.key === ' ' && onSessionScreen(e
 
 // --- Smash mode: the angle is fixed (assumed degrees - tune on the real machine); the instructor picks the DIRECTION ---
 const SMASH_ANGLE = 35;
-const SMASH_DIR_NAMES = { LEFT: 'Left', RIGHT: 'Right', MIXED: 'Mixed' };
+const SMASH_DIR_NAMES = { LEFT: 'Left', CENTER: 'Center', RIGHT: 'Right', MIXED: 'Mixed' };
+let posDir = 'LEFT';                     // Service: LEFT | CENTER | RIGHT
 let smashDir = 'MIXED';                 // LEFT | RIGHT | MIXED (MIXED = shuttles alternate between left and right in a random order)
 let mixedQueue = [];
 function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'MIXED'; }
@@ -1528,16 +1530,17 @@ function buildMixedQueue(n) {
     return q;
 }
 // --- Service mode: the instructor picks the DIRECTION (Left or Right); the angle is fixed and not shown ---
-const POSITION_DIRS = { LEFT: -30, RIGHT: 30 };     // assumed aim for each position (degrees) - tune on the machine
+const POSITION_DIRS = { LEFT: -30, CENTER: 0, RIGHT: 30 };     // assumed aim for each position (degrees) - tune on the machine
 // Angle is fixed in the two service modes (degrees are assumed - tune on the machine)
 const FIXED_ANGLES = { 'Service': { angle: 55, name: 'High' } };
 function setPosition(p) {
     if (blockedWhileLocked()) return;
     dirPicked = true;
-    sendDirection(p);                                                   // servo preview
+    posDir = POSITION_DIRS[p] !== undefined ? p : 'LEFT';
+    sendDirection(posDir);                                                   // servo preview
     setAim('h', POSITION_DIRS[p]);
     document.querySelectorAll('#position-opts button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
-    setText('position-name', p === 'LEFT' ? 'Left' : 'Right');
+    setText('position-name', SMASH_DIR_NAMES[posDir]);
     popEl('position-name');
 }
 
@@ -1557,11 +1560,13 @@ function applyModeLayout() {
     if (service && selectedRange === 'MEDIUM') { selectedRange = 'SHORT'; showRange(); }
     if (fixed) {
         setAim('v', fixed.angle);
-        setPosition(+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT');
+        const savedPos = String(lastDrill.dir || '');
+        setPosition(POSITION_DIRS[savedPos] !== undefined ? savedPos : (+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT'));
     }
     if (smash) {
         setAim('v', SMASH_ANGLE);                         // angle is fixed in Smash
-        setSmashDirection(smashDirFromAim(+document.getElementById('h-dir').value));
+        const savedDir = String(lastDrill.dir || '');
+        setSmashDirection(SMASH_DIR_NAMES[savedDir] ? savedDir : smashDirFromAim(+document.getElementById('h-dir').value));
     }
 }
 
@@ -1904,12 +1909,15 @@ function sendDirection(side) {
     usbSend('DIR,' + side).catch(() => {});
 }
 
+// The direction the instructor chose
+function dirNow() { return currentMode === 'Smash' ? smashDir : posDir; }
+
 // Aim for START / RESUME. Smash: Left / Right / Mixed (first shuttle's side). Service: Left / Right.
 function aimServoForStart() {
     if (currentMode === 'Smash') {
         sendDirection(smashDir === 'MIXED' ? (mixedQueue[0] || 'LEFT') : smashDir);
     } else {
-        sendDirection(+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT');
+        sendDirection(posDir);                    // Service: the chosen side (Center = 90 degrees)
     }
 }
 
@@ -1968,8 +1976,7 @@ function cfCloseSafety(understood) {
 }
 
 function cfDirKey() {
-    if (currentMode === 'Smash') return smashDir;                                   // LEFT | RIGHT | MIXED
-    return (+document.getElementById('h-dir').value > 0) ? 'RIGHT' : 'LEFT';      // Service: Left or Right
+    return dirNow();                                                                // Smash: LEFT | CENTER | RIGHT | MIXED, Service: LEFT | CENTER | RIGHT
 }
 function cfFmtTime(sec) {
     sec = Math.max(0, Math.round(sec));
