@@ -1722,6 +1722,7 @@ function sendCommand(command) {
         updateCounterDisplay();
         if (currentMode === 'Smash') setSmashDirection(smashDir);          // back to "Mixed" / the chosen side
         if (summaryData) showDrillSummary(summaryData);
+        setTimeout(applyHeldFeeder, 800);          // the drill is over: now read the feeder (it may be empty after the last shuttle)
     }
 }
 
@@ -2229,7 +2230,20 @@ function beepFor(ms, freq) {
     osc.start(t); osc.stop(t + dur + 0.02);
 }
 
+// While a drill is in progress (from START until STOP, including while paused) the empty-feeder reading is held back,
+// so the last shuttlecock can still be thrown without the "No shuttlecocks left" alert. The held reading is applied as
+// soon as the drill ends. Set to false to get the old behavior (the drill pauses by itself when the feeder runs empty).
+const IGNORE_EMPTY_WHILE_RUNNING = true;
+let feederHeld = null;                           // the latest reading received during a drill: 'EMPTY' | 'LOADED' | null
+function drillInProgress() { const b = document.getElementById('btn-stop'); return !!b && !b.classList.contains('hidden'); }
+function applyHeldFeeder() {
+    if (feederHeld === null || drillInProgress()) return;
+    const h = feederHeld; feederHeld = null;
+    setFeederEmpty(h === 'EMPTY');
+}
 function setFeederEmpty(empty, silent) {
+    if (IGNORE_EMPTY_WHILE_RUNNING && !silent && drillInProgress()) { feederHeld = empty ? 'EMPTY' : 'LOADED'; return; }
+    feederHeld = null;
     feederState = silent ? null : (empty ? 'EMPTY' : 'LOADED');
     try { refreshChecklist(); } catch (e) {}
     try { updateStartLock(); } catch (e) {}
