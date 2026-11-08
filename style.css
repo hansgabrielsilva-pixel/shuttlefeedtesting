@@ -262,6 +262,7 @@ input[type=range] { width: 100%; margin: 10px 0 4px; accent-color: var(--red-tex
 .action-btn.btn-primary { flex: 0 0 30%; background: var(--primary-red); font-size: 20px; }
 #btn-pause { background: var(--sec-bg); color: var(--green-text); text-shadow: none; }
 #btn-start:not(.hidden) { animation: pulseGlow 2s infinite; }
+#btn-start.feeder-blocked, #btn-resume.feeder-blocked { opacity: 0.45; filter: grayscale(0.5); animation: none; }   /* feeder empty: cannot start */
 
 @media (max-width: 900px) { .control-grid { grid-template-columns: minmax(0, 1fr); padding: 15px; } }
 
