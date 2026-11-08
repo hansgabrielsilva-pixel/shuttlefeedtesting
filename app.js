@@ -48,10 +48,10 @@ const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long', SMASH: 'S
 let currentMode = 'Smash';
 
 // --- Dashboard: last drill (for Quick Start) ---
-const DEFAULT_DRILL = { mode: 'Smash', range: 'MEDIUM', interval: 3, count: 24, direction: 0, angle: 35 };
+const DEFAULT_DRILL = { mode: 'Smash', range: 'MEDIUM', interval: 3, count: 16, direction: 0, angle: 35 };
 
-// --- Smash and Service drills are fixed: 3 seconds between shuttles, 24 shuttles. Remove a mode from `modes` to unlock it. ---
-const LOCKED_DRILL = { modes: ['Smash', 'Service'], interval: 3, count: 24 };
+// --- Smash and Service drills are fixed: 3 seconds between shuttles, 16 shuttles. Remove a mode from `modes` to unlock it. ---
+const LOCKED_DRILL = { modes: ['Smash', 'Service'], interval: 3, count: 16 };
 // Old sessions were saved as 'Low Service' / 'High Service'; there is now a single 'Service' mode
 function normMode(m) { return /service/i.test(m || '') ? 'Service' : (m || 'Smash'); }
 function isLockedMode() { return LOCKED_DRILL.modes.includes(currentMode); }
@@ -1131,7 +1131,7 @@ const INFO_DOCS = {
             { name: 'The project', items: [
                 { ic: '🏸', q: 'Why SHUTTLEFEED?', a: '<p>Badminton is a core part of PHED 4, and mastering services and smashes takes a lot of repetition. Manual feeding by peers or instructors is predictable, tiring, and becomes inconsistent over time. It also keeps students from practicing on their own.</p>' },
                 { ic: '🎯', q: 'The problem we address', a: '<p>Traditional feeding has limited variety and predictable patterns, and instructor fatigue makes delivery inconsistent. Commercial launchers are often expensive. SHUTTLEFEED offers automated, consistent feeding in Smash and Service modes, controlled from a simple kiosk for the instructor.</p>' },
-                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service. Smash runs at one fixed speed; Service has a short or long range. Both can be aimed left, center or right.</li><li><b>Simple controls</b>: choose the direction (and the range in Service) on one screen. Every drill runs 24 shuttles, one every 3 seconds.</li></ul>' }
+                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service. Smash runs at one fixed speed; Service has a short or long range. Both can be aimed left, center or right.</li><li><b>Simple controls</b>: choose the direction (and the range in Service) on one screen. Every drill runs 16 shuttles, one every 3 seconds.</li></ul>' }
             ]}
         ],
         foot: 'Capstone design project, CvSU Carmona'
@@ -1145,12 +1145,12 @@ const INFO_DOCS = {
         groups: [
             { name: 'Basics', items: [
                 { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b> (or press <b>Enter</b>).</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
-                { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Tap your <b>Program</b> (e.g. BSCpE) and <b>Section</b>. Choose <b>Other…</b> if yours is not listed. The year is 2nd Year.</li><li>Tap <b>Next</b>, check the <b>Before you start</b> list, then tap <b>Finish Setup</b> and <b>Go to Home</b>.</li><li>Returning instructors skip the introduction and can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
+                { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Tap your <b>Program</b> and <b>Section</b>. The programs are BSBA-MM, BSBA-HRM, BSHM, BSE SCIENCE, BSE MATH, BSE ENGLISH, BSIT, BSCPE, BSCS and BSINDT. Choose <b>Other…</b> if yours is not listed. The year is 2nd Year.</li><li>Tap <b>Next</b>, check the <b>Before you start</b> list, then tap <b>Finish Setup</b> and <b>Go to Home</b>.</li><li>Returning instructors skip the introduction and can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
                 { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li>The dots at the top show <b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>. Tap them to open the <b>Before you start</b> checklist.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
-                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s) at one fixed speed. You only choose the direction (Left, Center or Right).</li><li><b>Service Mode</b>: consistent serves. You choose the range (Short or Long) and the direction (Left, Center or Right).</li></ul><p>In both modes a drill launches <b>24 shuttles, one every 3 seconds</b>.</p>' },
-                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b> (Service only): Short or Long (how far it throws). Smash has no range buttons; it always runs at its fixed speed.</li><li><b>Direction</b>: where shuttles are thrown. Both modes offer Left, Center (straight ahead) and Right.</li><li>Nothing is pre-selected when a mode opens, so choose the direction (and the range in Service) before you tap START.</li><li><b>Interval</b> and <b>Shuttles</b> are fixed at 3 seconds and 24 shuttles, so there is nothing to type.</li></ul>' },
+                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s) at one fixed speed. You only choose the direction (Left, Center or Right).</li><li><b>Service Mode</b>: consistent serves. You choose the range (Short or Long) and the direction (Left, Center or Right).</li></ul><p>In both modes a drill launches <b>16 shuttles, one every 3 seconds</b>.</p>' },
+                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b> (Service only): Short or Long (how far it throws). Smash has no range buttons; it always runs at its fixed speed.</li><li><b>Direction</b>: where shuttles are thrown. Both modes offer Left, Center (straight ahead) and Right.</li><li>Nothing is pre-selected when a mode opens, so choose the direction (and the range in Service) before you tap START.</li><li><b>Interval</b> and <b>Shuttles</b> are fixed at 3 seconds and 16 shuttles, so there is nothing to type.</li></ul>' },
                 { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>If the feeder is not connected yet, tap <b>Connect machine (USB)</b> and choose the Arduino. START only works once it is connected.</li><li>Tap <b>START ▶</b> (it asks you to choose a direction first if you have not). The <b>Ready to launch?</b> screen shows your range (or the fixed Smash speed), direction and estimated drill time. Tap a tile to change it.</li><li>Tick <b>Court is clear</b>, then tap <b>Confirm &amp; start ▶</b>. A 3-second countdown runs before the machine starts.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
                 { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>If a keyboard is attached to the kiosk tablet, these work on the session screen:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li>' + (SHOW_SCORING ? '<li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li>' : '') + '</ul>' }
             ]},
@@ -1556,7 +1556,7 @@ function applyModeLayout() {
     const locked = isLockedMode();
     document.querySelector('.control-grid .params-card').classList.toggle('roomy', locked);   // Smash / Service: bigger controls that fill the screen
     document.getElementById('free-inputs').classList.toggle('hidden', locked);      // interval + shuttles steppers
-    document.getElementById('locked-inputs').classList.toggle('hidden', !locked);   // fixed 3 sec / 24 shuttles
+    document.getElementById('locked-inputs').classList.toggle('hidden', !locked);   // fixed 3 sec / 16 shuttles
     setText('current-angle-label', (smash || fixed) ? 'Direction' : 'Angle');
     const service = currentMode === 'Service';                 // Service: Short and Long only (no Medium)
     document.querySelector('#range-opts button[data-r="MEDIUM"]').classList.toggle('hidden', service);
