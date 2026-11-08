@@ -1635,6 +1635,7 @@ setInterval(function () {
 
 // Logic to simulate hardware response
 function sendCommand(command) {
+    if ((command === 'START' || command === 'RESUME') && feederBlocksStart()) { showFeederBlock(); return; }   // red feeder dot = the machine cannot start
     if (command === 'RESUME' && feederState === 'EMPTY' && Date.now() > resumeOverrideUntil) {   // feeder still empty: ask twice before continuing
         resumeOverrideUntil = Date.now() + 6000;
         toast('The feeder looks empty. Load shuttlecocks, or tap RESUME again to continue anyway.', 4500);
@@ -1995,6 +1996,7 @@ function cfIcon(sel) { const s = document.querySelector(sel); return s ? s.outer
 
 function requestStart() {
     if (!usbIsConnected()) { toast('Connect the machine first (press the USB button).'); return; }
+    if (feederBlocksStart()) { showFeederBlock(); return; }          // red feeder dot: no shuttlecocks, so no start
     if (!rangePicked || !dirPicked) {
         toast(!rangePicked && !dirPicked ? 'Choose a Range and a Direction first.' : !rangePicked ? 'Choose a Range first.' : 'Choose a Direction first.');
         return;
@@ -2068,6 +2070,7 @@ function cfConfirm() {
     if (cfRunning) return;
     if (CONFIRM_REQUIRE_CLEAR && (!cfSafetyRead || !document.getElementById('cf-check').classList.contains('on'))) return;
     if (!usbIsConnected()) { closeLaunchConfirm(); toast('Connect the machine first (press the USB button).'); return; }
+    if (feederBlocksStart()) { closeLaunchConfirm(); showFeederBlock(); return; }
     if (CONFIRM_COUNTDOWN <= 0) { closeLaunchConfirm(); sendCommand('START'); return; }
     cfRunning = true;
     const card = document.getElementById('cf-card'), num = document.getElementById('cf-num');
@@ -2076,6 +2079,11 @@ function cfConfirm() {
     const tick = () => {
         num.textContent = left > 0 ? left : 'GO!';
         num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+        if (feederBlocksStart()) {                                   // the feeder ran empty during the countdown
+            clearInterval(cfTimer); cfTimer = null;
+            closeLaunchConfirm(); showFeederBlock();
+            return;
+        }
         if (left < 0) {
             clearInterval(cfTimer); cfTimer = null;
             closeLaunchConfirm(); sendCommand('START');
@@ -2224,6 +2232,7 @@ function beepFor(ms, freq) {
 function setFeederEmpty(empty, silent) {
     feederState = silent ? null : (empty ? 'EMPTY' : 'LOADED');
     try { refreshChecklist(); } catch (e) {}
+    try { updateStartLock(); } catch (e) {}
     if (empty === feederEmpty) return;                         // the Arduino repeats its status; only act on a change
     feederEmpty = empty;
     const m = document.getElementById('empty-modal');
@@ -2240,6 +2249,20 @@ function setFeederEmpty(empty, silent) {
         if (!silent) toast(pausedByFeeder && !document.getElementById('btn-resume').classList.contains('hidden') ? 'Feeder loaded. Tap RESUME to continue the drill.' : 'Shuttlecocks detected. The feeder is loaded.');
         pausedByFeeder = false;
     }
+}
+// The machine cannot START or RESUME while the feeder dot is red (USB connected and the sensor sees no shuttlecocks).
+// Set to false only to test the machine without shuttlecocks.
+const BLOCK_START_WHEN_EMPTY = true;
+function feederBlocksStart() { return BLOCK_START_WHEN_EMPTY && usbIsConnected() && feederState === 'EMPTY'; }
+function showFeederBlock() {
+    setText('empty-text', 'The sensor cannot see any shuttlecocks in the feeder. Please refill it before starting.');
+    document.getElementById('empty-modal').classList.remove('hidden');
+    beepFor(400, 880);
+}
+// dims the START and RESUME buttons while the feeder is empty
+function updateStartLock() {
+    const lock = feederBlocksStart();
+    ['btn-start', 'btn-resume'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.toggle('feeder-blocked', lock); });
 }
 function dismissEmptyAlert() { document.getElementById('empty-modal').classList.add('hidden'); }
 
@@ -2310,6 +2333,7 @@ function buildStatusDots() {
     refreshStatusDots();
 }
 function refreshStatusDots() {
+    try { updateStartLock(); } catch (e) {}
     const usbOn = usbIsConnected(), ready = usbOn && usbReady;
     const usbV = ready ? 'ok' : usbOn ? 'wait' : 'bad';
     const feedV = !usbOn ? 'off' : feederState === 'LOADED' ? 'ok' : feederState === 'EMPTY' ? 'bad' : 'wait';
