@@ -1768,6 +1768,7 @@ function sendCommand(command) {
         clearInterval(simulationTimer);
         simulationTimer = setInterval(() => {
             sendFeed();                       // MG90S pusher: push one shuttle to the wheels
+            if (LAUNCH_BEEP_MS > 0) beepFor(LAUNCH_BEEP_MS, LAUNCH_BEEP_HZ);   // buzzer: the machine just launched a shuttlecock
             shuttlesLaunched++;
             if (currentMode === 'Smash' && smashDir === 'MIXED') {          // this shuttle goes left or right
                 const side = mixedQueue.shift() || (Math.random() < 0.5 ? 'LEFT' : 'RIGHT');
@@ -2309,6 +2310,9 @@ function getAudio() {
 }
 // the browser only allows sound after a touch/click, so unlock it on the first one
 document.addEventListener('pointerdown', () => { getAudio(); }, { once: true, capture: true });
+
+// Launch buzzer: sounds once for every shuttlecock released. Set LAUNCH_BEEP_MS to 0 to turn it off.
+const LAUNCH_BEEP_MS = 1000, LAUNCH_BEEP_HZ = 880;
 
 function beepFor(ms, freq) {
     const ctx = getAudio();
