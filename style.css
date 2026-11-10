@@ -1233,7 +1233,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .account-select .account-chev { flex-shrink: 0; color: var(--text-soft); transition: transform 0.2s; }
 .account-select[aria-expanded="true"] .account-chev { transform: rotate(180deg); color: var(--red-text); }
 .account-select.empty .account-chev { opacity: 0.35; }
-.pw-link { display: block; margin: 10px auto 0; background: none; border: none; color: var(--text-mid); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 6px 10px; }
-.pw-link:hover { color: var(--red-text); }
 .pw-login { margin-top: 8px; }
 .pw-login.hidden { display: none !important; }
+.account-select.is-loading { cursor: progress; color: var(--red-text); opacity: 1; }
+.account-select.is-loading .account-chev { display: none; }
+.account-select.is-loading::after { content: ""; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(124, 0, 5, 0.2); border-top-color: var(--red-text); animation: spinRing 0.7s linear infinite; }
