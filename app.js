@@ -629,24 +629,27 @@ function renderSavedAccounts() {
         box.appendChild(row);
     });
     // With no saved account, the ID and password form is the only way in, so it is shown.
-    // Once an account is saved, the form stays behind the "Log in with a password instead" link.
-    if (!list.length) { closeSavedList(); showPasswordLogin(true, true); }
+    // Once an account is saved, the form stays hidden.
+    if (!list.length) { closeSavedList(); showPasswordLogin(true); }
     else showPasswordLogin(false);
 }
-// show or hide the ID + password form (alwaysOn = no saved account, so there is no link to hide it)
-function showPasswordLogin(show, alwaysOn) {
-    const pw = document.getElementById('pw-login'), link = document.getElementById('pw-link');
-    if (pw) pw.classList.toggle('hidden', !show);
-    if (link) {
-        link.classList.toggle('hidden', !!alwaysOn);
-        link.textContent = show ? 'Hide the password form' : 'Log in with a password instead';
-    }
-}
-function togglePasswordLogin() {
+// show or hide the ID + password form (it only appears when no account is saved on this device, or a saved login expired)
+function showPasswordLogin(show) {
     const pw = document.getElementById('pw-login');
-    const show = !!pw && pw.classList.contains('hidden');
-    showPasswordLogin(show);
-    if (show) { const u = document.getElementById('username'); const p = document.getElementById('password'); if (u && !u.value) u.focus(); else if (p) p.focus(); }
+    if (pw) pw.classList.toggle('hidden', !show);
+}
+// loading state on the account dropdown after the user picks an account
+function setAccountLoading(on, name) {
+    const sel = document.getElementById('account-select'), txt = document.getElementById('account-select-text');
+    if (!sel || !txt) return;
+    if (on) {
+        if (!sel.dataset.label) sel.dataset.label = txt.textContent;
+        txt.textContent = 'Signing in as ' + name + '…';
+        sel.classList.add('is-loading'); sel.disabled = true; sel.setAttribute('aria-busy', 'true');
+    } else {
+        sel.classList.remove('is-loading'); sel.disabled = false; sel.removeAttribute('aria-busy');
+        if (sel.dataset.label) { txt.textContent = sel.dataset.label; delete sel.dataset.label; }
+    }
 }
 function toggleSavedList() {
     const box = document.getElementById('saved-list'), t = document.getElementById('account-select');
@@ -678,6 +681,7 @@ async function startIntro(source, saved) {    // after login / sign up (source '
 
     authBusy = true;
     setAuthButtons(true, isSaved ? 'login' : source);
+    if (isSaved) setAccountLoading(true, saved.n || saved.u);
     try {
         const remember = isSignup || !!(document.getElementById('remember-me') || {}).checked;
         const res = isSaved
@@ -715,6 +719,7 @@ async function startIntro(source, saved) {    // after login / sign up (source '
     } finally {
         authBusy = false;
         setAuthButtons(false, isSaved ? 'login' : source);
+        if (isSaved) setAccountLoading(false);
     }
 }
 
