@@ -96,15 +96,20 @@
             <h2 class="dark-green">Welcome to SHUTTLEFEED</h2>
             <p class="subtitle">CvSU Carmona - PHED 4 Instructor Console</p>
 
+            <div class="input-wrapper" id="account-picker">
+                <button type="button" class="account-select" id="account-select" onclick="toggleSavedList()" aria-haspopup="listbox" aria-expanded="false"><span id="account-select-text">Select your account</span><svg class="account-chev" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+                <div class="saved-list" id="saved-list" role="listbox"></div>
+            </div>
+            <p class="signup-text" onclick="navigate('signup-screen')">Don't have an account? <b>Sign up</b></p>
+            <button type="button" class="pw-link hidden" id="pw-link" onclick="togglePasswordLogin()">Log in with a password instead</button>
+            <div class="pw-login" id="pw-login">
             <div class="input-wrapper">
                 <input type="text" placeholder="Instructor ID / Username" id="username">
                 <span class="input-icon" id="username-icon">
                     <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </span>
-                <button type="button" class="input-icon saved-toggle hidden" id="saved-toggle" onclick="toggleSavedList()" aria-label="Saved accounts" aria-haspopup="listbox" aria-expanded="false" title="Saved accounts"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
-                <div class="saved-list" id="saved-list" role="listbox"></div>
             </div>
-            
+
             <div class="input-wrapper">
                 <input type="password" placeholder="Password" id="password" autocomplete="current-password">
                 <button type="button" class="input-icon toggle-pw" id="toggle-password" onclick="togglePassword()" aria-label="Show password" title="Show password">
@@ -114,7 +119,7 @@
             </div>
             <label class="remember-row"><input type="checkbox" id="remember-me" checked><span>Remember me on this device</span></label>
             <button class="btn-primary pill-btn" onclick="startIntro()">Log in</button>
-            <p class="signup-text" onclick="navigate('signup-screen')">Don't have an account? <b>Sign up</b></p>
+            </div>
             <button type="button" class="manual-link" onclick="openInfo('manual', true)">&#128214; User's manual</button>
         </div>
     </div>
