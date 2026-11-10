@@ -192,6 +192,7 @@ function resetLocalState() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    try { renderSavedAccounts(); } catch (e) {}
 }
 
 function handleAuthExpired() {
@@ -587,21 +588,83 @@ function skipLoginAnimation() {                   // runs automatically at the e
     overlay.classList.remove('show');             // then fade the overlay away
 }
 
-async function startIntro(source) {    // after login / sign up
+// ===== Saved accounts on this device (the dropdown on the login screen) =====
+// Only the Instructor ID, the name and a random "remember token" are kept here. The password is never stored.
+const SAVED_KEY = 'shuttlefeedSaved';
+function getSaved() {
+    try { const l = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); return Array.isArray(l) ? l.filter(x => x && x.u && x.rt) : []; } catch (e) { return []; }
+}
+function putSaved(list) { try { localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, 5))); } catch (e) {} }
+function rememberAccount(user, rt) {
+    if (!user || !rt) return;
+    const list = getSaved().filter(x => x.u !== user.username);
+    list.unshift({ u: user.username, n: user.fullName || user.username, rt: rt, t: Date.now() });
+    putSaved(list);
+    renderSavedAccounts();
+}
+function forgetAccount(username) {
+    const list = getSaved(), hit = list.find(x => x.u === username);
+    putSaved(list.filter(x => x.u !== username));
+    if (hit && hit.rt) api('forgetRemembered', { token: null, rememberToken: hit.rt }).catch(() => {});   // the saved login stops working on the server too
+    renderSavedAccounts();
+}
+function renderSavedAccounts() {
+    const list = getSaved();
+    const toggle = document.getElementById('saved-toggle'), box = document.getElementById('saved-list'), icon = document.getElementById('username-icon');
+    if (!toggle || !box) return;
+    toggle.classList.toggle('hidden', list.length === 0);
+    if (icon) icon.classList.toggle('hidden', list.length > 0);          // the arrow takes the place of the person icon
+    box.innerHTML = '';
+    if (!list.length) { closeSavedList(); return; }
+    list.forEach(a => {
+        const row = document.createElement('div'); row.className = 'saved-item'; row.setAttribute('role', 'option');
+        const av = document.createElement('span'); av.className = 'saved-av'; av.textContent = String(a.n || a.u).trim().charAt(0).toUpperCase();
+        const txt = document.createElement('span'); txt.className = 'saved-txt';
+        const nm = document.createElement('b'); nm.textContent = a.n || a.u;
+        const us = document.createElement('small'); us.textContent = a.u;
+        txt.append(nm, us);
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'saved-x'; x.title = 'Remove from this device'; x.setAttribute('aria-label', 'Remove ' + a.u); x.textContent = '\u2715';
+        x.addEventListener('click', ev => { ev.stopPropagation(); forgetAccount(a.u); });
+        row.addEventListener('click', () => { closeSavedList(); startIntro('saved', a); });
+        row.append(av, txt, x);
+        box.appendChild(row);
+    });
+}
+function toggleSavedList() {
+    const box = document.getElementById('saved-list'), t = document.getElementById('saved-toggle');
+    if (!box || !t) return;
+    const open = !box.classList.contains('open');
+    box.classList.toggle('open', open);
+    t.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeSavedList() {
+    const box = document.getElementById('saved-list'), t = document.getElementById('saved-toggle');
+    if (box) box.classList.remove('open');
+    if (t) t.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', e => { if (!e.target.closest('#saved-list') && !e.target.closest('#saved-toggle')) closeSavedList(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSavedList(); });
+
+async function startIntro(source, saved) {    // after login / sign up (source 'saved' = a tap on a saved account)
     if (authBusy) return;
     const isSignup = source === 'signup';
+    const isSaved = source === 'saved' && !!(saved && saved.rt);
     const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-    const username = val(isSignup ? 'new-username' : 'username').trim().toLowerCase();
-    const password = val(isSignup ? 'new-password' : 'password');
+    const username = isSaved ? String(saved.u) : val(isSignup ? 'new-username' : 'username').trim().toLowerCase();
+    const password = isSaved ? '' : val(isSignup ? 'new-password' : 'password');
     const fullName = val('new-fullname').trim();
     if (!username) return toast('Please enter your Instructor ID.');
-    if (!password) return toast('Please enter your password.');
+    if (!isSaved && !password) return toast('Please enter your password.');
     if (isSignup && !fullName) return toast('Please enter your full name.');
 
     authBusy = true;
-    setAuthButtons(true, source);
+    setAuthButtons(true, isSaved ? 'login' : source);
     try {
-        const res = await api(isSignup ? 'signup' : 'login', { token: null, username, password, fullName });
+        const remember = isSignup || !!(document.getElementById('remember-me') || {}).checked;
+        const res = isSaved
+            ? await api('loginRemembered', { token: null, username, rememberToken: saved.rt })
+            : await api(isSignup ? 'signup' : 'login', { token: null, username, password, fullName, remember });
+        if (res.remember) rememberAccount(res.user, res.remember);      // saved for next time (not the password)
         authToken = res.token;
         try { localStorage.setItem(TOKEN_KEY, authToken); } catch (e) {}
         currentUser = res.user.username;
@@ -622,10 +685,16 @@ async function startIntro(source) {    // after login / sign up
             if (isSignup) toast('Account created!');
         });
     } catch (e) {
+        if (isSaved && e.code === 'REMEMBER') {          // the saved login expired or was removed: ask for the password instead
+            putSaved(getSaved().filter(x => x.u !== saved.u));
+            renderSavedAccounts();
+            const u = document.getElementById('username'); if (u) u.value = saved.u;
+            const p = document.getElementById('password'); if (p) p.focus();
+        }
         toast(e.message);
     } finally {
         authBusy = false;
-        setAuthButtons(false, source);
+        setAuthButtons(false, isSaved ? 'login' : source);
     }
 }
 
@@ -1074,7 +1143,7 @@ const INFO_DOCS = {
         lead: 'Stuck? Tap a question below. If your problem is not listed, contact the support team.',
         groups: [
             { name: 'Getting started', items: [
-                { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). On the on-screen keyboard, the <b>Enter</b> key also logs you in. After 5 wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
+                { ic: '🔑', q: 'I cannot log in', a: '<p>Check that your <b>Instructor ID</b> and <b>password</b> are typed correctly (the eye icon shows the password). If your name is in the saved list (the arrow in the ID box) and it asks for your password, your saved login has expired, so type your password once. On the on-screen keyboard, the <b>Enter</b> key also logs you in. After 5 wrong attempts the account is locked for <b>10 minutes</b>, so wait and try again.</p><p>No account yet? Tap <b>Sign up</b> on the login screen.</p>' },
                 { ic: '📡', q: 'What if the internet is down?', a: '<p>You can keep running drills: the machine is controlled over the USB cable, not the internet. Each finished drill is saved on this kiosk and uploaded automatically when the connection is back. The status dots at the top of the Home screen (<b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>) show the status, and how many drills are waiting to upload. Logging in and signing up still need the internet.</p>' },
                 { ic: '🚪', q: 'Why was I signed out?', a: '<p>To keep your account safe on a shared kiosk, SHUTTLEFEED signs you out after about <b>10 minutes</b> without use. A drill that is running is never interrupted. Log in again; your class, scores and history are saved.</p>' },
                 { ic: '⏱️', q: 'It says my session expired', a: '<p>A login lasts <b>12 hours</b>. Log in again; your class, scores and history are saved and will still be there.</p>' },
@@ -1144,7 +1213,7 @@ const INFO_DOCS = {
         lead: 'A step-by-step guide to the SHUTTLEFEED instructor console, from logging in to reviewing your scores.',
         groups: [
             { name: 'Basics', items: [
-                { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b> (or press <b>Enter</b>).</li><li>Next time, just enter your ID and password and tap <b>Log in</b>.</li></ol>' },
+                { ic: '1️⃣', q: 'Create an account and log in', a: '<ol><li>On the login screen tap <b>Sign up</b>.</li><li>Enter your <b>Full Name</b>, <b>Instructor ID</b> and a <b>Password</b>, then tap <b>Create Account</b> (or press <b>Enter</b>).</li><li>Next time, tap the <b>arrow</b> at the right of the ID box and tap your name, or enter your ID and password and tap <b>Log in</b>. Untick <b>Remember me on this device</b> on a shared device.</li></ol>' },
                 { ic: '2️⃣', q: 'Set up your class', a: '<ol><li>Tap your <b>Program</b> and <b>Section</b>. The programs are BSBA-MM, BSBA-HRM, BSHM, BSE SCIENCE, BSE MATH, BSE ENGLISH, BSIT, BSCPE, BSCS and BSINDT. Choose <b>Other…</b> if yours is not listed. The year is 2nd Year.</li><li>Tap <b>Next</b>, check the <b>Before you start</b> list, then tap <b>Finish Setup</b> and <b>Go to Home</b>.</li><li>Returning instructors skip the introduction and can tap <b>Continue with</b> to reuse the last class.</li></ol>' },
                 { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li>The dots at the top show <b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>. Tap them to open the <b>Before you start</b> checklist.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
@@ -2282,6 +2351,7 @@ function dismissEmptyAlert() { document.getElementById('empty-modal').classList.
 
 
 // ---------- Class form: program dropdown ("Other…" shows a text box) ----------
+renderSavedAccounts();                                    // show the saved accounts on the login screen
 document.getElementById('class-program-select').addEventListener('change', function () {
     const input = document.getElementById('class-program');
     if (this.value === '__other') { input.value = ''; input.classList.remove('hidden'); input.focus(); }
