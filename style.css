@@ -1224,3 +1224,16 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .saved-x:hover { color: var(--red-text); background: var(--line); }
 .remember-row { display: flex; align-items: center; gap: 8px; margin: 2px 8px 10px; font-size: 13px; color: var(--text-mid); cursor: pointer; text-align: left; }
 .remember-row input { width: 16px; height: 16px; accent-color: var(--primary-red); cursor: pointer; }
+
+/* ================= ACCOUNT PICKER (login screen, no password box) ================= */
+.account-select { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px 16px 25px; border: none; border-radius: 30px; background: var(--card-bg); color: var(--green-text); font-size: 16px; font-weight: 600; text-align: left; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.account-select:hover { box-shadow: 0 5px 15px rgba(124, 0, 5, 0.12); }
+.account-select:focus-visible, .account-select[aria-expanded="true"] { outline: 2px solid var(--red-text); }
+.account-select.empty { color: var(--text-soft); font-weight: 500; cursor: default; }
+.account-select .account-chev { flex-shrink: 0; color: var(--text-soft); transition: transform 0.2s; }
+.account-select[aria-expanded="true"] .account-chev { transform: rotate(180deg); color: var(--red-text); }
+.account-select.empty .account-chev { opacity: 0.35; }
+.pw-link { display: block; margin: 10px auto 0; background: none; border: none; color: var(--text-mid); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 6px 10px; }
+.pw-link:hover { color: var(--red-text); }
+.pw-login { margin-top: 8px; }
+.pw-login.hidden { display: none !important; }
