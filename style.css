@@ -1204,3 +1204,23 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
     .params-card.roomy .angle-opts b { font-size: 22px; }
     .params-card.roomy .locked-val { height: 64px; }
 }
+
+/* ================= SAVED ACCOUNTS (login screen) ================= */
+.input-icon.saved-toggle { pointer-events: auto; cursor: pointer; background: none; border: none; padding: 6px; right: 14px; display: flex; align-items: center; justify-content: center; line-height: 0; color: var(--text-soft); transition: color 0.2s; }
+.input-icon.saved-toggle.hidden { display: none !important; }
+.input-icon.saved-toggle, .input-icon.saved-toggle:hover, .input-icon.saved-toggle:active, .input-icon.saved-toggle:focus { transform: translateY(-50%) !important; box-shadow: none !important; outline: none; }
+.input-icon.saved-toggle:hover, .input-icon.saved-toggle[aria-expanded="true"] { color: var(--red-text); }
+.input-icon.saved-toggle svg { transition: transform 0.2s; }
+.input-icon.saved-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.saved-list { display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--card-bg); border-radius: 22px; box-shadow: 0 14px 30px rgba(0,0,0,0.25); padding: 6px; z-index: 40; text-align: left; max-height: 250px; overflow-y: auto; }
+.saved-list.open { display: block; animation: fadeInScale 0.15s ease; }
+.saved-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; cursor: pointer; transition: background 0.15s; }
+.saved-item:hover, .saved-item:active { background: var(--main-bg); }
+.saved-av { width: 38px; height: 38px; border-radius: 50%; background: var(--sec-bg); color: var(--red-text); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.saved-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.saved-txt b { font-size: 15px; color: var(--green-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-txt small { font-size: 12px; color: var(--text-soft); }
+.saved-x { background: none; border: none; color: var(--text-soft); font-size: 13px; padding: 8px 10px; border-radius: 50%; cursor: pointer; }
+.saved-x:hover { color: var(--red-text); background: var(--line); }
+.remember-row { display: flex; align-items: center; gap: 8px; margin: 2px 8px 10px; font-size: 13px; color: var(--text-mid); cursor: pointer; text-align: left; }
+.remember-row input { width: 16px; height: 16px; accent-color: var(--primary-red); cursor: pointer; }
