@@ -174,6 +174,7 @@ function applyUserData(d) {
 }
 
 function resetLocalState() {
+    try { setAccessMode(null); } catch (e) {}
     currentUser = null;
     authToken = null;
     currentClass = null;
@@ -206,7 +207,7 @@ function logout() {
     navigate('login-screen');                 // also stops the machine and closes any running session
     const closing = pendingFinish;
     resetLocalState();
-    if (token) closing.then(() => syncPending({ token, username: user })).catch(() => {}).then(() => api('logout', { token })).catch(() => {});
+    if (token) closing.then(() => syncPending({ token, username: user })).catch(() => {}).then(() => api('logout', { token, cid: CLIENT_ID })).catch(() => {});
 }
 
 function setText(id, text) {
@@ -703,8 +704,7 @@ async function startIntro(source, saved) {    // after login / sign up (source '
         returningFlow = !isSignup && !!(lastClass || introSeen(currentUser));   // first time only: show the intro
         ['password', 'new-password'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         playLoginAnimation(isSignup ? 'Account created!' : 'Welcome back!', () => {
-            if (returningFlow) startClassSetup();            // lands on "Continue with <class>"
-            else navigate('onboarding-intro');
+            showAccessScreen();                              // choose Control mode or View only first
             if (isSignup) toast('Account created!');
         });
     } catch (e) {
@@ -910,6 +910,10 @@ function stepValue(id, delta) {
 
 // UI Navigation
 function navigate(screenId) {
+    if (isViewOnly()) {                         // View only: Home is the live view, and the drill screens stay closed
+        if (screenId === 'dashboard-screen') screenId = 'live-screen';
+        else if (screenId === 'mode-screen' || screenId === 'session-screen') return;
+    }
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
@@ -1836,7 +1840,7 @@ setInterval(tickClock, 1000);
         applyUserData(r.data);
         currentClass = lastClass;
         setUserName(r.user.fullName, r.user.username);
-        navigate('dashboard-screen');
+        resumeAccess();                       // keeps Control mode after a quick refresh, otherwise asks again
         recoverDraft();
         if (pendingCount() > 0) syncPending();
     } catch (e) {
@@ -2026,6 +2030,147 @@ function aimServoForStart() {
     }
 }
 
+// ============================================================
+//  ACCESS: Control mode / View only  (one controller at a time, enforced by Code.gs)
+// ============================================================
+const CID_KEY = 'shuttlefeedCid';
+const CLIENT_ID = (function () {          // one id per browser tab: a quick refresh keeps control, a second device never shares it
+    try { let c = sessionStorage.getItem(CID_KEY); if (!c || c.length < 6) { c = makeCid() + makeCid(); sessionStorage.setItem(CID_KEY, c); } return c; } catch (e) { return makeCid() + makeCid(); }
+})();
+var accessMode = null;                    // null (not chosen yet) | 'control' | 'view'
+var accessTimer = null, accessScreenTimer = null, accessBusy = false, lastBeat = 0;
+const BEAT_MS = 4000, WATCH_MS = 2500;
+function isViewOnly() { return accessMode === 'view'; }
+function holderName(h) { return (h && (h.name || h.user)) || 'Another instructor'; }
+
+function setAccessMode(m) {
+    accessMode = m;
+    document.body.classList.toggle('view-only', m === 'view');
+    setText('sb-access-label', m === 'control' ? 'Control mode' : m === 'view' ? 'View only' : '-');
+    setText('sb-access-act', m === 'control' ? 'View only ›' : m === 'view' ? 'Take control ›' : '');
+    const pill = document.getElementById('access-pill');
+    if (pill) { pill.dataset.m = m || ''; pill.textContent = m === 'control' ? '🎛️ Control mode · you are the only one who can run the machine' : ''; }
+    clearInterval(accessTimer); accessTimer = null;
+    if (m && authToken) { accessTick(); accessTimer = setInterval(accessTick, m === 'control' ? BEAT_MS : WATCH_MS); }
+}
+
+function liveSnapshot() {
+    const run = drillIsRunning(), onSession = activeScreenId() === 'session-screen', show = run || onSession;
+    const paused = run && !document.getElementById('btn-resume').classList.contains('hidden');
+    const sc = shotCounts();
+    return { phase: run ? (paused ? 'PAUSED' : 'RUNNING') : onSession ? 'SETUP' : 'IDLE', cls: classLabel(currentClass),
+             mode: show ? currentMode : '', range: show && rangePicked ? selectedRange : '', dir: show && dirPicked ? dirNow() : '',
+             launched: shuttlesLaunched, total: totalShuttles, hits: sc.hits, misses: sc.misses };
+}
+
+async function accessTick() {
+    if (!authToken || !hasServer() || !accessMode) return;
+    lastBeat = Date.now();
+    try {
+        if (accessMode === 'control') {
+            const r = await api('controlBeat', { cid: CLIENT_ID, snap: liveSnapshot() });
+            if (!r.mine) await regainControl(r);
+        } else {
+            renderLive(await api('controlStatus', { cid: CLIENT_ID }));
+        }
+    } catch (e) { if (accessMode === 'view') renderLive(null); }      // a short network drop never stops a running drill
+}
+function pushLive() { if (accessMode === 'control' && Date.now() - lastBeat > 1200) accessTick(); }
+
+async function regainControl(r) {         // the server no longer lists this page as the controller
+    if (r.free) { try { const a = await api('acquireControl', { cid: CLIENT_ID }); if (a.granted) return; } catch (e) { return; } }
+    if (drillIsRunning()) sendCommand('STOP');       // control moved to someone else: stop the machine safely first
+    setAccessMode('view');
+    navigate('live-screen');
+    toast('Control moved to ' + holderName(r.holder) + '. You are now in View only.', 5000);
+}
+
+function paintAccess(r) {
+    const busy = !!r && !r.free && !r.mine;
+    const card = document.getElementById('access-control');
+    card.disabled = busy; card.classList.toggle('busy', busy);
+    setText('ac-control-status', !r ? 'Checking…' : busy ? 'In use by ' + holderName(r.holder) : 'Available');
+    setText('ac-view-status', busy ? holderName(r.holder) + ' is controlling' : 'Always available');
+}
+async function refreshAccessScreen() { try { paintAccess(await api('controlStatus', { cid: CLIENT_ID })); } catch (e) {} }
+function showAccessScreen() {
+    setAccessMode(null);
+    paintAccess(null);
+    navigate('access-screen');
+    refreshAccessScreen();
+    clearInterval(accessScreenTimer);
+    accessScreenTimer = setInterval(() => { if (activeScreenId() === 'access-screen') refreshAccessScreen(); else clearInterval(accessScreenTimer); }, WATCH_MS);
+}
+
+function afterAccess() {                  // what used to happen right after login
+    if (currentClass) navigate('dashboard-screen');
+    else if (returningFlow || introSeen(currentUser)) startClassSetup();
+    else navigate('onboarding-intro');
+}
+
+async function chooseAccess(m) {
+    if (accessBusy) return;
+    accessBusy = true;
+    try {
+        if (m === 'control') {
+            const a = await api('acquireControl', { cid: CLIENT_ID });
+            if (!a.granted) {
+                toast(holderName(a.holder) + ' is controlling the machine right now. You can watch in View only.', 4500);
+                if (isViewOnly()) renderLive({ free: false, holder: a.holder, snap: null, age: 0 }); else refreshAccessScreen();
+                return;
+            }
+            setAccessMode('control');
+            afterAccess();
+        } else {
+            setAccessMode('view');
+            navigate('live-screen');
+        }
+    } catch (e) { toast(e.message); } finally { accessBusy = false; }
+}
+
+async function switchAccess() {           // from the sidebar
+    closeAllSidebars();
+    if (accessMode === 'control') {
+        if (drillIsRunning()) return toast('Stop the drill first, then you can switch to View only.');
+        try { await api('releaseControl', { cid: CLIENT_ID }); } catch (e) {}
+        setAccessMode('view');
+        navigate('live-screen');
+        toast('You are now in View only. Others can take control.');
+    } else if (accessMode === 'view') chooseAccess('control');
+}
+
+async function resumeAccess() {           // page refreshed while logged in
+    try { const r = await api('controlStatus', { cid: CLIENT_ID }); if (r.mine) { setAccessMode('control'); navigate('dashboard-screen'); return; } } catch (e) {}
+    showAccessScreen();
+}
+
+function renderLive(r) {                  // paints the View only screen from the server's answer (null = no connection)
+    const s = (r && r.snap) || {}, free = !!r && !!r.free, total = s.total || 0, launched = s.launched || 0;
+    const chips = { RUNNING: 'LAUNCHING', PAUSED: 'PAUSED', SETUP: 'SETTING UP', IDLE: 'IDLE' };
+    setText('lv-who', !r ? 'Connection lost. Trying again…' : free ? 'Nobody is controlling the machine right now.' : holderName(r.holder) + ' is in control' + (s.cls && s.cls !== 'No class set' ? ' · ' + s.cls : ''));
+    const chip = document.getElementById('lv-chip');
+    chip.textContent = !r ? 'OFFLINE' : free ? 'FREE' : (chips[s.phase] || 'IDLE'); chip.dataset.s = !r || free ? '' : (s.phase || '');
+    const busy = !!r && !free;
+    const take = document.getElementById('lv-take'); take.disabled = busy; take.textContent = busy ? 'Control is in use' : 'Take control';
+    setText('lv-count', launched + ' / ' + total);
+    document.getElementById('lv-ring').style.strokeDashoffset = 326.7 * (1 - (total ? Math.min(launched / total, 1) : 0));
+    setText('lv-mode', s.mode || '-'); setText('lv-range', RANGE_LABELS[s.range] || '-'); setText('lv-dir', SMASH_DIR_NAMES[s.dir] || '-');
+    const h = s.hits || 0, m = s.misses || 0;
+    setText('lv-hits', h); setText('lv-miss', m); setText('lv-acc', h + m ? Math.round(100 * h / (h + m)) + '%' : '-');
+}
+
+(function hookControl() {                 // View only can never send machine commands; the controller reports every change quickly
+    const origSend = sendCommand;
+    sendCommand = function (command) {
+        if (isViewOnly()) return;
+        const r = origSend.apply(this, arguments);
+        setTimeout(pushLive, 60);
+        return r;
+    };
+    const origCount = updateCounterDisplay;
+    updateCounterDisplay = function () { origCount.apply(this, arguments); pushLive(); };
+})();
+
 initAimPads();
 setRange(selectedRange);
 applyImages();
@@ -2211,7 +2356,7 @@ const SUMMARY_MS = 15000;
 let summaryTimer = null, summaryTick = null;
 
 function activeScreenId() { const a = document.querySelector('.screen.active'); return a ? a.id : ''; }
-function isLoggedInScreen() { const id = activeScreenId(); return !!id && id !== 'login-screen' && id !== 'signup-screen' && !id.startsWith('onboarding'); }
+function isLoggedInScreen() { const id = activeScreenId(); return !!id && id !== 'login-screen' && id !== 'signup-screen' && id !== 'access-screen' && !id.startsWith('onboarding'); }
 
 function showDrillSummary(d) {
     if (!isLoggedInScreen()) return;                           // e.g. logging out mid-drill
@@ -2268,7 +2413,7 @@ function updateIdleClock() {
 }
 function goIdle() {
     if (idleVisible()) return;
-    if (drillIsRunning()) { resetIdleTimer(); return; }         // never interrupt a running or paused drill
+    if (drillIsRunning() || isViewOnly()) { resetIdleTimer(); return; }   // never interrupt a drill, or a viewer watching it
     closeSummary(false);
     closeLaunchConfirm();
     closeInfo();
@@ -2418,7 +2563,7 @@ function refreshChecklist() {
 
 // ---------- Auto sign-out (shared kiosk) ----------
 function autoSignOut() {
-    if (drillIsRunning()) { resetIdleTimer(); return; }          // never sign out in the middle of a drill
+    if (drillIsRunning() || isViewOnly()) { resetIdleTimer(); return; }          // never sign out in the middle of a drill
     if (!authToken) return;                                       // already on the login screen
     clearInterval(idleClockTimer);
     document.getElementById('idle-screen').classList.add('hidden');
