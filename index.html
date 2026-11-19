@@ -27,9 +27,14 @@
             <div class="live-badge"><span class="live-dot"></span>Active</div>
         </div>
 
-        <div class="sb-class sb-item" style="--i:1" onclick="changeClass()">
+        <div class="sb-class sb-item" id="sb-class-box" style="--i:1" onclick="changeClass()">
             <div><small>Current class</small><b id="sb-class-label">No class set</b></div>
             <span class="sb-change">Change ›</span>
+        </div>
+
+        <div class="sb-class sb-item" style="--i:2" onclick="switchAccess()">
+            <div><small>Access mode</small><b id="sb-access-label">-</b></div>
+            <span class="sb-change" id="sb-access-act"></span>
         </div>
 
         <div class="history-box sb-item" style="--i:3">
@@ -141,6 +146,63 @@
             
             <button class="btn-primary" onclick="startIntro('signup')" style="width: 80%; border-radius: 15px; margin-top: 5px;">Create Account</button>
             <p class="signup-text" onclick="navigate('login-screen')">Already have an account? <b>Log in</b></p>
+        </div>
+    </div>
+
+    <!-- ACCESS SCREEN: after login, choose Control mode (one instructor at a time) or View only -->
+    <div id="access-screen" class="screen setup-bg">
+        <div class="access-wrap">
+            <img data-img="logo" alt="SHUTTLEFEED Logo" class="setup-logo">
+            <h2 class="dark-green">Choose your access</h2>
+            <p class="setup-desc" style="margin: 6px 0 0;">Only one instructor can control the machine at a time. Everyone else can watch the drill live.</p>
+            <div class="access-cards">
+                <button type="button" class="access-card" id="access-control" onclick="chooseAccess('control')">
+                    <span class="ac-ic"><svg viewBox="0 0 24 24" width="38" height="38" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
+                    <h3 class="dark-red">Control mode</h3>
+                    <p>Set up and run drills: start, pause and stop the machine. Only one instructor at a time.</p>
+                    <span class="ac-status" id="ac-control-status">Checking…</span>
+                </button>
+                <button type="button" class="access-card" id="access-view" onclick="chooseAccess('view')">
+                    <span class="ac-ic view"><svg viewBox="0 0 24 24" width="38" height="38" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                    <h3 class="dark-red">View only</h3>
+                    <p>Watch the live drill. You cannot change settings or control the machine.</p>
+                    <span class="ac-status" id="ac-view-status">Always available</span>
+                </button>
+            </div>
+            <p class="skip-text" onclick="logout()">Log out</p>
+        </div>
+    </div>
+
+    <!-- LIVE VIEW SCREEN: what View only users see (read only, updates every ~2.5 s) -->
+    <div id="live-screen" class="screen">
+        <header>
+            <div class="user-icon" onclick="toggleUserSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+            <div class="header-center"><h1>LIVE VIEW</h1><p>VIEW ONLY</p></div>
+            <div class="header-right"><div class="settings-icon" onclick="toggleSettingsSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div></div>
+        </header>
+        <div class="live-body">
+            <div class="live-banner">
+                <span class="lb-ic">&#128065;</span>
+                <div><b>View only</b><small id="lv-who">Connecting…</small></div>
+                <span class="live-chip" id="lv-chip">-</span>
+            </div>
+            <div class="status-card live-card">
+                <div class="ring-wrap">
+                    <svg class="ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="lv-ring" cx="60" cy="60" r="52"/></svg>
+                    <div class="ring-center"><span class="progress-text" id="lv-count">0 / 0</span><span class="status-label">Shuttles</span></div>
+                </div>
+                <div class="status-row">
+                    <div class="status-box"><span class="status-label">Mode</span><span class="status-value" id="lv-mode">-</span></div>
+                    <div class="status-box"><span class="status-label">Range</span><span class="status-value" id="lv-range">-</span></div>
+                    <div class="status-box"><span class="status-label">Direction</span><span class="status-value" id="lv-dir">-</span></div>
+                </div>
+            </div>
+            <div class="live-results">
+                <div><b id="lv-hits">0</b><small>Hits</small></div>
+                <div><b id="lv-miss">0</b><small>Misses</small></div>
+                <div><b id="lv-acc">-</b><small>Accuracy</small></div>
+            </div>
+            <button type="button" class="btn-primary pill-btn live-take" id="lv-take" onclick="chooseAccess('control')">Take control</button>
         </div>
     </div>
 
@@ -328,6 +390,7 @@
                 </div>
 
                 <div class="dash-actions">
+                    <div class="access-pill" id="access-pill"></div>
                     <div class="hdr-status home-status" id="home-status"></div>
 
                     <div class="dash-grid">
