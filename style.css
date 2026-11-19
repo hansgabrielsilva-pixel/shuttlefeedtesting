@@ -1238,3 +1238,40 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .account-select.is-loading { cursor: progress; color: var(--red-text); opacity: 1; }
 .account-select.is-loading .account-chev { display: none; }
 .account-select.is-loading::after { content: ""; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(124, 0, 5, 0.2); border-top-color: var(--red-text); animation: spinRing 0.7s linear infinite; }
+
+/* ---------- Access: Control mode / View only ---------- */
+#access-screen { justify-content: center; align-items: center; text-align: center; padding: 24px; overflow-y: auto; }
+.access-wrap { display: flex; flex-direction: column; align-items: center; max-width: 720px; width: 100%; }
+.access-cards { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; margin: 22px 0 6px; }
+.access-card { font: inherit; color: var(--text); border: 2px solid transparent; background: var(--card-bg); width: 260px; min-height: 270px; border-radius: 20px; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; box-shadow: 0 8px 15px rgba(0,0,0,0.1); transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s; }
+.access-card:hover:not(:disabled) { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.2); border-color: var(--red-text); }
+.access-card:active:not(:disabled) { transform: scale(0.96); }
+.access-card:disabled { opacity: 0.6; cursor: not-allowed; }
+.access-card h3 { font-size: 21px; }
+.access-card p { font-size: 14px; color: var(--text-mid); line-height: 1.5; }
+.ac-ic { width: 76px; height: 76px; border-radius: 50%; background: var(--sec-green); color: #fff; display: flex; align-items: center; justify-content: center; }
+.ac-ic.view { background: var(--primary-red); }
+.ac-status { margin-top: auto; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; padding: 5px 12px; border-radius: 20px; background: rgba(46,158,79,0.15); color: #2e7d46; }
+.access-card.busy .ac-status { background: rgba(179,38,45,0.14); color: var(--red-text); }
+[data-theme="dark"] .ac-status { color: var(--green-text); }
+[data-theme="dark"] .access-card.busy .ac-status { color: var(--red-text); }
+
+.live-body { flex: 1; overflow-y: auto; padding: 22px 5%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.live-banner { width: 100%; max-width: 760px; display: flex; align-items: center; gap: 14px; background: var(--card-bg); border-radius: 18px; padding: 14px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.live-banner .lb-ic { font-size: 26px; }
+.live-banner div { flex: 1; min-width: 0; }
+.live-banner b { display: block; font-size: 17px; color: var(--text); }
+.live-banner small { font-size: 13px; color: var(--text-mid); }
+.live-chip { font-size: 12px; font-weight: bold; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; background: var(--sec-green); color: #fff; white-space: nowrap; }
+.live-chip[data-s="RUNNING"] { background: var(--primary-red); }
+.live-card { width: 100%; max-width: 760px; flex-direction: row; flex-wrap: wrap; justify-content: space-around; }
+.live-card .status-row { flex: 1; min-width: 240px; }
+.live-results { width: 100%; max-width: 760px; display: flex; gap: 12px; }
+.live-results div { flex: 1; background: var(--card-bg); border-radius: 16px; padding: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.live-results b { display: block; font-size: 26px; color: var(--text); }
+.live-results small { font-size: 12px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; }
+.live-take { max-width: 760px; }
+.live-take:disabled { opacity: 0.55; cursor: not-allowed; }
+.access-pill { align-self: center; font-size: 13px; font-weight: bold; padding: 6px 16px; border-radius: 20px; background: var(--card-bg); color: var(--green-text); }
+.access-pill:empty { display: none; }
+.view-only #sb-class-box { display: none; }
