@@ -2148,19 +2148,36 @@ async function resumeAccess() {           // page refreshed while logged in
     showAccessScreen();
 }
 
+function fmtClock(ms) { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
 function renderLive(r) {                  // paints the View only screen from the server's answer (null = no connection)
-    const s = (r && r.snap) || {}, free = !!r && !!r.free, total = s.total || 0, launched = s.launched || 0;
+    const s = (r && r.snap) || {}, free = !!r && !!r.free, busy = !!r && !free;
+    const active = busy && (s.phase === 'RUNNING' || s.phase === 'PAUSED');
     const chips = { RUNNING: 'LAUNCHING', PAUSED: 'PAUSED', SETUP: 'SETTING UP', IDLE: 'IDLE' };
-    setText('lv-who', !r ? 'Connection lost. Trying again…' : free ? 'Nobody is controlling the machine right now.' : holderName(r.holder) + ' is in control' + (s.cls && s.cls !== 'No class set' ? ' · ' + s.cls : ''));
+    const since = busy && r.holder && r.holder.since ? ' since ' + fmtClock(r.holder.since) : '';
+    setText('lv-who', !r ? 'Connection lost. Trying again…' : free ? 'Nobody is controlling the machine right now.' : holderName(r.holder) + ' is in control' + since + (s.cls && s.cls !== 'No class set' ? ' · ' + s.cls : ''));
     const chip = document.getElementById('lv-chip');
     chip.textContent = !r ? 'OFFLINE' : free ? 'FREE' : (chips[s.phase] || 'IDLE'); chip.dataset.s = !r || free ? '' : (s.phase || '');
-    const busy = !!r && !free;
     const take = document.getElementById('lv-take'); take.disabled = busy; take.textContent = busy ? 'Control is in use' : 'Take control';
-    setText('lv-count', launched + ' / ' + total);
-    document.getElementById('lv-ring').style.strokeDashoffset = 326.7 * (1 - (total ? Math.min(launched / total, 1) : 0));
-    setText('lv-mode', s.mode || '-'); setText('lv-range', RANGE_LABELS[s.range] || '-'); setText('lv-dir', SMASH_DIR_NAMES[s.dir] || '-');
-    const h = s.hits || 0, m = s.misses || 0;
-    setText('lv-hits', h); setText('lv-miss', m); setText('lv-acc', h + m ? Math.round(100 * h / (h + m)) + '%' : '-');
+    document.getElementById('lv-card').classList.toggle('hidden', !active);
+    document.getElementById('lv-results').classList.toggle('hidden', !active);
+    document.getElementById('lv-empty').classList.toggle('hidden', active);
+    if (active) {
+        const total = s.total || 0, launched = s.launched || 0;
+        setText('lv-count', launched + ' / ' + total);
+        document.getElementById('lv-ring').style.strokeDashoffset = 326.7 * (1 - (total ? Math.min(launched / total, 1) : 0));
+        setText('lv-mode', s.mode || '-'); setText('lv-range', RANGE_LABELS[s.range] || '-'); setText('lv-dir', SMASH_DIR_NAMES[s.dir] || '-');
+        const h = s.hits || 0, m = s.misses || 0;
+        setText('lv-hits', h); setText('lv-miss', m); setText('lv-acc', h + m ? Math.round(100 * h / (h + m)) + '%' : '-');
+        return;
+    }
+    const L = r && r.last;
+    setText('lv-empty-s', !r ? 'Reconnecting…' : free ? 'The machine is free.' : holderName(r.holder) + (s.phase === 'SETUP' ? ' is setting up the next drill.' : ' is in control, waiting to start a drill.'));
+    document.getElementById('lv-last').classList.toggle('hidden', !L);
+    if (!L) { if (r) setText('lv-empty-s', document.getElementById('lv-empty-s').innerText + ' No drill has been recorded yet.'); return; }
+    const d = new Date(L.at), h = L.hits || 0, m = L.misses || 0;
+    setText('lv-last-title', (L.cls && L.cls !== 'No class set' ? L.cls : 'No class') + ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + fmtClock(L.at));
+    setText('lv-last-sub', [L.mode, (L.launched || 0) + ' of ' + (L.total || 0) + ' shuttles', L.by ? 'by ' + L.by : ''].filter(Boolean).join(' · '));
+    setText('lv-l-hits', h); setText('lv-l-miss', m); setText('lv-l-acc', h + m ? Math.round(100 * h / (h + m)) + '%' : '-');
 }
 
 (function hookControl() {                 // View only can never send machine commands; the controller reports every change quickly
@@ -2235,7 +2252,7 @@ function renderStudentList() {            // the class's students with their gra
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
     setText('st-title', 'Student grades'); setText('st-sub', '');
-    if (!studentsAll.length) return note('No students yet. An instructor in Control mode can upload the class list.');
+    if (!studentsAll.length) return note('No students yet. Upload a class list above to get started.');
     const list = studentsAll.filter(s => (!p || (s.program || '-') === p) && (!k || stKey(s) === k)).sort((a, b) => a.name.localeCompare(b.name));
     if (!list.length) return note('No students found for this class.');
     setText('st-title', p && k ? (p === '-' ? '' : p + ' ') + stYS(list[0]) : 'All classes');
@@ -2355,7 +2372,7 @@ function stDropState(s, name) {           // drop zone look: '' empty, 'busy' re
     d.addEventListener('drop', e => { const inp = document.getElementById('st-file'); if (e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; pickStudentFile(inp); } });
 })();
 async function importStudents() {
-    if (!pendingStudents.length || isViewOnly()) return;
+    if (!pendingStudents.length) return;
     const btn = document.getElementById('st-import');
     btn.disabled = true; setText('st-file-info', 'Uploading…');
     try {
