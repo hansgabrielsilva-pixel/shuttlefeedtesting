@@ -44,16 +44,27 @@ let shuttlesLaunched = 0;
 let totalShuttles = 50;
 let rangePicked = false, dirPicked = false;   // false until the instructor taps a Range / Direction button
 let selectedRange = 'MEDIUM';           // SHORT | MEDIUM | LONG - how far the shuttle is thrown
-const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long', SMASH: 'Smash' };   // SMASH = the one fixed speed of Smash mode (no range buttons)
-let currentMode = 'Smash';
+const RANGE_LABELS = { SHORT: 'Short', MEDIUM: 'Medium', LONG: 'Long', SMASH: 'Fixed' };   // SMASH = the one fixed speed of High Angle mode (no range buttons)
+let currentMode = 'High Angle';
 
 // --- Dashboard: last drill (for Quick Start) ---
-const DEFAULT_DRILL = { mode: 'Smash', range: 'MEDIUM', interval: 3, count: 16, direction: 0, angle: 35 };
+const DEFAULT_DRILL = { mode: 'High Angle', range: 'MEDIUM', interval: 3, count: 16, direction: 0, angle: 35 };
 
 // --- Smash and Service drills are fixed: 3 seconds between shuttles, 16 shuttles. Remove a mode from `modes` to unlock it. ---
-const LOCKED_DRILL = { modes: ['Smash', 'Service'], interval: 3, count: 16 };
+const LOCKED_DRILL = { modes: ['High Angle', 'Rally', 'Service'], interval: 3, count: 16 };
 // Old sessions were saved as 'Low Service' / 'High Service'; there is now a single 'Service' mode
-function normMode(m) { return /service/i.test(m || '') ? 'Service' : (m || 'Smash'); }
+// Old sessions saved 'Smash' (now 'High Angle'), so it is mapped here as well
+function normMode(m) {
+    m = String(m || '');
+    if (/service/i.test(m)) return 'Service';
+    if (/rally/i.test(m)) return 'Rally';
+    return 'High Angle';   // 'High Angle', old 'Smash', or empty
+}
+// Modes that run at ONE fixed speed and only ask for a Direction (no Short / Medium / Long buttons).
+// The value is what is sent to the Arduino after START,  (High Angle = the old Smash speed, Rally = the Medium speed) - change here to tune.
+const DIR_MODES = { 'High Angle': 'SMASH', 'Rally': 'MEDIUM' };
+const MODE_ANGLE = { 'High Angle': 35, 'Rally': 40 };   // fixed launch angle in degrees (assumed - tune on the machine)
+function isDirMode(m) { return Object.prototype.hasOwnProperty.call(DIR_MODES, m); }
 function isLockedMode() { return LOCKED_DRILL.modes.includes(currentMode); }
 function getInterval() { return isLockedMode() ? LOCKED_DRILL.interval : (parseFloat(document.getElementById('interval').value) || 3); }
 // --- Launch settings lock: once START is pressed, range and direction can't be changed until the session is stopped or finished ---
@@ -273,7 +284,7 @@ function setCount(id, value) {
 
 function refreshDashboard() {
     updateClock();
-    setText('qs-detail', `${normMode(lastDrill.mode)} · ${RANGE_LABELS[lastDrill.range] || ''} · ${LOCKED_DRILL.modes.includes(normMode(lastDrill.mode)) ? LOCKED_DRILL.count : lastDrill.count} shuttles`);
+    setText('qs-detail', `${normMode(lastDrill.mode)} · ${isDirMode(normMode(lastDrill.mode)) ? 'Fixed' : (RANGE_LABELS[lastDrill.range] || '')} · ${LOCKED_DRILL.modes.includes(normMode(lastDrill.mode)) ? LOCKED_DRILL.count : lastDrill.count} shuttles`);
     setText('class-chip-label', currentClass ? `${classLabel(currentClass)} · PHED 4` : 'Set your class');
     renderHistory();
 }
@@ -867,7 +878,7 @@ function setRange(v) {
     if (blockedWhileLocked()) return;
     const s = String(v).toUpperCase();
     let r = RANGE_LABELS[s] ? s : (s === 'LOW' ? 'SHORT' : s === 'HIGH' ? 'LONG' : 'MEDIUM');
-    if (currentMode === 'Smash') r = 'SMASH';                                // Smash has one fixed speed, no range choice
+    if (isDirMode(currentMode)) r = DIR_MODES[currentMode];                 // High Angle and Rally have one fixed speed, no range choice
     else if (r === 'SMASH') r = 'MEDIUM';
     if (currentMode === 'Service' && r === 'MEDIUM') r = 'SHORT';          // Service has only Short and Long
     selectedRange = r;
@@ -877,8 +888,9 @@ function setRange(v) {
 }
 function showRange() {
     document.querySelectorAll('#range-opts button').forEach(b => b.classList.toggle('on', b.dataset.r === selectedRange));
-    setText('range-name', RANGE_LABELS[selectedRange]);
-    setText('current-speed-display', RANGE_LABELS[selectedRange]);
+    const rl = isDirMode(currentMode) ? 'Fixed' : RANGE_LABELS[selectedRange];   // High Angle / Rally: one fixed speed
+    setText('range-name', rl);
+    setText('current-speed-display', rl);
 }
 function updateSliders() {
     const h = document.getElementById('h-dir').value;
@@ -888,7 +900,7 @@ function updateSliders() {
     hVal.innerText = h + '°';
     const vEl = document.getElementById('v-val');
     vEl.innerText = v + '°';
-    setText('current-angle-display', currentMode === 'Smash' ? SMASH_DIR_NAMES[smashDir] : FIXED_ANGLES[currentMode] ? SMASH_DIR_NAMES[posDir] : v + '°');   // Left/Right/Mixed in Smash, Low/High or degrees elsewhere
+    setText('current-angle-display', isDirMode(currentMode) ? SMASH_DIR_NAMES[smashDir] : FIXED_ANGLES[currentMode] ? SMASH_DIR_NAMES[posDir] : v + '°');   // Left/Right/Mixed in Smash, Low/High or degrees elsewhere
 
     // Live aim preview (needles rotate with the sliders)
     document.getElementById('needle-h').style.transform = `rotate(${h}deg)`;
@@ -1102,7 +1114,7 @@ function fireAnim() {
 
 // --- Previous scores (last 20 sessions) ---
 const HM = { filter: 'all', sort: 'new', open: null };
-const HM_FILTERS = [['all', 'All'], ['Smash', 'Smash'], ['Service', 'Service']];
+const HM_FILTERS = [['all', 'All'], ['High Angle', 'High Angle'], ['Rally', 'Rally'], ['Service', 'Service']];
 
 function hmEl(tag, cls, text) {
     const e = document.createElement(tag);
@@ -1122,7 +1134,7 @@ function hmRows() {
         };
     });
 }
-function hmModeIs(r, key) { return key === 'Service' ? /service/i.test(r.it.mode || '') : r.it.mode === key; }
+function hmModeIs(r, key) { return normMode(r.it.mode) === key; }
 function hmTier(acc) { return acc === null ? 't-none' : acc >= 70 ? 't-great' : acc >= 50 ? 't-ok' : 't-low'; }
 function hmTierLabel(acc) { return acc >= 70 ? 'Great aim' : acc >= 50 ? 'Getting there' : 'Keep practicing'; }
 function hmDayLabel(d) {
@@ -1189,8 +1201,8 @@ const INFO_DOCS = {
             ]},
             { name: 'During a drill', items: [
                 { ic: '🔒', q: 'Why are my settings locked?', a: '<p>Launch settings are locked while a drill is running so they cannot change mid-session. Press <b>STOP</b> to unlock them.</p>' },
-                { ic: '🏸', q: 'The shuttles are not launching or are uneven', a: '<ul><li>Check there are shuttles in the feeder and nothing is jammed.</li><li>In Service mode, try a different <b>range</b>; each range uses a different motor speed. Smash always runs at its fixed speed.</li><li>Motor vibration or noise can shift the aim, so make sure the feeder is on a stable surface.</li></ul>' },
-                { ic: '🎯', q: 'It asks me to choose a direction', a: '<p>Nothing is pre-selected when you open Smash or Service, so <b>START</b> only works after you choose a <b>Direction</b> (Left, Center or Right) and, in Service, a <b>Range</b>. Tap your choices, then tap <b>START ▶</b> again.</p><p><b>Center</b> points the launcher straight ahead.</p>' },
+                { ic: '🏸', q: 'The shuttles are not launching or are uneven', a: '<ul><li>Check there are shuttles in the feeder and nothing is jammed.</li><li>In Service mode, try a different <b>range</b>; each range uses a different motor speed. High Angle and Rally always run at their fixed speed.</li><li>Motor vibration or noise can shift the aim, so make sure the feeder is on a stable surface.</li></ul>' },
+                { ic: '🎯', q: 'It asks me to choose a direction', a: '<p>Nothing is pre-selected when you open High Angle, Rally or Service, so <b>START</b> only works after you choose a <b>Direction</b> (Left, Center or Right) and, in Service, a <b>Range</b>. Tap your choices, then tap <b>START ▶</b> again.</p><p><b>Center</b> points the launcher straight ahead.</p>' },
                 { ic: '⏸️', q: 'The drill paused or stopped by itself', a: '<ul><li><b>Feeder empty</b>: when the sensor cannot see any shuttlecocks, the drill pauses, a beep sounds and an alert appears. Refill the feeder, then tap <b>RESUME</b>.</li><li><b>Machine stopped</b>: if the USB cable comes out, or the machine stops hearing from the screen, the motors stop by themselves. Check the cable, reconnect with <b>Connect machine (USB)</b> and start again.</li></ul>' },
                 { ic: '📊', q: 'A drill is missing from History', a: '<p>A drill is saved when it ends. Let it finish or press <b>STOP</b>, then open <b>History</b> on the session screen. The last 20 sessions are shown. If the kiosk was offline, the drill still appears and uploads when the connection is back.</p>' }
             ]}
@@ -1234,7 +1246,7 @@ const INFO_DOCS = {
             { name: 'The project', items: [
                 { ic: '🏸', q: 'Why SHUTTLEFEED?', a: '<p>Badminton is a core part of PHED 4, and mastering services and smashes takes a lot of repetition. Manual feeding by peers or instructors is predictable, tiring, and becomes inconsistent over time. It also keeps students from practicing on their own.</p>' },
                 { ic: '🎯', q: 'The problem we address', a: '<p>Traditional feeding has limited variety and predictable patterns, and instructor fatigue makes delivery inconsistent. Commercial launchers are often expensive. SHUTTLEFEED offers automated, consistent feeding in Smash and Service modes, controlled from a simple kiosk for the instructor.</p>' },
-                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Two drill modes</b>: Smash (40 to 70 m/s) and Service. Smash runs at one fixed speed; Service has a short or long range. Both can be aimed left, center or right.</li><li><b>Simple controls</b>: choose the direction (and the range in Service) on one screen. Every drill runs 16 shuttles, one every 3 seconds.</li></ul>' }
+                { ic: '🎛️', q: 'What it can do', a: '<ul><li><b>Consistent feeding</b>: no arm fatigue, so every shuttle is delivered the same way.</li><li><b>Three drill modes</b>: High Angle, Rally and Service. High Angle and Rally run at one fixed speed; Service has a short or long range. All can be aimed left, center or right (Rally can also alternate sides).</li><li><b>Simple controls</b>: choose the direction (and the range in Service) on one screen. Every drill runs 16 shuttles, one every 3 seconds.</li></ul>' }
             ]}
         ],
         foot: 'Capstone design project, CvSU Carmona'
@@ -1252,8 +1264,8 @@ const INFO_DOCS = {
                 { ic: '3️⃣', q: 'Know the Home screen', a: '<ul><li>Shows the greeting, clock and your <b>class</b> card (tap it to change).</li><li><b>START A DRILL</b> opens the drill list; <b>Quick Start</b> repeats your last drill.</li><li>The dots at the top show <b>USB</b>, <b>Feeder</b> and <b>Online / Offline</b>. Tap them to open the <b>Before you start</b> checklist.</li><li><b>Top left</b> opens your profile; the <b>gear</b> opens Settings, where you can switch between light and dark mode.</li></ul>' }
             ]},
             { name: 'Running a drill', items: [
-                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>Smash Mode</b>: high-speed smashes (40 to 70 m/s) at one fixed speed. You only choose the direction (Left, Center or Right).</li><li><b>Service Mode</b>: consistent serves. You choose the range (Short or Long) and the direction (Left, Center or Right).</li></ul><p>In both modes a drill launches <b>16 shuttles, one every 3 seconds</b>.</p>' },
-                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b> (Service only): Short or Long (how far it throws). Smash has no range buttons; it always runs at its fixed speed.</li><li><b>Direction</b>: where shuttles are thrown. Both modes offer Left, Center (straight ahead) and Right.</li><li>Nothing is pre-selected when a mode opens, so choose the direction (and the range in Service) before you tap START.</li><li><b>Interval</b> and <b>Shuttles</b> are fixed at 3 seconds and 16 shuttles, so there is nothing to type.</li></ul>' },
+                { ic: '⚡', q: 'Choose a mode', a: '<p>From <b>START A DRILL</b> pick one:</p><ul><li><b>High Angle Mode</b>: high-angle shots at one fixed speed. You only choose the direction (Left, Center or Right).</li><li><b>Rally Mode</b>: a steady, continuous rally feed at one fixed speed. You choose the direction (Left, Center, Right or Mixed, which alternates sides).</li><li><b>Service Mode</b>: consistent serves. You choose the range (Short or Long) and the direction (Left, Center or Right).</li></ul><p>In every mode a drill launches <b>16 shuttles, one every 3 seconds</b>.</p>' },
+                { ic: '🎛️', q: 'Adjust the launch settings', a: '<ul><li><b>Range</b> (Service only): Short or Long (how far it throws). High Angle and Rally have no range buttons; they always run at their fixed speed.</li><li><b>Direction</b>: where shuttles are thrown. Every mode offers Left, Center (straight ahead) and Right; Rally also has Mixed (alternates sides).</li><li>Nothing is pre-selected when a mode opens, so choose the direction (and the range in Service) before you tap START.</li><li><b>Interval</b> and <b>Shuttles</b> are fixed at 3 seconds and 16 shuttles, so there is nothing to type.</li></ul>' },
                 { ic: '▶️', q: 'Start, pause, resume and stop', a: '<ol><li>If the feeder is not connected yet, tap <b>Connect machine (USB)</b> and choose the Arduino. START only works once it is connected.</li><li>Tap <b>START ▶</b> (it asks you to choose a direction first if you have not). The <b>Ready to launch?</b> screen shows your range (or the fixed Smash speed), direction and estimated drill time. Tap a tile to change it.</li><li>Tick <b>Court is clear</b>, then tap <b>Confirm &amp; start ▶</b>. A 3-second countdown runs before the machine starts.</li><li><b>PAUSE ⏸</b> holds the drill, <b>RESUME ▶</b> continues it.</li><li><b>STOP ■</b> ends it. Settings are locked while the drill is running.</li></ol>' },
                 { ic: '⌨️', q: 'Keyboard shortcuts', a: '<p>If a keyboard is attached to the kiosk tablet, these work on the session screen:</p><ul><li><kbd>Space</kbd> start / pause / resume</li><li><kbd>S</kbd> stop</li>' + (SHOW_SCORING ? '<li><kbd>H</kbd> mark a hit &nbsp; <kbd>M</kbd> mark a miss &nbsp; <kbd>U</kbd> undo</li>' : '') + '</ul>' }
             ]},
@@ -1518,18 +1530,20 @@ function hmCard(r, isBest, i, rank) {
     // collapsed row: what / when / how far - tap it to open the session
     const row = hmEl('div', 'hm-row');
     row.tabIndex = 0; row.setAttribute('role', 'button'); row.setAttribute('aria-expanded', HM.open === r.id ? 'true' : 'false');
-    const isSmash = it.mode === 'Smash';
+    const hmMode = normMode(it.mode);
+    const isSmash = hmMode === 'High Angle', isRally = hmMode === 'Rally';
+    const hmIcon = isSmash ? '⚡' : isRally ? '🔁' : '🏸';
     const badge = hmEl('div', 'hm-badge', rank ? '#' + rank : '');
     if (!rank) {
-        const picUrl = imgUrl(isSmash ? IMAGES.smash : IMAGES.service);
+        const picUrl = isRally ? '' : imgUrl(isSmash ? IMAGES.smash : IMAGES.service);   // Rally has no picture, so it shows its emoji
         if (picUrl) {
             const pic = document.createElement('img');
-            pic.alt = isSmash ? 'Smash' : 'Service';
-            pic.onerror = () => { badge.textContent = isSmash ? '⚡' : '🏸'; pic.remove(); };   // fallback if the image fails
+            pic.alt = hmMode;
+            pic.onerror = () => { badge.textContent = hmIcon; pic.remove(); };   // fallback if the image fails
             pic.src = picUrl;
             badge.append(pic);
         } else {
-            badge.textContent = isSmash ? '⚡' : '🏸';   // no image set in IMAGES
+            badge.textContent = hmIcon;   // no image set in IMAGES
         }
     }
     const info = hmEl('div', 'hm-info');
@@ -1612,7 +1626,6 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => { if (e.key === ' ' && onSessionScreen(e)) e.preventDefault(); });
 
 // --- Smash mode: the angle is fixed (assumed degrees - tune on the real machine); the instructor picks the DIRECTION ---
-const SMASH_ANGLE = 35;
 const SMASH_DIR_NAMES = { LEFT: 'Left', CENTER: 'Center', RIGHT: 'Right', MIXED: 'Mixed' };
 let posDir = 'LEFT';                     // Service: LEFT | CENTER | RIGHT
 let smashDir = 'CENTER';                 // LEFT | RIGHT | MIXED (MIXED = shuttles alternate between left and right in a random order)
@@ -1620,7 +1633,7 @@ let mixedQueue = [];
 function smashDirFromAim(h) { return h < 0 ? 'LEFT' : h > 0 ? 'RIGHT' : 'CENTER'; }
 function setSmashDirection(d) {
     if (blockedWhileLocked()) return;
-    smashDir = (SMASH_DIR_NAMES[d] && d !== 'MIXED') ? d : 'CENTER';   // Smash: Left, Center or Right (Mixed was removed)
+    smashDir = (SMASH_DIR_NAMES[d] && (d !== 'MIXED' || currentMode === 'Rally')) ? d : 'CENTER';   // High Angle: Left, Center, Right. Rally: also Mixed
     dirPicked = true;
     sendDirection(smashDir === 'MIXED' ? 'CENTER' : smashDir);          // servo preview
     setAim('h', smashDir === 'MIXED' ? 0 : POSITION_DIRS[smashDir]);
@@ -1651,11 +1664,14 @@ function setPosition(p) {
 }
 
 function applyModeLayout() {
-    const smash = currentMode === 'Smash';
+    const smash = isDirMode(currentMode);                      // High Angle / Rally: fixed speed + direction tile
+    const rally = currentMode === 'Rally';
     const fixed = FIXED_ANGLES[currentMode];                 // set for Service
     document.getElementById('aim-pads').classList.toggle('hidden', smash || !!fixed);
     document.getElementById('fixed-tiles').classList.toggle('hidden', !fixed);
     document.getElementById('smash-dir-tile').classList.toggle('hidden', !smash);
+    document.querySelector('#smash-dir-opts button[data-d="MIXED"]').classList.toggle('hidden', !rally);   // Mixed only in Rally
+    document.getElementById('smash-dir-opts').classList.toggle('four', rally);
     const locked = isLockedMode();
     document.querySelector('.control-grid .params-card').classList.toggle('roomy', locked);   // Smash / Service: bigger controls that fill the screen
     document.getElementById('free-inputs').classList.toggle('hidden', locked);      // interval + shuttles steppers
@@ -1665,7 +1681,7 @@ function applyModeLayout() {
     document.querySelector('#range-opts button[data-r="MEDIUM"]').classList.toggle('hidden', service);
     document.getElementById('range-opts').classList.toggle('two', service);
     document.getElementById('range-tile').classList.toggle('hidden', smash);   // Smash: no Short / Medium / Long buttons
-    if (smash) { selectedRange = 'SMASH'; rangePicked = true; showRange(); }  // Smash always runs at its fixed speed
+    if (smash) { selectedRange = DIR_MODES[currentMode]; rangePicked = true; showRange(); }  // fixed speed for the mode
     else if (selectedRange === 'SMASH') { selectedRange = service ? 'SHORT' : 'MEDIUM'; showRange(); }
     if (service && selectedRange === 'MEDIUM') { selectedRange = 'SHORT'; showRange(); }
     if (fixed) {
@@ -1674,9 +1690,9 @@ function applyModeLayout() {
         setPosition(POSITION_DIRS[savedPos] !== undefined ? savedPos : (+document.getElementById('h-dir').value > 0 ? 'RIGHT' : 'LEFT'));
     }
     if (smash) {
-        setAim('v', SMASH_ANGLE);                         // angle is fixed in Smash
+        setAim('v', MODE_ANGLE[currentMode]);             // angle is fixed in these modes
         const savedDir = String(lastDrill.dir || '');
-        setSmashDirection((SMASH_DIR_NAMES[savedDir] && savedDir !== 'MIXED') ? savedDir : smashDirFromAim(+document.getElementById('h-dir').value));
+        setSmashDirection((SMASH_DIR_NAMES[savedDir] && (savedDir !== 'MIXED' || rally)) ? savedDir : smashDirFromAim(+document.getElementById('h-dir').value));
     }
 }
 
@@ -1701,10 +1717,10 @@ function setupSession(modeName, keepChoices) {
 
 // Un-highlights Range and Direction so the instructor has to choose them
 function clearChoices() {
-    rangePicked = currentMode === 'Smash'; dirPicked = false;   // Smash has no range to pick
+    rangePicked = isDirMode(currentMode); dirPicked = false;   // these modes have no range to pick
     document.querySelectorAll('#range-opts button, #smash-dir-opts button, #position-opts button').forEach(b => b.classList.remove('on'));
     ['range-name', 'smash-dir-name', 'position-name', 'current-speed-display', 'current-angle-display'].forEach(id => setText(id, 'Not set'));
-    if (currentMode === 'Smash') showRange();   // shows the fixed Smash speed
+    if (isDirMode(currentMode)) showRange();   // shows the fixed speed
 }
 
 // Handle UI button states
@@ -1758,13 +1774,13 @@ function sendCommand(command) {
     let intervalSec = getInterval();
     totalShuttles = getCount();
 
-    console.log(`[SYSTEM MOCKUP] Command: ${command} | Range: ${selectedRange} | Interval: ${intervalSec}s` + (currentMode === 'Smash' ? ` | Direction: ${smashDir}` : ''));
+    console.log(`[SYSTEM MOCKUP] Command: ${command} | Range: ${selectedRange} | Interval: ${intervalSec}s` + (isDirMode(currentMode) ? ` | Direction: ${smashDir}` : ''));
     sendToMachine(command);                   // real machine: tell the Arduino
 
     if (command === 'START' || command === 'RESUME') {
         if (command === 'START') {
             try { beginLoggedSession(intervalSec); } catch (e) { console.warn('Could not start session log:', e); }
-            if (currentMode === 'Smash') mixedQueue = buildMixedQueue(totalShuttles);
+            if (isDirMode(currentMode)) mixedQueue = buildMixedQueue(totalShuttles);
         }
         aimServoForStart();                       // servo: go to the chosen side before shuttles start
         setControlsLocked(true);                  // locked from START until STOP (stays locked while paused)
@@ -1779,7 +1795,7 @@ function sendCommand(command) {
             sendFeed();                       // MG90S pusher: push one shuttle to the wheels
             if (LAUNCH_BEEP_MS > 0) beepFor(LAUNCH_BEEP_MS, LAUNCH_BEEP_HZ);   // buzzer: the machine just launched a shuttlecock
             shuttlesLaunched++;
-            if (currentMode === 'Smash' && smashDir === 'MIXED') {          // this shuttle goes left or right
+            if (isDirMode(currentMode) && smashDir === 'MIXED') {          // this shuttle goes left or right
                 const side = mixedQueue.shift() || (Math.random() < 0.5 ? 'LEFT' : 'RIGHT');
                 setAim('h', POSITION_DIRS[side]);
                 setText('smash-dir-name', 'Mixed · ' + SMASH_DIR_NAMES[side]);
@@ -1824,7 +1840,7 @@ function sendCommand(command) {
         clearInterval(simulationTimer);
         shuttlesLaunched = 0;
         updateCounterDisplay();
-        if (currentMode === 'Smash') setSmashDirection(smashDir);          // back to "Mixed" / the chosen side
+        if (isDirMode(currentMode)) setSmashDirection(smashDir);          // back to "Mixed" / the chosen side
         if (summaryData) showDrillSummary(summaryData);
         setTimeout(applyHeldFeeder, 800);          // the drill is over: now read the feeder (it may be empty after the last shuttle)
     }
@@ -2024,11 +2040,11 @@ function sendDirection(side) {
 }
 
 // The direction the instructor chose
-function dirNow() { return currentMode === 'Smash' ? smashDir : posDir; }
+function dirNow() { return isDirMode(currentMode) ? smashDir : posDir; }
 
-// Aim for START / RESUME. Smash: Left / Right / Mixed (first shuttle's side). Service: Left / Right.
+// Aim for START / RESUME. High Angle / Rally: Left / Center / Right (Rally can be Mixed = first shuttle's side). Service: Left / Center / Right.
 function aimServoForStart() {
-    if (currentMode === 'Smash') {
+    if (isDirMode(currentMode)) {
         sendDirection(smashDir === 'MIXED' ? (mixedQueue[0] || 'LEFT') : smashDir);
     } else {
         sendDirection(posDir);                    // Service: the chosen side (Center = 90 degrees)
@@ -2481,7 +2497,7 @@ function cfCloseSafety(understood) {
 }
 
 function cfDirKey() {
-    return dirNow();                                                                // Smash: LEFT | CENTER | RIGHT | MIXED, Service: LEFT | CENTER | RIGHT
+    return dirNow();                                                                // High Angle: LEFT | CENTER | RIGHT, Rally: also MIXED, Service: LEFT | CENTER | RIGHT
 }
 function cfFmtTime(sec) {
     sec = Math.max(0, Math.round(sec));
@@ -2503,10 +2519,10 @@ function openLaunchConfirm() {
     const dir = cfDirKey();
     const sec = getInterval(), n = getCount();
     const rangeIcon = cfIcon('#range-opts button[data-r="' + selectedRange + '"] svg');
-    const dirIcon = currentMode === 'Smash' ? cfIcon('#smash-dir-opts button[data-d="' + dir + '"] svg') : cfIcon('#position-opts button[data-p="' + dir + '"] svg');
+    const dirIcon = isDirMode(currentMode) ? cfIcon('#smash-dir-opts button[data-d="' + dir + '"] svg') : cfIcon('#position-opts button[data-p="' + dir + '"] svg');
 
-    const rangeTile = currentMode === 'Smash'
-        ? '<div class="cf-tile static"><span class="cf-k">Speed</span><span class="cf-ic big">⚡</span><b>Smash</b><em>fixed speed</em></div>'
+    const rangeTile = isDirMode(currentMode)
+        ? '<div class="cf-tile static"><span class="cf-k">Speed</span><span class="cf-ic big">' + (currentMode === 'Rally' ? '🔁' : '⚡') + '</span><b>' + currentMode + '</b><em>fixed speed</em></div>'
         : '<button type="button" class="cf-tile" data-edit="range"><span class="cf-k">Range</span><span class="cf-ic">' + rangeIcon + '</span><b>' + RANGE_LABELS[selectedRange] + '</b><em>Tap to change</em></button>';
     setText('cf-mode', currentMode.toUpperCase() + ' MODE');
     setText('cf-class', document.getElementById('session-class').innerText || '');
@@ -2555,7 +2571,7 @@ function closeLaunchConfirm() {
 function cfEdit(which) {
     closeLaunchConfirm();
     const target = which === 'range' ? document.getElementById('range-opts')
-        : document.getElementById(currentMode === 'Smash' ? 'smash-dir-opts' : 'position-opts');
+        : document.getElementById(isDirMode(currentMode) ? 'smash-dir-opts' : 'position-opts');
     const tile = target && target.closest('.speed-tile, .aim-pad');
     if (!tile) return;
     try { tile.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
