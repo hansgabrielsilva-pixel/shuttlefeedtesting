@@ -300,7 +300,7 @@
 
             <div class="intro-points">
                 <div class="intro-point"><span>🎯</span><div><b>Consistent feeding</b><small>No arm fatigue, so every shuttle is delivered the same way.</small></div></div>
-                <div class="intro-point"><span>🏸</span><div><b>Two drill modes</b><small>Smash (40–70 m/s) and Service. Smash runs at one fixed speed; Service has a short or long range. Both can be aimed left, center or right.</small></div></div>
+                <div class="intro-point"><span>🏸</span><div><b>Three drill modes</b><small>High Angle, Rally and Service. High Angle and Rally run at one fixed speed; Service has a short or long range. All can be aimed left, center or right.</small></div></div>
                 <div class="intro-point"><span>🎛️</span><div><b>Simple controls</b><small>Choose the direction (and the range in Service) on one screen. Every drill runs 16 shuttles, one every 3 seconds.</small></div></div>
             </div>
 
@@ -494,7 +494,7 @@
                     <div class="quick-action" onclick="quickStart()">
                         <div>
                             <small>Quick Start · last drill</small>
-                            <div class="qs-detail" id="qs-detail">Smash · MEDIUM · 50 shuttles</div>
+                            <div class="qs-detail" id="qs-detail">High Angle · Fixed · 16 shuttles</div>
                         </div>
                         <span class="round-go green">▶</span>
                     </div>
@@ -524,11 +524,25 @@
             </button>
         </header>
         <div class="card-container scrollable">
-            <!-- SMASH CARD -->
-            <div class="menu-card" onclick="setupSession('Smash')">
-                <img data-img="smash" alt="Smash Silhouette" class="card-img">
-                <h3 class="dark-red">Smash Mode</h3>
-                <p class="desc">An attacking shot hit with high speed, power, and a steep downward trajectory to force a weak return or win the rally.</p>
+            <!-- HIGH ANGLE CARD -->
+            <div class="menu-card" onclick="setupSession('High Angle')">
+                <img data-img="smash" alt="High Angle Silhouette" class="card-img">
+                <h3 class="dark-red">High Angle Mode</h3>
+                <p class="desc">High-angle shots sent steeply upward and dropping down onto the target area, fed at one fixed speed.</p>
+            </div>
+
+            <!-- RALLY CARD -->
+            <div class="menu-card" onclick="setupSession('Rally')">
+                <svg class="card-img rally-art" viewBox="0 0 200 200" role="img" aria-label="Rally">
+                    <g fill="#263813">
+                        <path d="M20 150 Q100 -10 180 150" fill="none" stroke="#263813" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 14"/>
+                        <circle cx="20" cy="152" r="9"/><circle cx="180" cy="152" r="9"/>
+                        <g transform="translate(100 38) rotate(180)"><path d="M0 0 L-16 -26 L16 -26 Z"/><ellipse cx="0" cy="4" rx="9" ry="7"/></g>
+                        <rect x="14" y="160" width="12" height="26" rx="5"/><rect x="174" y="160" width="12" height="26" rx="5"/>
+                    </g>
+                </svg>
+                <h3 class="dark-red">Rally Mode</h3>
+                <p class="desc">A steady back-and-forth feed that keeps the rally going, aimed left, center, right or alternating sides.</p>
             </div>
             
             <!-- SERVICE CARD -->
@@ -553,7 +567,7 @@
             </div>
             
             <div class="header-center">
-                <h1 id="session-title">SMASH MODE CONTROL</h1>
+                <h1 id="session-title">HIGH ANGLE MODE CONTROL</h1>
                 <p id="session-class"></p>
             </div>
             
@@ -581,6 +595,7 @@
                         <button data-d="LEFT" onclick="setSmashDirection('LEFT')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L14 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="14" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Left</b></button>
                         <button data-d="CENTER" onclick="setSmashDirection('CENTER')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 24 V8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Center</b></button>
                         <button data-d="RIGHT" onclick="setSmashDirection('RIGHT')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L46 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="46" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Right</b></button>
+                        <button data-d="MIXED" class="hidden" onclick="setSmashDirection('MIXED')"><svg viewBox="0 0 60 36"><rect x="6" y="3" width="48" height="30" rx="3" fill="none" stroke="#E1C6AF" stroke-width="2"/><line x1="30" y1="3" x2="30" y2="33" stroke="#E1C6AF" stroke-width="1.5"/><path d="M30 25 L14 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><path d="M30 25 L46 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 5"/><circle cx="14" cy="8" r="2.8" fill="currentColor"/><circle cx="46" cy="8" r="2.8" fill="currentColor"/><circle cx="30" cy="28" r="4.5" fill="currentColor"/></svg><b>Mixed</b></button>
                     </div>
                 </div>
                 <div class="aim-pads single hidden" id="fixed-tiles">
@@ -708,7 +723,7 @@
         <div class="cf-card" id="cf-card" role="dialog" aria-modal="true" aria-labelledby="cf-title">
             <div class="cf-main">
                 <div class="cf-head">
-                    <span class="cf-badge" id="cf-mode">SMASH MODE</span>
+                    <span class="cf-badge" id="cf-mode">HIGH ANGLE MODE</span>
                     <span class="cf-class" id="cf-class"></span>
                 </div>
                 <h3 id="cf-title">Ready to launch?</h3>
