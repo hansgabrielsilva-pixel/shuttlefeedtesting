@@ -222,11 +222,15 @@
                 <div><b id="lv-miss">0</b><small>Misses</small></div>
                 <div><b id="lv-acc">-</b><small>Accuracy</small></div>
             </div>
-            <div class="act-row">
-                <button type="button" class="act-card" onclick="openGrades()">
+            <div class="st-card sg-card" id="sg-card">
+                <div class="sg-head">
                     <span class="act-ic"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
-                    <span class="act-t"><b>Student grades</b><small>Pick a class and view grades</small></span><span class="act-go">&#8250;</span>
-                </button>
+                    <div><b>Student grades</b><small id="sg-sub">Loading…</small></div>
+                </div>
+                <input type="text" id="sg-search" class="hidden" placeholder="Search name, number or program" oninput="renderGradesPanel()" autocomplete="off">
+                <div id="sg-list"></div>
+            </div>
+            <div class="act-row">
                 <button type="button" class="act-card" onclick="openStudents()">
                     <span class="act-ic up"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21H7a4 4 0 0 1-1-7.9A6 6 0 0 1 17.7 11 4.5 4.5 0 0 1 17 21z"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="12" x2="12" y2="19"/></svg></span>
                     <span class="act-t"><b>Upload class list</b><small>Excel or CSV: name, number, year, program, section</small></span><span class="act-go">&#8250;</span>
