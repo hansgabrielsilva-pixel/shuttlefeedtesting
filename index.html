@@ -191,7 +191,22 @@
                 <div><b>View only</b><small id="lv-who">Connecting…</small></div>
                 <span class="live-chip" id="lv-chip">-</span>
             </div>
-            <div class="status-card live-card">
+            <div class="st-card lv-empty hidden" id="lv-empty">
+                <span class="lv-empty-ic"><svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>
+                <b id="lv-empty-t">No drill running right now</b>
+                <small id="lv-empty-s"></small>
+                <div class="lv-last hidden" id="lv-last">
+                    <span class="lv-last-tag">Last drill</span>
+                    <b id="lv-last-title"></b>
+                    <small id="lv-last-sub"></small>
+                    <div class="live-results lv-last-stats">
+                        <div><b id="lv-l-hits">0</b><small>Hits</small></div>
+                        <div><b id="lv-l-miss">0</b><small>Misses</small></div>
+                        <div><b id="lv-l-acc">-</b><small>Accuracy</small></div>
+                    </div>
+                </div>
+            </div>
+            <div class="status-card live-card" id="lv-card">
                 <div class="ring-wrap">
                     <svg class="ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="lv-ring" cx="60" cy="60" r="52"/></svg>
                     <div class="ring-center"><span class="progress-text" id="lv-count">0 / 0</span><span class="status-label">Shuttles</span></div>
@@ -202,12 +217,21 @@
                     <div class="status-box"><span class="status-label">Direction</span><span class="status-value" id="lv-dir">-</span></div>
                 </div>
             </div>
-            <div class="live-results">
+            <div class="live-results" id="lv-results">
                 <div><b id="lv-hits">0</b><small>Hits</small></div>
                 <div><b id="lv-miss">0</b><small>Misses</small></div>
                 <div><b id="lv-acc">-</b><small>Accuracy</small></div>
             </div>
-            <button type="button" class="btn-primary pill-btn live-take" onclick="openGrades()">Student grades</button>
+            <div class="act-row">
+                <button type="button" class="act-card" onclick="openGrades()">
+                    <span class="act-ic"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
+                    <span class="act-t"><b>Student grades</b><small>Pick a class and view grades</small></span><span class="act-go">&#8250;</span>
+                </button>
+                <button type="button" class="act-card" onclick="openStudents()">
+                    <span class="act-ic up"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21H7a4 4 0 0 1-1-7.9A6 6 0 0 1 17.7 11 4.5 4.5 0 0 1 17 21z"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="12" x2="12" y2="19"/></svg></span>
+                    <span class="act-t"><b>Upload class list</b><small>Excel or CSV: name, number, year, program, section</small></span><span class="act-go">&#8250;</span>
+                </button>
+            </div>
             <button type="button" class="btn-primary pill-btn live-take" id="lv-take" onclick="chooseAccess('control')">Take control</button>
         </div>
     </div>
