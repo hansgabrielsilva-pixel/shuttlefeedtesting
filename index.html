@@ -221,10 +221,18 @@
         </header>
         <div class="live-body">
             <div class="st-card st-upload">
-                <b>Upload class list</b>
-                <small>Excel (.xlsx, .xls) or CSV. First row needs: Student Number, Name (or Last Name + First Name), Program, Year. Section and Grade are optional.</small>
-                <input type="file" id="st-file" accept=".xlsx,.xls,.csv,.txt" onchange="pickStudentFile(this)">
-                <small id="st-file-info"></small>
+                <div class="up-head">
+                    <span class="up-ic"><svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21H7a4 4 0 0 1-1-7.9A6 6 0 0 1 17.7 11 4.5 4.5 0 0 1 17 21z"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="12" x2="12" y2="19"/></svg></span>
+                    <div><b>Upload class list</b><small>Import your students from an Excel or CSV file.</small></div>
+                </div>
+                <label class="up-drop" id="st-drop" for="st-file" data-s="">
+                    <svg class="up-drop-ic" viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 14.5 12 11.5 15 14.5"/></svg>
+                    <span class="up-drop-t" id="st-file-name">Drag &amp; drop your file here, or <u>browse</u></span>
+                    <span class="up-types"><i>.xlsx</i><i>.xls</i><i>.csv</i></span>
+                    <input type="file" id="st-file" accept=".xlsx,.xls,.csv,.txt" onchange="pickStudentFile(this)">
+                </label>
+                <small id="st-file-info" class="up-info"></small>
+                <div class="up-cols"><span>First row must have:</span><i class="req">Student Number</i><i class="req">Name</i><i class="req">Program</i><i class="req">Year</i><span>Optional:</span><i>Section</i><i>Grade</i></div>
                 <button type="button" class="btn-primary pill-btn" id="st-import" disabled onclick="importStudents()">Import students</button>
             </div>
             <div class="st-card" id="st-pick">
