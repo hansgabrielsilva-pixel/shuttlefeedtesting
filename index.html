@@ -292,7 +292,7 @@
             <img data-img="logo" alt="SHUTTLEFEED Logo" class="setup-logo">
             
             <h2 class="dark-green">Which class are you teaching?</h2>
-            <p class="setup-desc" style="margin-top: 6px;">Choose your program and section for this session.</p>
+            <p class="setup-desc" id="class-desc" style="margin-top: 6px;">Choose your program and section for this session.</p>
 
             <!-- Returning instructor: one-tap continue -->
             <div id="continue-class" class="continue-card hidden" onclick="continueClass()">
@@ -331,7 +331,7 @@
             </div>
 
             <button class="btn-primary pill-btn" onclick="saveClassAndContinue()">Next ➔</button>
-            <p class="skip-text" onclick="navigate('dashboard-screen')">Skip for now</p>
+            <p class="skip-text" onclick="skipClass()">Skip for now</p>
         </div>
     </div>
 
