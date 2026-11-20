@@ -1287,3 +1287,8 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .st-grade { text-align: center; padding: 14px; border-radius: 14px; background: rgba(128,128,128,0.12); }
 .st-grade b { display: block; font-size: 34px; color: var(--text); }
 .view-only .st-upload, body:not(.view-only) #st-switch { display: none; }
+.st-ask { display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+.st-ask b { font-size: 16px; color: var(--text); }
+.st-btns { display: flex; gap: 12px; justify-content: center; width: 100%; }
+.st-btns .pill-btn { flex: 1; max-width: 160px; }
+.st-no { background: transparent !important; color: var(--text-mid) !important; border: 2px solid rgba(128,128,128,0.45); box-shadow: none !important; }
