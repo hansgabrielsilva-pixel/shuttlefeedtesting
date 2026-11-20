@@ -480,7 +480,7 @@ function prepareClassForm() {
     document.getElementById('class-program-select').selectedIndex = 0;
     document.getElementById('class-section').selectedIndex = 0;
     document.getElementById('class-error').innerText = '';
-    setText('class-desc', isViewOnly() ? "Choose a program and section to view its students' grades." : 'Choose your program and section for this session.');
+    setText('class-desc', isViewOnly() || gradesPick ? "Choose a program and section to view its students' grades." : 'Choose your program and section for this session.');
     if (hasLast) document.getElementById('continue-class-label').innerText = classLabel(lastClass);
 }
 
@@ -725,6 +725,7 @@ async function startIntro(source, saved) {    // after login / sign up (source '
 }
 
 function startClassSetup() {            // intro -> class details
+    gradesPick = false;
     classSetupFromDashboard = false;
     markIntroSeen(currentUser);
     prepareClassForm();
@@ -732,13 +733,14 @@ function startClassSetup() {            // intro -> class details
 }
 
 function changeClass() {                // from the dashboard chip
+    gradesPick = false;
     classSetupFromDashboard = true;
     prepareClassForm();
     navigate('onboarding-welcome');
 }
 
 function setCurrentClass(c) {
-    if (isViewOnly()) { openStudentsFor(c); return; }      // View only: just look up this class's students, nothing is saved
+    if (isViewOnly() || gradesPick) { gradesPick = false; openStudentsFor(c); return; }      // View only: just look up this class's students, nothing is saved
     currentClass = lastClass = c;
     api('saveClass', { program: c.program, year: c.year, section: c.section }).catch(e => toast('Class not saved: ' + e.message));
     if (classSetupFromDashboard || returningFlow) navigate('dashboard-screen');
@@ -2182,13 +2184,15 @@ const STUDENT_COLS = {
     name: ['name', 'fullname', 'studentname', 'student'], last: ['lastname', 'surname', 'familyname'], first: ['firstname', 'givenname'],
     program: ['program', 'course', 'programcourse'], year: ['year', 'yearlevel', 'yr'], section: ['section', 'sec'], grade: ['grade', 'finalgrade', 'rating']
 };
+var gradesPick = false;                   // class screen opened only to look up grades (Control mode users too)
+function openGrades() { gradesPick = true; startViewOnlyClass(); }
 function startViewOnlyClass() {           // View only starts here: pick program + section, then the students list
     closeAllSidebars();
     classSetupFromDashboard = true;
     prepareClassForm();
     navigate('onboarding-welcome');
 }
-function skipClass() { if (isViewOnly()) openStudents(); else navigate('dashboard-screen'); }
+function skipClass() { if (isViewOnly() || gradesPick) { gradesPick = false; openStudents(); } else navigate('dashboard-screen'); }
 async function openStudentsFor(c) {       // students list with this program, year and section already chosen
     closeAllSidebars(); navigate('students-screen'); backToStudents();
     await loadStudents();
@@ -2225,22 +2229,24 @@ function stProgram() {
     fillOptions('st-class', Object.keys(cls).sort().map(k => [k, cls[k]]), 'Choose year & section');
     renderStudentList();
 }
-function renderStudentList() {
+function renderStudentList() {            // the class's students with their grades (class chosen on the class screen)
     const p = document.getElementById('st-program').value, k = document.getElementById('st-class').value;
-    const q = document.getElementById('st-search').value.trim().toLowerCase(), box = document.getElementById('st-list');
+    const box = document.getElementById('st-list');
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    setText('st-title', 'Student grades'); setText('st-sub', '');
     if (!studentsAll.length) return note('No students yet. An instructor in Control mode can upload the class list.');
-    if (!p || !k) return note('Choose a program, then a year & section.');
-    const list = studentsAll.filter(s => (s.program || '-') === p && stKey(s) === k && (!q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    if (!list.length) return note('No students match.');
+    const list = studentsAll.filter(s => (!p || (s.program || '-') === p) && (!k || stKey(s) === k)).sort((a, b) => a.name.localeCompare(b.name));
+    if (!list.length) return note('No students found for this class.');
+    setText('st-title', p && k ? (p === '-' ? '' : p + ' ') + stYS(list[0]) : 'All classes');
+    setText('st-sub', list.length + (list.length === 1 ? ' student' : ' students') + ' · tap a student to view the grade');
     list.forEach(s => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'st-row';
-        const n = document.createElement('span'), no = document.createElement('small');
-        n.textContent = s.name; no.textContent = s.no;
-        b.appendChild(n); b.appendChild(no);
+        const who = document.createElement('span'), n = document.createElement('span'), no = document.createElement('small'), g = document.createElement('em');
+        who.className = 'st-who'; n.textContent = s.name; no.textContent = s.no;
+        g.className = 'st-gr' + (s.grade ? '' : ' none'); g.textContent = s.grade || 'No grade';
+        who.appendChild(n); who.appendChild(no); b.appendChild(who); b.appendChild(g);
         b.onclick = () => showStudent(s);
         box.appendChild(b);
     });
