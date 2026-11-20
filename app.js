@@ -2307,6 +2307,25 @@ async function pickStudentFile(inp) {
         document.getElementById('st-import').disabled = false;
     } catch (e) { setText('st-file-info', e.message); }
 }
+function stDropState(s, name) {           // drop zone look: '' empty, 'busy' reading, 'ok' ready, 'err' problem
+    const d = document.getElementById('st-drop'); d.dataset.s = s;
+    setText('st-file-name', s && name ? name : 'Drag & drop your file here, or browse');
+    document.getElementById('st-file-name').innerHTML = s && name ? '' : 'Drag &amp; drop your file here, or <u>browse</u>';
+    if (s && name) setText('st-file-name', name);
+}
+(function hookUpload() {
+    const orig = pickStudentFile;
+    pickStudentFile = async function (inp) {
+        const f = inp.files && inp.files[0];
+        stDropState(f ? 'busy' : '', f ? f.name : '');
+        await orig(inp);
+        stDropState(f ? (pendingStudents.length ? 'ok' : 'err') : '', f ? f.name : '');
+    };
+    const d = document.getElementById('st-drop');
+    ['dragenter', 'dragover'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.remove('over'); }));
+    d.addEventListener('drop', e => { const inp = document.getElementById('st-file'); if (e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; pickStudentFile(inp); } });
+})();
 async function importStudents() {
     if (!pendingStudents.length || isViewOnly()) return;
     const btn = document.getElementById('st-import');
@@ -2314,7 +2333,7 @@ async function importStudents() {
     try {
         const r = await api('importStudents', { cid: CLIENT_ID, students: pendingStudents });
         toast(r.added + ' added, ' + r.updated + ' updated' + (r.skipped ? ', ' + r.skipped + ' skipped' : '') + '.', 4500);
-        pendingStudents = []; document.getElementById('st-file').value = ''; setText('st-file-info', '');
+        pendingStudents = []; document.getElementById('st-file').value = ''; setText('st-file-info', ''); stDropState('');
         loadStudents();
     } catch (e) { btn.disabled = false; setText('st-file-info', e.message); }
 }
