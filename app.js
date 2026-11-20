@@ -918,6 +918,7 @@ function navigate(screenId) {
         if (screenId === 'dashboard-screen') screenId = 'live-screen';
         else if (screenId === 'mode-screen' || screenId === 'session-screen') return;
     }
+    if (screenId === 'live-screen') loadGradesPanel();     // keeps the student list on the View only screen up to date
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
@@ -2223,6 +2224,47 @@ async function openStudentsFor(c) {       // students list with this program, ye
     renderStudentList();
     if (!po || !co) toast('No students uploaded yet for ' + classLabel(c) + '.');
 }
+var sgOpen = null, sgFetched = 0;         // View only screen: uploaded students list, one student's grade open at a time
+async function loadGradesPanel() {
+    if (Date.now() - sgFetched >= 10000) {
+        try {
+            studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5] }));
+            sgFetched = Date.now();
+        } catch (e) {}
+    }
+    renderGradesPanel();
+}
+function renderGradesPanel() {
+    const box = document.getElementById('sg-list'), search = document.getElementById('sg-search');
+    if (!box) return;
+    const keep = box.scrollTop, q = search.value.trim().toLowerCase(), total = studentsAll.length;
+    box.innerHTML = '';
+    setText('sg-sub', total ? total + (total === 1 ? ' student' : ' students') + ' · tap a student to see the grade' : 'No class list uploaded yet');
+    search.classList.toggle('hidden', !total);
+    const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    if (!total) return note('Upload a class list below and the students will show up here.');
+    const list = studentsAll.filter(s => !q || (s.name + ' ' + s.no + ' ' + s.program + ' ' + stYS(s)).toLowerCase().indexOf(q) >= 0)
+        .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stYS(a).localeCompare(stYS(b)) || a.name.localeCompare(b.name));
+    if (!list.length) return note('No students match.');
+    list.forEach(s => {
+        const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
+        row.className = 'sg-row' + (sgOpen === s.no ? ' open' : '');
+        b.type = 'button'; b.className = 'sg-btn';
+        who.className = 'sg-who'; n.textContent = s.name;
+        d.textContent = [s.no, s.program, stYS(s)].filter(Boolean).join(' · ');
+        ch.className = 'sg-chev'; ch.textContent = '›';
+        who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
+        b.onclick = () => { sgOpen = sgOpen === s.no ? null : s.no; renderGradesPanel(); };
+        row.appendChild(b);
+        if (sgOpen === s.no) {
+            const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
+            g.className = 'sg-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
+            g.appendChild(l); g.appendChild(v); row.appendChild(g);
+        }
+        box.appendChild(row);
+    });
+    box.scrollTop = keep;
+}
 function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); loadStudents(); }
 function stYS(s) { return s.year && s.section ? s.year + '-' + s.section : s.year ? 'Year ' + s.year : s.section ? 'Section ' + s.section : 'All'; }
 function stKey(s) { return (s.year || '') + '|' + (s.section || ''); }
@@ -2380,6 +2422,7 @@ async function importStudents() {
         toast(r.added + ' added, ' + r.updated + ' updated' + (r.skipped ? ', ' + r.skipped + ' skipped' : '') + '.', 4500);
         pendingStudents = []; document.getElementById('st-file').value = ''; setText('st-file-info', ''); stDropState('');
         loadStudents();
+        sgFetched = 0;
     } catch (e) { btn.disabled = false; setText('st-file-info', e.message); }
 }
 
