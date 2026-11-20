@@ -1317,3 +1317,11 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .up-info:empty { display: none; }
 .up-info { padding: 8px 12px; border-radius: 10px; background: rgba(128,128,128,0.1); }
 .st-upload #st-import:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+.st-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.st-head b { display: block; font-size: 20px; color: var(--green-text); }
+.st-change { font: inherit; font-size: 13px; font-weight: bold; padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(128,128,128,0.4); background: transparent; color: var(--text-mid); cursor: pointer; white-space: nowrap; }
+.st-change:hover { border-color: var(--red-text); color: var(--red-text); }
+.st-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-weight: bold; }
+.st-who small { font-weight: normal; }
+.st-gr { font-style: normal; font-weight: bold; font-size: 15px; padding: 5px 14px; border-radius: 20px; background: var(--sec-green); color: #fff; white-space: nowrap; }
+.st-gr.none { background: rgba(128,128,128,0.18); color: var(--text-soft); font-weight: normal; font-size: 13px; }
