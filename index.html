@@ -37,7 +37,7 @@
             <span class="sb-change" id="sb-access-act"></span>
         </div>
 
-        <div class="sb-class sb-item" style="--i:2" onclick="openStudents()">
+        <div class="sb-class sb-item" style="--i:2" onclick="openGrades()">
             <div><small>Class list</small><b>Students &amp; grades</b></div>
             <span class="sb-change">Open ›</span>
         </div>
@@ -207,7 +207,7 @@
                 <div><b id="lv-miss">0</b><small>Misses</small></div>
                 <div><b id="lv-acc">-</b><small>Accuracy</small></div>
             </div>
-            <button type="button" class="btn-primary pill-btn live-take" onclick="openStudents()">Student grades</button>
+            <button type="button" class="btn-primary pill-btn live-take" onclick="openGrades()">Student grades</button>
             <button type="button" class="btn-primary pill-btn live-take" id="lv-take" onclick="chooseAccess('control')">Take control</button>
         </div>
     </div>
@@ -236,10 +236,12 @@
                 <button type="button" class="btn-primary pill-btn" id="st-import" disabled onclick="importStudents()">Import students</button>
             </div>
             <div class="st-card" id="st-pick">
-                <label>Program <select id="st-program" onchange="stProgram()"></select></label>
-                <label>Year &amp; section <select id="st-class" onchange="renderStudentList()"></select></label>
-                <input type="text" id="st-search" placeholder="Search name or student number" oninput="renderStudentList()" autocomplete="off">
+                <div class="st-head">
+                    <div><b id="st-title">Student grades</b><small id="st-sub"></small></div>
+                    <button type="button" class="st-change" onclick="openGrades()">Change class</button>
+                </div>
                 <div id="st-list"></div>
+                <div class="hidden"><select id="st-program"></select><select id="st-class"></select><input type="text" id="st-search"></div>
             </div>
             <div class="st-card hidden" id="st-detail">
                 <small id="st-d-class"></small>
