@@ -2081,7 +2081,7 @@ async function regainControl(r) {         // the server no longer lists this pag
     if (r.free) { try { const a = await api('acquireControl', { cid: CLIENT_ID }); if (a.granted) return; } catch (e) { return; } }
     if (drillIsRunning()) sendCommand('STOP');       // control moved to someone else: stop the machine safely first
     setAccessMode('view');
-    navigate('live-screen');
+    openStudents();
     toast('Control moved to ' + holderName(r.holder) + '. You are now in View only.', 5000);
 }
 
@@ -2123,7 +2123,7 @@ async function chooseAccess(m) {
             afterAccess();
         } else {
             setAccessMode('view');
-            navigate('live-screen');
+            openStudents();
         }
     } catch (e) { toast(e.message); } finally { accessBusy = false; }
 }
@@ -2134,7 +2134,7 @@ async function switchAccess() {           // from the sidebar
         if (drillIsRunning()) return toast('Stop the drill first, then you can switch to View only.');
         try { await api('releaseControl', { cid: CLIENT_ID }); } catch (e) {}
         setAccessMode('view');
-        navigate('live-screen');
+        openStudents();
         toast('You are now in View only. Others can take control.');
     } else if (accessMode === 'view') chooseAccess('control');
 }
@@ -2227,9 +2227,16 @@ function showStudent(s) {
     setText('st-d-name', s.name); setText('st-d-no', 'Student no. ' + s.no);
     setText('st-d-class', (s.program || '(No program)') + ' · ' + stYS(s));
     setText('st-d-grade', s.grade || 'No grade yet');
+    document.getElementById('st-ask1').classList.remove('hidden');
+    document.getElementById('st-ask2').classList.add('hidden');
     document.getElementById('st-pick').classList.add('hidden');
     document.getElementById('st-detail').classList.remove('hidden');
 }
+function stNoMore() {                     // "View other student's grade?" -> No
+    if (isViewOnly()) { document.getElementById('st-ask1').classList.add('hidden'); document.getElementById('st-ask2').classList.remove('hidden'); }
+    else navigate('dashboard-screen');
+}
+function stStay() { navigate('live-screen'); }   // "Switch to Control mode?" -> No: stay in View only and watch the live drill
 function backToStudents() {
     document.getElementById('st-detail').classList.add('hidden');
     document.getElementById('st-pick').classList.remove('hidden');
