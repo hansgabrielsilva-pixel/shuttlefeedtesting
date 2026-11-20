@@ -238,9 +238,11 @@
                 <h2 id="st-d-name"></h2>
                 <small id="st-d-no"></small>
                 <div class="st-grade"><small>Grade</small><b id="st-d-grade">-</b></div>
-                <button type="button" class="btn-primary pill-btn" onclick="backToStudents()">View another student</button>
+                <div class="st-ask" id="st-ask1"><b>View other student's grade?</b>
+                    <div class="st-btns"><button type="button" class="btn-primary pill-btn" onclick="backToStudents()">Yes</button><button type="button" class="btn-primary pill-btn st-no" onclick="stNoMore()">No</button></div></div>
+                <div class="st-ask hidden" id="st-ask2"><b>Switch to Control mode?</b>
+                    <div class="st-btns"><button type="button" class="btn-primary pill-btn" onclick="chooseAccess('control')">Yes</button><button type="button" class="btn-primary pill-btn st-no" onclick="stStay()">No</button></div></div>
             </div>
-            <button type="button" class="btn-primary pill-btn live-take" id="st-switch" onclick="chooseAccess('control')">Switch to Control mode</button>
             <p class="skip-text" onclick="navigate('dashboard-screen')">Back</p>
         </div>
     </div>
