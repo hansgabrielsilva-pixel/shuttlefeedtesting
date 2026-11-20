@@ -37,6 +37,11 @@
             <span class="sb-change" id="sb-access-act"></span>
         </div>
 
+        <div class="sb-class sb-item" style="--i:2" onclick="openStudents()">
+            <div><small>Class list</small><b>Students &amp; grades</b></div>
+            <span class="sb-change">Open ›</span>
+        </div>
+
         <div class="history-box sb-item" style="--i:3">
             <h4>Classes attended</h4>
             <ul id="history-list"></ul>
@@ -202,7 +207,41 @@
                 <div><b id="lv-miss">0</b><small>Misses</small></div>
                 <div><b id="lv-acc">-</b><small>Accuracy</small></div>
             </div>
+            <button type="button" class="btn-primary pill-btn live-take" onclick="openStudents()">Student grades</button>
             <button type="button" class="btn-primary pill-btn live-take" id="lv-take" onclick="chooseAccess('control')">Take control</button>
+        </div>
+    </div>
+
+    <!-- STUDENTS: upload the class list (Control mode), then pick program & section, student and view the grade -->
+    <div id="students-screen" class="screen">
+        <header>
+            <div class="user-icon" onclick="toggleUserSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+            <div class="header-center"><h1>STUDENTS</h1><p>CLASS LIST &amp; GRADES</p></div>
+            <div class="header-right"><div class="settings-icon" onclick="toggleSettingsSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div></div>
+        </header>
+        <div class="live-body">
+            <div class="st-card st-upload">
+                <b>Upload class list</b>
+                <small>Excel (.xlsx, .xls) or CSV. First row needs: Student Number, Name (or Last Name + First Name), Program, Year. Section and Grade are optional.</small>
+                <input type="file" id="st-file" accept=".xlsx,.xls,.csv,.txt" onchange="pickStudentFile(this)">
+                <small id="st-file-info"></small>
+                <button type="button" class="btn-primary pill-btn" id="st-import" disabled onclick="importStudents()">Import students</button>
+            </div>
+            <div class="st-card" id="st-pick">
+                <label>Program <select id="st-program" onchange="stProgram()"></select></label>
+                <label>Year &amp; section <select id="st-class" onchange="renderStudentList()"></select></label>
+                <input type="text" id="st-search" placeholder="Search name or student number" oninput="renderStudentList()" autocomplete="off">
+                <div id="st-list"></div>
+            </div>
+            <div class="st-card hidden" id="st-detail">
+                <small id="st-d-class"></small>
+                <h2 id="st-d-name"></h2>
+                <small id="st-d-no"></small>
+                <div class="st-grade"><small>Grade</small><b id="st-d-grade">-</b></div>
+                <button type="button" class="btn-primary pill-btn" onclick="backToStudents()">View another student</button>
+            </div>
+            <button type="button" class="btn-primary pill-btn live-take" id="st-switch" onclick="chooseAccess('control')">Switch to Control mode</button>
+            <p class="skip-text" onclick="navigate('dashboard-screen')">Back</p>
         </div>
     </div>
 
