@@ -1357,3 +1357,7 @@ body:not(.view-only) #st-switch { display: none; }
 .sg-grade { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(46,158,79,0.13); border-top: 1px solid rgba(128,128,128,0.25); }
 .sg-grade span { font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: var(--text-mid); }
 .sg-grade b { font-size: 26px; color: var(--text); }
+
+/* --- Rally card picture (drawn in SVG, same size as the silhouettes) --- */
+.menu-card .rally-art { display: block; margin-left: auto; margin-right: auto; }
+.angle-opts button.hidden { display: none; }
