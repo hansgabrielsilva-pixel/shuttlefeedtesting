@@ -480,6 +480,7 @@ function prepareClassForm() {
     document.getElementById('class-program-select').selectedIndex = 0;
     document.getElementById('class-section').selectedIndex = 0;
     document.getElementById('class-error').innerText = '';
+    setText('class-desc', isViewOnly() ? "Choose a program and section to view its students' grades." : 'Choose your program and section for this session.');
     if (hasLast) document.getElementById('continue-class-label').innerText = classLabel(lastClass);
 }
 
@@ -737,6 +738,7 @@ function changeClass() {                // from the dashboard chip
 }
 
 function setCurrentClass(c) {
+    if (isViewOnly()) { openStudentsFor(c); return; }      // View only: just look up this class's students, nothing is saved
     currentClass = lastClass = c;
     api('saveClass', { program: c.program, year: c.year, section: c.section }).catch(e => toast('Class not saved: ' + e.message));
     if (classSetupFromDashboard || returningFlow) navigate('dashboard-screen');
@@ -2081,7 +2083,7 @@ async function regainControl(r) {         // the server no longer lists this pag
     if (r.free) { try { const a = await api('acquireControl', { cid: CLIENT_ID }); if (a.granted) return; } catch (e) { return; } }
     if (drillIsRunning()) sendCommand('STOP');       // control moved to someone else: stop the machine safely first
     setAccessMode('view');
-    openStudents();
+    startViewOnlyClass();
     toast('Control moved to ' + holderName(r.holder) + '. You are now in View only.', 5000);
 }
 
@@ -2123,7 +2125,7 @@ async function chooseAccess(m) {
             afterAccess();
         } else {
             setAccessMode('view');
-            openStudents();
+            startViewOnlyClass();
         }
     } catch (e) { toast(e.message); } finally { accessBusy = false; }
 }
@@ -2134,7 +2136,7 @@ async function switchAccess() {           // from the sidebar
         if (drillIsRunning()) return toast('Stop the drill first, then you can switch to View only.');
         try { await api('releaseControl', { cid: CLIENT_ID }); } catch (e) {}
         setAccessMode('view');
-        openStudents();
+        startViewOnlyClass();
         toast('You are now in View only. Others can take control.');
     } else if (accessMode === 'view') chooseAccess('control');
 }
@@ -2180,6 +2182,26 @@ const STUDENT_COLS = {
     name: ['name', 'fullname', 'studentname', 'student'], last: ['lastname', 'surname', 'familyname'], first: ['firstname', 'givenname'],
     program: ['program', 'course', 'programcourse'], year: ['year', 'yearlevel', 'yr'], section: ['section', 'sec'], grade: ['grade', 'finalgrade', 'rating']
 };
+function startViewOnlyClass() {           // View only starts here: pick program + section, then the students list
+    closeAllSidebars();
+    classSetupFromDashboard = true;
+    prepareClassForm();
+    navigate('onboarding-welcome');
+}
+function skipClass() { if (isViewOnly()) openStudents(); else navigate('dashboard-screen'); }
+async function openStudentsFor(c) {       // students list with this program, year and section already chosen
+    closeAllSidebars(); navigate('students-screen'); backToStudents();
+    await loadStudents();
+    const pr = document.getElementById('st-program');
+    const po = Array.from(pr.options).find(o => o.value && o.value.toUpperCase() === c.program.toUpperCase());
+    if (po) pr.value = po.value;
+    stProgram();
+    const cl = document.getElementById('st-class');
+    const co = Array.from(cl.options).find(o => { const p = o.value.split('|'); return o.value && (p[1] || '').toUpperCase() === c.section && (parseInt(p[0]) || 0) === (parseInt(c.year) || 0); });
+    if (co) cl.value = co.value;
+    renderStudentList();
+    if (!po || !co) toast('No students uploaded yet for ' + classLabel(c) + '.');
+}
 function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); loadStudents(); }
 function stYS(s) { return s.year && s.section ? s.year + '-' + s.section : s.year ? 'Year ' + s.year : s.section ? 'Section ' + s.section : 'All'; }
 function stKey(s) { return (s.year || '') + '|' + (s.section || ''); }
