@@ -2171,6 +2171,147 @@ function renderLive(r) {                  // paints the View only screen from th
     updateCounterDisplay = function () { origCount.apply(this, arguments); pushLive(); };
 })();
 
+// ============================================================
+//  STUDENTS: class list upload (Control mode) + browse by program/section, student, grade (both modes)
+// ============================================================
+var studentsAll = [], pendingStudents = [];
+const STUDENT_COLS = {
+    studentNo: ['studentnumber', 'studentno', 'studentnum', 'studentid', 'idnumber', 'idno', 'id', 'number'],
+    name: ['name', 'fullname', 'studentname', 'student'], last: ['lastname', 'surname', 'familyname'], first: ['firstname', 'givenname'],
+    program: ['program', 'course', 'programcourse'], year: ['year', 'yearlevel', 'yr'], section: ['section', 'sec'], grade: ['grade', 'finalgrade', 'rating']
+};
+function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); loadStudents(); }
+function stYS(s) { return s.year && s.section ? s.year + '-' + s.section : s.year ? 'Year ' + s.year : s.section ? 'Section ' + s.section : 'All'; }
+function stKey(s) { return (s.year || '') + '|' + (s.section || ''); }
+function fillOptions(id, items, first) {
+    const sel = document.getElementById(id), keep = sel.value;
+    sel.innerHTML = '';
+    [['', first]].concat(items).forEach(o => { const op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op); });
+    if (items.some(o => o[0] === keep)) sel.value = keep;
+}
+async function loadStudents() {
+    try { studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5] })); }
+    catch (e) { toast(e.message); }
+    const progs = Array.from(new Set(studentsAll.map(s => s.program))).sort();
+    fillOptions('st-program', progs.map(p => [p || '-', p || '(No program)']), 'Choose program');
+    stProgram();
+}
+function stProgram() {
+    const p = document.getElementById('st-program').value;
+    const cls = {};
+    studentsAll.filter(s => (s.program || '-') === p).forEach(s => { cls[stKey(s)] = stYS(s); });
+    fillOptions('st-class', Object.keys(cls).sort().map(k => [k, cls[k]]), 'Choose year & section');
+    renderStudentList();
+}
+function renderStudentList() {
+    const p = document.getElementById('st-program').value, k = document.getElementById('st-class').value;
+    const q = document.getElementById('st-search').value.trim().toLowerCase(), box = document.getElementById('st-list');
+    box.innerHTML = '';
+    const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    if (!studentsAll.length) return note('No students yet. An instructor in Control mode can upload the class list.');
+    if (!p || !k) return note('Choose a program, then a year & section.');
+    const list = studentsAll.filter(s => (s.program || '-') === p && stKey(s) === k && (!q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    if (!list.length) return note('No students match.');
+    list.forEach(s => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'st-row';
+        const n = document.createElement('span'), no = document.createElement('small');
+        n.textContent = s.name; no.textContent = s.no;
+        b.appendChild(n); b.appendChild(no);
+        b.onclick = () => showStudent(s);
+        box.appendChild(b);
+    });
+}
+function showStudent(s) {
+    setText('st-d-name', s.name); setText('st-d-no', 'Student no. ' + s.no);
+    setText('st-d-class', (s.program || '(No program)') + ' · ' + stYS(s));
+    setText('st-d-grade', s.grade || 'No grade yet');
+    document.getElementById('st-pick').classList.add('hidden');
+    document.getElementById('st-detail').classList.remove('hidden');
+}
+function backToStudents() {
+    document.getElementById('st-detail').classList.add('hidden');
+    document.getElementById('st-pick').classList.remove('hidden');
+}
+
+function loadSheetJS() {
+    return window.XLSX ? Promise.resolve() : new Promise((ok, no) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload = ok; s.onerror = () => no(new Error('Could not load the Excel reader. Check the internet connection, or save the file as CSV.'));
+        document.head.appendChild(s);
+    });
+}
+function parseCsv(t) {
+    t = t.replace(/^\uFEFF/, '');
+    const first = t.split(/\r?\n/)[0] || '';
+    const d = [',', ';', '\t'].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+    const rows = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < t.length; i++) {
+        const ch = t[i];
+        if (q) { if (ch === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+        else if (ch === '"') q = true;
+        else if (ch === d) { row.push(cur); cur = ''; }
+        else if (ch === '\n' || ch === '\r') { if (ch === '\r' && t[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+        else cur += ch;
+    }
+    row.push(cur); rows.push(row);
+    return rows;
+}
+function readStudentRows(rows) {
+    const norm = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+    let hi = -1, map = {};
+    for (let i = 0; i < Math.min(rows.length, 15) && hi < 0; i++) {
+        const m = {};
+        rows[i].forEach((c, j) => { const n = norm(c); Object.keys(STUDENT_COLS).forEach(k => { if (m[k] === undefined && STUDENT_COLS[k].indexOf(n) >= 0) m[k] = j; }); });
+        if (m.studentNo !== undefined && (m.name !== undefined || (m.last !== undefined && m.first !== undefined))) { hi = i; map = m; }
+    }
+    if (hi < 0) return { error: 'Could not find the columns. The first row needs Student Number and Name (or Last Name and First Name), plus Program and Year.' };
+    const get = (r, k) => map[k] === undefined ? '' : String(r[map[k]] == null ? '' : r[map[k]]).trim();
+    const out = [];
+    rows.slice(hi + 1).forEach(r => {
+        const no = get(r, 'studentNo');
+        const name = map.name !== undefined ? get(r, 'name') : [get(r, 'last'), get(r, 'first')].filter(Boolean).join(', ');
+        if (!no || !name) return;
+        const y = get(r, 'year').match(/[1-4]/);
+        out.push({ studentNo: no, name: name, program: get(r, 'program'), year: y ? y[0] : '', section: get(r, 'section'), grade: get(r, 'grade') });
+    });
+    return { students: out, missing: ['program', 'year'].filter(k => map[k] === undefined) };
+}
+async function pickStudentFile(inp) {
+    const f = inp.files && inp.files[0];
+    pendingStudents = [];
+    document.getElementById('st-import').disabled = true;
+    setText('st-file-info', '');
+    if (!f) return;
+    try {
+        let rows;
+        if (/\.xlsx?$/i.test(f.name)) {
+            await loadSheetJS();
+            const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+            rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+        } else rows = parseCsv(await f.text());
+        const res = readStudentRows(rows);
+        if (res.error) return setText('st-file-info', res.error);
+        if (!res.students.length) return setText('st-file-info', 'No students found under the header row.');
+        pendingStudents = res.students;
+        setText('st-file-info', res.students.length + ' students found' + (res.missing.length ? ' (no ' + res.missing.join(' / ') + ' column)' : '') + '. Tap Import to save.');
+        document.getElementById('st-import').disabled = false;
+    } catch (e) { setText('st-file-info', e.message); }
+}
+async function importStudents() {
+    if (!pendingStudents.length || isViewOnly()) return;
+    const btn = document.getElementById('st-import');
+    btn.disabled = true; setText('st-file-info', 'Uploading…');
+    try {
+        const r = await api('importStudents', { cid: CLIENT_ID, students: pendingStudents });
+        toast(r.added + ' added, ' + r.updated + ' updated' + (r.skipped ? ', ' + r.skipped + ' skipped' : '') + '.', 4500);
+        pendingStudents = []; document.getElementById('st-file').value = ''; setText('st-file-info', '');
+        loadStudents();
+    } catch (e) { btn.disabled = false; setText('st-file-info', e.message); }
+}
+
 initAimPads();
 setRange(selectedRange);
 applyImages();
