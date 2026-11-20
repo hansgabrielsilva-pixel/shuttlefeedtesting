@@ -1343,3 +1343,17 @@ body:not(.view-only) #st-switch { display: none; }
 .act-t b { display: block; font-size: 16px; color: var(--text); }
 .act-t small { font-size: 12.5px; color: var(--text-mid); line-height: 1.4; display: block; }
 .act-go { font-size: 28px; color: var(--text-soft); line-height: 1; }
+.sg-card { gap: 12px; }
+.sg-head { display: flex; align-items: center; gap: 12px; }
+.sg-head b { display: block; font-size: 17px; color: var(--text); }
+#sg-list { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.sg-row { border: 1px solid rgba(128,128,128,0.3); border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+.sg-row:hover, .sg-row.open { border-color: var(--red-text); }
+.sg-btn { font: inherit; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 12px 14px; background: transparent; color: var(--text); border: 0; cursor: pointer; }
+.sg-who { display: flex; flex-direction: column; gap: 2px; font-weight: bold; min-width: 0; }
+.sg-who small { font-weight: normal; }
+.sg-chev { font-size: 24px; line-height: 1; color: var(--text-soft); transition: transform 0.2s; }
+.sg-row.open .sg-chev { transform: rotate(90deg); color: var(--red-text); }
+.sg-grade { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(46,158,79,0.13); border-top: 1px solid rgba(128,128,128,0.25); }
+.sg-grade span { font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: var(--text-mid); }
+.sg-grade b { font-size: 26px; color: var(--text); }
