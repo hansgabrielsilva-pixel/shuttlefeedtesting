@@ -1275,3 +1275,15 @@ button.cf-tile em { color: var(--red-text); opacity: 0.8; }
 .access-pill { align-self: center; font-size: 13px; font-weight: bold; padding: 6px 16px; border-radius: 20px; background: var(--card-bg); color: var(--green-text); }
 .access-pill:empty { display: none; }
 .view-only #sb-class-box { display: none; }
+
+/* ---------- Students: class list upload + grades ---------- */
+.st-card { width: 100%; max-width: 760px; background: var(--card-bg); border-radius: 18px; padding: 16px 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 10px; color: var(--text); }
+.st-card small, .st-note { font-size: 13px; color: var(--text-mid); }
+.st-card label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: bold; color: var(--text-mid); }
+.st-card select, .st-card input[type="text"] { font: inherit; font-size: 15px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.4); background: var(--card-bg); color: var(--text); }
+#st-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+.st-row { font: inherit; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(128,128,128,0.3); background: transparent; color: var(--text); cursor: pointer; }
+.st-row:hover { border-color: var(--red-text); }
+.st-grade { text-align: center; padding: 14px; border-radius: 14px; background: rgba(128,128,128,0.12); }
+.st-grade b { display: block; font-size: 34px; color: var(--text); }
+.view-only .st-upload, body:not(.view-only) #st-switch { display: none; }
