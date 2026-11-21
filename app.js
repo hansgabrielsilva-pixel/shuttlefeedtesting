@@ -1172,7 +1172,7 @@ function openHistory() {
     if (body) body.scrollTop = 0;
 }
 function closeHistory() { document.getElementById('history-modal').classList.add('hidden'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHistory(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeHistory(); closeGradeModal(); } });
 
 
 
@@ -2240,7 +2240,7 @@ async function openStudentsFor(c) {       // students list with this program, ye
     renderStudentList();
     if (!po || !co) toast('No students uploaded yet for ' + classLabel(c) + '.');
 }
-var sgOpen = null, sgFetched = 0, sgClass = null;         // View only screen: uploaded students list, one student's grade open at a time
+var sgOpen = null, sgFetched = 0, sgClass = null, sgShown = false;   // sgShown: the Student grades card is opened (programs visible)         // View only screen: uploaded students list, one student's grade open at a time
 async function loadGradesPanel() {
     if (Date.now() - sgFetched >= 10000) {
         try {
@@ -2250,6 +2250,22 @@ async function loadGradesPanel() {
     }
     renderGradesPanel();
 }
+function toggleGrades() {
+    sgShown = !sgShown; sgClass = null; sgOpen = null;
+    document.getElementById('sg-search').value = '';
+    renderGradesPanel();
+}
+function openGradeModal(s) {
+    setText('sgm-name', s.name);
+    setText('sgm-sub', [s.no, s.program, stYS(s)].filter(Boolean).join(' · '));
+    const b = document.getElementById('sgm-body');
+    b.innerHTML = '';
+    const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
+    g.className = 'sgm-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
+    g.appendChild(l); g.appendChild(v); b.appendChild(g);
+    document.getElementById('sg-modal').classList.remove('hidden');
+}
+function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function sgBack() { sgClass = null; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
 function sgPick(k) { sgClass = k; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
 function sgCls(s) { return (s.program || '-') + '||' + stKey(s); }      // one program + year/section = one class
@@ -2259,6 +2275,10 @@ function renderGradesPanel() {
     const keep = box.scrollTop, q = search.value.trim().toLowerCase(), total = studentsAll.length;
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    document.getElementById('sg-body').classList.toggle('hidden', !sgShown);       // closed: only the title shows
+    document.getElementById('sg-head').classList.toggle('open', sgShown);
+    document.getElementById('sg-head').setAttribute('aria-expanded', sgShown ? 'true' : 'false');
+    if (!sgShown) { setText('sg-sub', total ? 'Tap to see the programs' : 'No class list uploaded yet'); return; }
     search.classList.toggle('hidden', !total);
     if (sgClass && !studentsAll.some(s => sgCls(s) === sgClass)) sgClass = null;   // class no longer exists (list was re-uploaded)
     back.classList.toggle('hidden', !sgClass);
@@ -2290,18 +2310,13 @@ function renderGradesPanel() {
         if (!list.length) return note('No students match.');
         list.forEach(s => {
             const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
-            row.className = 'sg-row' + (sgOpen === s.no ? ' open' : '');
+            row.className = 'sg-row';
             b.type = 'button'; b.className = 'sg-btn';
             who.className = 'sg-who'; n.textContent = s.name; d.textContent = s.no;
             ch.className = 'sg-chev'; ch.textContent = '›';
             who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
-            b.onclick = () => { sgOpen = sgOpen === s.no ? null : s.no; renderGradesPanel(); };
+            b.onclick = () => openGradeModal(s);
             row.appendChild(b);
-            if (sgOpen === s.no) {
-                const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
-                g.className = 'sg-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
-                g.appendChild(l); g.appendChild(v); row.appendChild(g);
-            }
             box.appendChild(row);
         });
     }
