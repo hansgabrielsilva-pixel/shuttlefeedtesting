@@ -223,13 +223,16 @@
                 <div><b id="lv-acc">-</b><small>Accuracy</small></div>
             </div>
             <div class="st-card sg-card" id="sg-card">
-                <div class="sg-head">
+                <div class="sg-head" id="sg-head" role="button" tabindex="0" aria-expanded="false" onclick="toggleGrades()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGrades();}">
                     <span class="act-ic"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
-                    <div><b>Student grades</b><small id="sg-sub">Loading…</small></div>
+                    <div class="sg-title"><b>Student grades</b><small id="sg-sub">Loading…</small></div>
+                    <span class="sg-chev sg-main-chev">&#8250;</span>
                 </div>
+                <div id="sg-body" class="sg-body hidden">
                 <button type="button" id="sg-back" class="sg-back hidden" onclick="sgBack()">&#8249; All programs</button>
                 <input type="text" id="sg-search" class="hidden" placeholder="Search program or section" oninput="renderGradesPanel()" autocomplete="off">
                 <div id="sg-list"></div>
+                </div>
             </div>
             <div class="act-row">
                 <button type="button" class="act-card" onclick="openStudents()">
@@ -766,6 +769,19 @@
         </div>
     </div>
 
+    <!-- STUDENT GRADE WINDOW (opens when a student is tapped in Student grades) -->
+    <div class="modal hidden" id="sg-modal" onclick="if(event.target===this)closeGradeModal()">
+        <div class="modal-card hm-card sg-modal-card" role="dialog" aria-modal="true" aria-labelledby="sgm-name">
+            <div class="hm-head">
+                <div>
+                    <h3 id="sgm-name">Student</h3>
+                    <p id="sgm-sub"></p>
+                </div>
+                <button class="hm-close" onclick="closeGradeModal()" aria-label="Close">Close <span>✕</span></button>
+            </div>
+            <div class="hm-body sgm-body" id="sgm-body"></div>
+        </div>
+    </div>
     <div class="modal hidden" id="history-modal" onclick="if(event.target===this)closeHistory()">
         <div class="modal-card hm-card" role="dialog" aria-modal="true" aria-labelledby="hm-title">
             <div class="hm-head">
