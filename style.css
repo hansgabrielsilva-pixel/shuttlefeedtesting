@@ -1365,3 +1365,16 @@ body:not(.view-only) #st-switch { display: none; }
 /* Student grades: back button shown once a program and section is picked */
 .sg-back { font: inherit; font-weight: bold; align-self: flex-start; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(128,128,128,0.3); background: transparent; color: var(--red-text); cursor: pointer; }
 .sg-back:hover { border-color: var(--red-text); }
+
+/* Student grades: the header opens / closes the card; the student's grade shows in its own window */
+.sg-head { cursor: pointer; }
+.sg-title { flex: 1; min-width: 0; }
+.sg-title b { display: block; font-size: 17px; color: var(--text); }
+.sg-main-chev { transform: rotate(90deg); }
+.sg-head.open .sg-main-chev { transform: rotate(-90deg); color: var(--red-text); }
+.sg-body { display: flex; flex-direction: column; gap: 12px; }
+.sg-modal-card { width: min(460px, 100%); }
+.sgm-body { padding: 22px; }
+.sgm-grade { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-radius: 16px; background: rgba(46,158,79,0.13); border: 1px solid rgba(128,128,128,0.25); }
+.sgm-grade span { font-size: 13px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: var(--text-mid); }
+.sgm-grade b { font-size: 34px; color: var(--text); }
