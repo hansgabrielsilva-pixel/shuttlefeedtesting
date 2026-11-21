@@ -1361,3 +1361,7 @@ body:not(.view-only) #st-switch { display: none; }
 /* --- Rally card picture (drawn in SVG, same size as the silhouettes) --- */
 .menu-card .rally-art { display: block; margin-left: auto; margin-right: auto; }
 .angle-opts button.hidden { display: none; }
+
+/* Student grades: back button shown once a program and section is picked */
+.sg-back { font: inherit; font-weight: bold; align-self: flex-start; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(128,128,128,0.3); background: transparent; color: var(--red-text); cursor: pointer; }
+.sg-back:hover { border-color: var(--red-text); }
