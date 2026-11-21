@@ -2144,7 +2144,7 @@ async function chooseAccess(m) {
             afterAccess();
         } else {
             setAccessMode('view');
-            startViewOnlyClass();
+            navigate('dashboard-screen');        // View only opens on the live view first (class list / grades are one tap away)
         }
     } catch (e) { toast(e.message); } finally { accessBusy = false; }
 }
@@ -2155,7 +2155,7 @@ async function switchAccess() {           // from the sidebar
         if (drillIsRunning()) return toast('Stop the drill first, then you can switch to View only.');
         try { await api('releaseControl', { cid: CLIENT_ID }); } catch (e) {}
         setAccessMode('view');
-        startViewOnlyClass();
+        navigate('dashboard-screen');
         toast('You are now in View only. Others can take control.');
     } else if (accessMode === 'view') chooseAccess('control');
 }
@@ -2417,7 +2417,7 @@ function renderStudentList() {            // the class's students with their gra
     if (!studentsAll.length) return note('No students yet. Upload a class list above to get started.');
     const list = studentsAll.filter(s => (!p || (s.program || '-') === p) && (!k || stKey(s) === k)).sort((a, b) => a.name.localeCompare(b.name));
     if (!list.length) return note('No students found for this class.');
-    setText('st-title', p && k ? (p === '-' ? '' : p + ' ') + stYS(list[0]) : 'All classes');
+    setText('st-title', p && k ? (p === '-' ? '' : p + ' ') + stYS(list[0]) : 'Student grades');
     setText('st-sub', list.length + (list.length === 1 ? ' student' : ' students') + ' · tap a student to view the grade');
     list.forEach(s => {
         const b = document.createElement('button');
