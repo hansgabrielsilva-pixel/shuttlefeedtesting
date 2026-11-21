@@ -769,17 +769,36 @@
         </div>
     </div>
 
-    <!-- STUDENT GRADE WINDOW (opens when a student is tapped in Student grades) -->
+    <!-- STUDENT GRADE WINDOW: the instructor types the grade here (Student grades -> program -> student) -->
     <div class="modal hidden" id="sg-modal" onclick="if(event.target===this)closeGradeModal()">
         <div class="modal-card hm-card sg-modal-card" role="dialog" aria-modal="true" aria-labelledby="sgm-name">
-            <div class="hm-head">
-                <div>
+            <div class="sgm-top">
+                <div class="sgm-avatar" id="sgm-avatar">?</div>
+                <div class="sgm-who">
                     <h3 id="sgm-name">Student</h3>
-                    <p id="sgm-sub"></p>
+                    <p id="sgm-no"></p>
+                    <div class="sgm-tags"><span id="sgm-prog"></span><span id="sgm-sec"></span></div>
                 </div>
                 <button class="hm-close" onclick="closeGradeModal()" aria-label="Close">Close <span>✕</span></button>
             </div>
-            <div class="hm-body sgm-body" id="sgm-body"></div>
+            <div class="sgm-body">
+                <div class="sgm-current" id="sgm-current"><span>Current grade</span><b id="sgm-cur-val">No grade yet</b></div>
+                <label class="sgm-label" for="sgm-input">Enter grade</label>
+                <div class="sgm-field">
+                    <input type="text" id="sgm-input" maxlength="10" inputmode="decimal" autocomplete="off" placeholder="e.g. 1.25 or 92" oninput="sgmInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();sgmSave(true);}">
+                    <button type="button" class="sgm-clear" id="sgm-clear" onclick="sgmClear()" aria-label="Clear grade">✕</button>
+                </div>
+                <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
+                <div class="sgm-actions">
+                    <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
+                    <button type="button" class="sgm-btn-main" id="sgm-savenext" onclick="sgmSave(true)">Save &amp; next ›</button>
+                </div>
+            </div>
+            <div class="sgm-nav">
+                <button type="button" id="sgm-prev" onclick="sgmGo(-1)">‹ Previous</button>
+                <span id="sgm-count"></span>
+                <button type="button" id="sgm-next" onclick="sgmGo(1)">Next ›</button>
+            </div>
         </div>
     </div>
     <div class="modal hidden" id="history-modal" onclick="if(event.target===this)closeHistory()">
