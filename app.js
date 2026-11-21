@@ -2228,7 +2228,7 @@ function startViewOnlyClass() {           // View only starts here: pick program
 }
 function skipClass() { if (isViewOnly() || gradesPick) { gradesPick = false; openStudents(); } else navigate('dashboard-screen'); }
 async function openStudentsFor(c) {       // students list with this program, year and section already chosen
-    closeAllSidebars(); navigate('students-screen'); backToStudents();
+    closeAllSidebars(); navigate('students-screen'); backToStudents();      // class chosen from the sidebar: its students list is shown
     await loadStudents();
     const pr = document.getElementById('st-program');
     const po = Array.from(pr.options).find(o => o.value && o.value.toUpperCase() === c.program.toUpperCase());
@@ -2244,7 +2244,7 @@ var sgOpen = null, sgFetched = 0, sgClass = null, sgShown = false;   // sgShown:
 async function loadGradesPanel() {
     if (Date.now() - sgFetched >= 10000) {
         try {
-            studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5] }));
+            studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5], acts: actsParse(a[6]) }));
             sgFetched = Date.now();
         } catch (e) {}
     }
@@ -2255,18 +2255,20 @@ function toggleGrades() {
     document.getElementById('sg-search').value = '';
     renderGradesPanel();
 }
-// ---- Grade window: the instructor types and saves a student's grade ----
-var sgmList = [], sgmIdx = -1, sgmBusy = false;
+// ---- Grade window: a table of the student's activities and grades (rows can be added as needed) ----
+var sgmList = [], sgmIdx = -1, sgmBusy = false, sgmRows = [];
 const SGM_OK = /^[0-9A-Za-z.,%\/+\- ]{0,10}$/;
+function actsParse(t) { try { const a = JSON.parse(t || '[]'); return Array.isArray(a) ? a.map(r => ({ name: String((r && r[0]) || ''), grade: String((r && r[1]) || '') })) : []; } catch (e) { return []; } }
+function actsClean(rows) { return rows.map(r => ({ name: r.name.trim(), grade: r.grade.trim() })).filter(r => r.name || r.grade); }
+function actsAvg(rows) { const n = rows.map(r => r.grade).filter(g => /^\d+(\.\d+)?$/.test(g)).map(Number); return n.length ? String(Math.round(n.reduce((a, b) => a + b, 0) / n.length * 100) / 100) : ''; }
 function sgmCur() { return sgmList[sgmIdx]; }
-function sgmDirty() { const s = sgmCur(); return !!s && document.getElementById('sgm-input').value.trim() !== (s.grade || ''); }
+function sgmDirty() { const s = sgmCur(); return !!s && JSON.stringify(actsClean(sgmRows)) !== JSON.stringify(actsClean(s.acts || [])); }
 function sgmMsg(t, kind) { const m = document.getElementById('sgm-msg'); m.textContent = t || ''; m.className = 'sgm-msg' + (kind ? ' ' + kind : ''); }
 function openGradeModal(s) {
     sgmList = studentsAll.filter(x => sgCls(x) === sgCls(s)).sort((a, b) => a.name.localeCompare(b.name));   // the class, so Next / Previous stay inside it
     sgmIdx = Math.max(0, sgmList.findIndex(x => x.no === s.no));
     sgmShow();
     document.getElementById('sg-modal').classList.remove('hidden');
-    setTimeout(() => { const i = document.getElementById('sgm-input'); i.focus(); i.select(); }, 60);
 }
 function sgmShow() {
     const s = sgmCur(); if (!s) return;
@@ -2275,7 +2277,9 @@ function sgmShow() {
     setText('sgm-no', 'Student no. ' + s.no);
     setText('sgm-prog', s.program || '(No program)');
     setText('sgm-sec', stYS(s));
-    document.getElementById('sgm-input').value = s.grade || '';
+    sgmRows = (s.acts || []).map(r => ({ name: r.name, grade: r.grade }));
+    if (!sgmRows.length) sgmRows = [{ name: '', grade: '' }];
+    sgmRenderRows();
     sgmRefresh();
     sgmMsg('');
     setText('sgm-count', (sgmIdx + 1) + ' of ' + sgmList.length);
@@ -2285,45 +2289,78 @@ function sgmShow() {
     document.getElementById('sgm-savenext').classList.toggle('hidden', last);        // last student: just Save
     const sv = document.getElementById('sgm-save'); sv.classList.toggle('sgm-btn-main', last); sv.classList.toggle('sgm-btn-sec', !last);
 }
-function sgmRefresh() {                       // current grade box, clear button, save buttons
+function sgmRenderRows(focusRow) {
+    const body = document.getElementById('sgm-rows');
+    body.innerHTML = '';
+    sgmRows.forEach((r, i) => {
+        const tr = document.createElement('tr'), tn = document.createElement('td'), ta = document.createElement('td'), tg = document.createElement('td'), tx = document.createElement('td');
+        const a = document.createElement('input'), g = document.createElement('input'), x = document.createElement('button');
+        tn.className = 'c-n'; tn.textContent = i + 1;
+        a.type = 'text'; a.maxLength = 40; a.placeholder = 'e.g. Quiz ' + (i + 1); a.value = r.name; a.autocomplete = 'off'; a.setAttribute('aria-label', 'Activity ' + (i + 1));
+        g.type = 'text'; g.maxLength = 10; g.placeholder = 'e.g. 90'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Grade for activity ' + (i + 1));
+        a.oninput = () => { r.name = a.value; sgmInput(); };
+        g.oninput = () => { r.grade = g.value; sgmInput(); };
+        a.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); g.focus(); } };
+        g.onkeydown = e => {
+            if (e.key !== 'Enter') return; e.preventDefault();
+            const nx = body.querySelectorAll('tr')[i + 1];
+            if (nx) nx.querySelector('input').focus(); else if (r.name.trim() || r.grade.trim()) sgmAddRow(true);
+        };
+        x.type = 'button'; x.className = 'sgm-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Remove activity ' + (i + 1));
+        x.onclick = () => { sgmRows.splice(i, 1); if (!sgmRows.length) sgmRows.push({ name: '', grade: '' }); sgmRenderRows(); sgmInput(); };
+        ta.appendChild(a); tg.appendChild(g); tx.appendChild(x);
+        tr.appendChild(tn); tr.appendChild(ta); tr.appendChild(tg); tr.appendChild(tx); body.appendChild(tr);
+    });
+    if (focusRow != null) { const t = body.querySelectorAll('tr')[focusRow]; if (t) { t.querySelector('input').focus(); t.scrollIntoView({ block: 'nearest' }); } }
+}
+function sgmAddRow(focus) {
+    if (sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
+    sgmRows.push({ name: '', grade: '' });
+    sgmRenderRows(focus ? sgmRows.length - 1 : null);
+    sgmInput();
+}
+function sgmRefresh() {                       // summary box and save buttons
     const s = sgmCur(); if (!s) return;
-    const cur = document.getElementById('sgm-current'), has = !!s.grade, dirty = sgmDirty(), v = document.getElementById('sgm-input').value;
-    setText('sgm-cur-val', has ? s.grade : 'No grade yet');
-    cur.classList.toggle('has', has);
-    document.getElementById('sgm-clear').classList.toggle('hidden', !v);
-    document.getElementById('sgm-save').disabled = sgmBusy || !dirty;
+    const rows = actsClean(sgmRows), avg = actsAvg(rows), cur = document.getElementById('sgm-current');
+    let label = 'Grade', val = 'No grade yet';
+    if (rows.length) { label = 'Average · ' + rows.length + (rows.length === 1 ? ' activity' : ' activities'); val = avg || '—'; }
+    else if (s.grade) { val = s.grade; }
+    setText('sgm-cur-label', label); setText('sgm-cur-val', val);
+    cur.classList.toggle('has', val !== 'No grade yet' && val !== '—');
+    document.getElementById('sgm-save').disabled = sgmBusy || !sgmDirty();
     document.getElementById('sgm-savenext').disabled = sgmBusy;
 }
 function sgmInput() { sgmMsg(''); sgmRefresh(); }
-function sgmClear() { const i = document.getElementById('sgm-input'); i.value = ''; i.focus(); sgmInput(); }
 async function sgmSave(goNext) {
     const s = sgmCur(); if (!s || sgmBusy) return true;
-    const v = document.getElementById('sgm-input').value.trim();
-    if (!sgmDirty()) { if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); document.getElementById('sgm-input').focus(); } return true; }
-    if (!SGM_OK.test(v)) { sgmMsg('Use numbers or letters only, up to 10 characters (for example 1.25, 92 or A).', 'err'); return false; }
+    const rows = actsClean(sgmRows);
+    if (!sgmDirty()) { if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); } return true; }
+    if (rows.some(r => !r.name)) { sgmMsg('Give every grade an activity name.', 'err'); return false; }
+    if (rows.some(r => !SGM_OK.test(r.grade))) { sgmMsg('Grades can use numbers or letters only, up to 10 characters (for example 90, 1.25 or A).', 'err'); return false; }
     sgmBusy = true; sgmRefresh();
     const sv = document.getElementById('sgm-save'), sn = document.getElementById('sgm-savenext'), t1 = sv.textContent, t2 = sn.innerHTML;
     sv.textContent = 'Saving…'; sn.textContent = 'Saving…';
     let ok = false;
     try {
-        const r = await api('saveGrade', { studentNo: s.no, grade: v });
-        s.grade = r && r.grade != null ? String(r.grade) : v;
+        const r = await api('saveActivities', { studentNo: s.no, activities: rows.map(a => [a.name, a.grade]) });
+        s.acts = (r.activities || []).map(a => ({ name: String(a[0] || ''), grade: String(a[1] || '') }));
+        s.grade = r.grade != null ? String(r.grade) : '';
         sgFetched = Date.now();
         renderGradesPanel();                  // the pill on the student's row updates right away
         ok = true;
     } catch (e) { sgmMsg(e.message || 'Could not save. Please try again.', 'err'); }
     sgmBusy = false; sv.textContent = t1; sn.innerHTML = t2;
     if (ok) {
-        if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); document.getElementById('sgm-input').focus(); sgmMsg('Saved ✓ ' + sgmList[sgmIdx - 1].name.split(' ')[0] + "'s grade", 'ok'); }
-        else { sgmRefresh(); sgmMsg(s.grade ? 'Grade saved ✓' : 'Grade cleared', 'ok'); }
+        if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); sgmMsg('Saved ✓ ' + sgmList[sgmIdx - 1].name.split(' ')[0] + "'s activities", 'ok'); }
+        else { sgmShow(); sgmMsg('Saved ✓', 'ok'); }
     } else sgmRefresh();
     return ok;
 }
-async function sgmGo(d) {                     // Previous / Next: a typed grade is saved first so nothing is lost
+async function sgmGo(d) {                     // Previous / Next: typed activities are saved first so nothing is lost
     if (sgmBusy) return;
     if (sgmDirty() && !(await sgmSave(false))) return;
     const n = sgmIdx + d; if (n < 0 || n >= sgmList.length) return;
-    sgmIdx = n; sgmShow(); document.getElementById('sgm-input').focus();
+    sgmIdx = n; sgmShow();
 }
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function sgBack() { sgClass = null; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
@@ -2375,7 +2412,7 @@ function renderGradesPanel() {
             who.className = 'sg-who'; n.textContent = s.name; d.textContent = s.no;
             ch.className = 'sg-chev'; ch.textContent = '›';
             const end = document.createElement('span'), pill = document.createElement('span');
-            end.className = 'sg-end'; pill.className = 'sg-pill' + (s.grade ? ' done' : ''); pill.textContent = s.grade || 'No grade';
+            end.className = 'sg-end'; pill.className = 'sg-pill' + (s.grade ? ' done' : ''); pill.textContent = s.grade || ((s.acts || []).length ? s.acts.length + (s.acts.length === 1 ? ' activity' : ' activities') : 'No grade');
             end.appendChild(pill); end.appendChild(ch);
             who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
             b.onclick = () => openGradeModal(s);
@@ -2385,7 +2422,7 @@ function renderGradesPanel() {
     }
     box.scrollTop = keep;
 }
-function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); loadStudents(); }
+function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); document.getElementById('st-pick').classList.add('hidden'); loadStudents(); }   // Upload class list: the upload card only, no students list
 function stYS(s) { return s.year && s.section ? s.year + '-' + s.section : s.year ? 'Year ' + s.year : s.section ? 'Section ' + s.section : 'All'; }
 function stKey(s) { return (s.year || '') + '|' + (s.section || ''); }
 function fillOptions(id, items, first) {
@@ -2395,7 +2432,7 @@ function fillOptions(id, items, first) {
     if (items.some(o => o[0] === keep)) sel.value = keep;
 }
 async function loadStudents() {
-    try { studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5] })); }
+    try { studentsAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4], grade: a[5], acts: actsParse(a[6]) })); }
     catch (e) { toast(e.message); }
     const progs = Array.from(new Set(studentsAll.map(s => s.program))).sort();
     fillOptions('st-program', progs.map(p => [p || '-', p || '(No program)']), 'Choose program');
