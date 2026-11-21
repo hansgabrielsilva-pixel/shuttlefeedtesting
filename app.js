@@ -2255,15 +2255,75 @@ function toggleGrades() {
     document.getElementById('sg-search').value = '';
     renderGradesPanel();
 }
+// ---- Grade window: the instructor types and saves a student's grade ----
+var sgmList = [], sgmIdx = -1, sgmBusy = false;
+const SGM_OK = /^[0-9A-Za-z.,%\/+\- ]{0,10}$/;
+function sgmCur() { return sgmList[sgmIdx]; }
+function sgmDirty() { const s = sgmCur(); return !!s && document.getElementById('sgm-input').value.trim() !== (s.grade || ''); }
+function sgmMsg(t, kind) { const m = document.getElementById('sgm-msg'); m.textContent = t || ''; m.className = 'sgm-msg' + (kind ? ' ' + kind : ''); }
 function openGradeModal(s) {
-    setText('sgm-name', s.name);
-    setText('sgm-sub', [s.no, s.program, stYS(s)].filter(Boolean).join(' · '));
-    const b = document.getElementById('sgm-body');
-    b.innerHTML = '';
-    const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
-    g.className = 'sgm-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
-    g.appendChild(l); g.appendChild(v); b.appendChild(g);
+    sgmList = studentsAll.filter(x => sgCls(x) === sgCls(s)).sort((a, b) => a.name.localeCompare(b.name));   // the class, so Next / Previous stay inside it
+    sgmIdx = Math.max(0, sgmList.findIndex(x => x.no === s.no));
+    sgmShow();
     document.getElementById('sg-modal').classList.remove('hidden');
+    setTimeout(() => { const i = document.getElementById('sgm-input'); i.focus(); i.select(); }, 60);
+}
+function sgmShow() {
+    const s = sgmCur(); if (!s) return;
+    setText('sgm-avatar', (s.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?').toUpperCase());
+    setText('sgm-name', s.name);
+    setText('sgm-no', 'Student no. ' + s.no);
+    setText('sgm-prog', s.program || '(No program)');
+    setText('sgm-sec', stYS(s));
+    document.getElementById('sgm-input').value = s.grade || '';
+    sgmRefresh();
+    sgmMsg('');
+    setText('sgm-count', (sgmIdx + 1) + ' of ' + sgmList.length);
+    document.getElementById('sgm-prev').disabled = sgmIdx <= 0;
+    document.getElementById('sgm-next').disabled = sgmIdx >= sgmList.length - 1;
+    const last = sgmIdx >= sgmList.length - 1;
+    document.getElementById('sgm-savenext').classList.toggle('hidden', last);        // last student: just Save
+    const sv = document.getElementById('sgm-save'); sv.classList.toggle('sgm-btn-main', last); sv.classList.toggle('sgm-btn-sec', !last);
+}
+function sgmRefresh() {                       // current grade box, clear button, save buttons
+    const s = sgmCur(); if (!s) return;
+    const cur = document.getElementById('sgm-current'), has = !!s.grade, dirty = sgmDirty(), v = document.getElementById('sgm-input').value;
+    setText('sgm-cur-val', has ? s.grade : 'No grade yet');
+    cur.classList.toggle('has', has);
+    document.getElementById('sgm-clear').classList.toggle('hidden', !v);
+    document.getElementById('sgm-save').disabled = sgmBusy || !dirty;
+    document.getElementById('sgm-savenext').disabled = sgmBusy;
+}
+function sgmInput() { sgmMsg(''); sgmRefresh(); }
+function sgmClear() { const i = document.getElementById('sgm-input'); i.value = ''; i.focus(); sgmInput(); }
+async function sgmSave(goNext) {
+    const s = sgmCur(); if (!s || sgmBusy) return true;
+    const v = document.getElementById('sgm-input').value.trim();
+    if (!sgmDirty()) { if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); document.getElementById('sgm-input').focus(); } return true; }
+    if (!SGM_OK.test(v)) { sgmMsg('Use numbers or letters only, up to 10 characters (for example 1.25, 92 or A).', 'err'); return false; }
+    sgmBusy = true; sgmRefresh();
+    const sv = document.getElementById('sgm-save'), sn = document.getElementById('sgm-savenext'), t1 = sv.textContent, t2 = sn.innerHTML;
+    sv.textContent = 'Saving…'; sn.textContent = 'Saving…';
+    let ok = false;
+    try {
+        const r = await api('saveGrade', { studentNo: s.no, grade: v });
+        s.grade = r && r.grade != null ? String(r.grade) : v;
+        sgFetched = Date.now();
+        renderGradesPanel();                  // the pill on the student's row updates right away
+        ok = true;
+    } catch (e) { sgmMsg(e.message || 'Could not save. Please try again.', 'err'); }
+    sgmBusy = false; sv.textContent = t1; sn.innerHTML = t2;
+    if (ok) {
+        if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); document.getElementById('sgm-input').focus(); sgmMsg('Saved ✓ ' + sgmList[sgmIdx - 1].name.split(' ')[0] + "'s grade", 'ok'); }
+        else { sgmRefresh(); sgmMsg(s.grade ? 'Grade saved ✓' : 'Grade cleared', 'ok'); }
+    } else sgmRefresh();
+    return ok;
+}
+async function sgmGo(d) {                     // Previous / Next: a typed grade is saved first so nothing is lost
+    if (sgmBusy) return;
+    if (sgmDirty() && !(await sgmSave(false))) return;
+    const n = sgmIdx + d; if (n < 0 || n >= sgmList.length) return;
+    sgmIdx = n; sgmShow(); document.getElementById('sgm-input').focus();
 }
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function sgBack() { sgClass = null; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
@@ -2305,7 +2365,7 @@ function renderGradesPanel() {
     } else {                 // step 2: the students of the chosen program and section
         const inClass = studentsAll.filter(s => sgCls(s) === sgClass), f = inClass[0];
         const list = inClass.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0).sort((a, b) => a.name.localeCompare(b.name));
-        setText('sg-sub', (f.program || '(No program)') + ' · ' + stYS(f) + ' · tap a student to see the grade');
+        setText('sg-sub', (f.program || '(No program)') + ' · ' + stYS(f) + ' · tap a student to enter the grade');
         search.placeholder = 'Search name or number';
         if (!list.length) return note('No students match.');
         list.forEach(s => {
@@ -2314,7 +2374,10 @@ function renderGradesPanel() {
             b.type = 'button'; b.className = 'sg-btn';
             who.className = 'sg-who'; n.textContent = s.name; d.textContent = s.no;
             ch.className = 'sg-chev'; ch.textContent = '›';
-            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
+            const end = document.createElement('span'), pill = document.createElement('span');
+            end.className = 'sg-end'; pill.className = 'sg-pill' + (s.grade ? ' done' : ''); pill.textContent = s.grade || 'No grade';
+            end.appendChild(pill); end.appendChild(ch);
+            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
             b.onclick = () => openGradeModal(s);
             row.appendChild(b);
             box.appendChild(row);
