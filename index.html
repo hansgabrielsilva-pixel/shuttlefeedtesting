@@ -267,7 +267,7 @@
                 <div class="up-cols"><span>First row must have:</span><i class="req">Student Number</i><i class="req">Name</i><i class="req">Program</i><i class="req">Year</i><span>Optional:</span><i>Section</i><i>Grade</i></div>
                 <button type="button" class="btn-primary pill-btn" id="st-import" disabled onclick="importStudents()">Import students</button>
             </div>
-            <div class="st-card" id="st-pick">
+            <div class="st-card hidden" id="st-pick">
                 <div class="st-head">
                     <div><b id="st-title">Student grades</b><small id="st-sub"></small></div>
                     <button type="button" class="st-change" onclick="openGrades()">Change class</button>
@@ -782,12 +782,14 @@
                 <button class="hm-close" onclick="closeGradeModal()" aria-label="Close">Close <span>✕</span></button>
             </div>
             <div class="sgm-body">
-                <div class="sgm-current" id="sgm-current"><span>Current grade</span><b id="sgm-cur-val">No grade yet</b></div>
-                <label class="sgm-label" for="sgm-input">Enter grade</label>
-                <div class="sgm-field">
-                    <input type="text" id="sgm-input" maxlength="10" inputmode="decimal" autocomplete="off" placeholder="e.g. 1.25 or 92" oninput="sgmInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();sgmSave(true);}">
-                    <button type="button" class="sgm-clear" id="sgm-clear" onclick="sgmClear()" aria-label="Clear grade">✕</button>
+                <div class="sgm-current" id="sgm-current"><span id="sgm-cur-label">Grade</span><b id="sgm-cur-val">No grade yet</b></div>
+                <div class="sgm-tablewrap">
+                    <table class="sgm-table">
+                        <thead><tr><th class="c-n">#</th><th>Activity</th><th class="c-g">Grade</th><th class="c-x"><span class="sr-only">Remove</span></th></tr></thead>
+                        <tbody id="sgm-rows"></tbody>
+                    </table>
                 </div>
+                <button type="button" class="sgm-add" onclick="sgmAddRow(true)">+ Add activity</button>
                 <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
                 <div class="sgm-actions">
                     <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
