@@ -2240,7 +2240,7 @@ async function openStudentsFor(c) {       // students list with this program, ye
     renderStudentList();
     if (!po || !co) toast('No students uploaded yet for ' + classLabel(c) + '.');
 }
-var sgOpen = null, sgFetched = 0;         // View only screen: uploaded students list, one student's grade open at a time
+var sgOpen = null, sgFetched = 0, sgClass = null;         // View only screen: uploaded students list, one student's grade open at a time
 async function loadGradesPanel() {
     if (Date.now() - sgFetched >= 10000) {
         try {
@@ -2250,35 +2250,61 @@ async function loadGradesPanel() {
     }
     renderGradesPanel();
 }
+function sgBack() { sgClass = null; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
+function sgPick(k) { sgClass = k; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
+function sgCls(s) { return (s.program || '-') + '||' + stKey(s); }      // one program + year/section = one class
 function renderGradesPanel() {
-    const box = document.getElementById('sg-list'), search = document.getElementById('sg-search');
+    const box = document.getElementById('sg-list'), search = document.getElementById('sg-search'), back = document.getElementById('sg-back');
     if (!box) return;
     const keep = box.scrollTop, q = search.value.trim().toLowerCase(), total = studentsAll.length;
     box.innerHTML = '';
-    setText('sg-sub', total ? total + (total === 1 ? ' student' : ' students') + ' · tap a student to see the grade' : 'No class list uploaded yet');
-    search.classList.toggle('hidden', !total);
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
-    if (!total) return note('Upload a class list below and the students will show up here.');
-    const list = studentsAll.filter(s => !q || (s.name + ' ' + s.no + ' ' + s.program + ' ' + stYS(s)).toLowerCase().indexOf(q) >= 0)
-        .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stYS(a).localeCompare(stYS(b)) || a.name.localeCompare(b.name));
-    if (!list.length) return note('No students match.');
-    list.forEach(s => {
-        const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
-        row.className = 'sg-row' + (sgOpen === s.no ? ' open' : '');
-        b.type = 'button'; b.className = 'sg-btn';
-        who.className = 'sg-who'; n.textContent = s.name;
-        d.textContent = [s.no, s.program, stYS(s)].filter(Boolean).join(' · ');
-        ch.className = 'sg-chev'; ch.textContent = '›';
-        who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
-        b.onclick = () => { sgOpen = sgOpen === s.no ? null : s.no; renderGradesPanel(); };
-        row.appendChild(b);
-        if (sgOpen === s.no) {
-            const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
-            g.className = 'sg-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
-            g.appendChild(l); g.appendChild(v); row.appendChild(g);
-        }
-        box.appendChild(row);
-    });
+    search.classList.toggle('hidden', !total);
+    if (sgClass && !studentsAll.some(s => sgCls(s) === sgClass)) sgClass = null;   // class no longer exists (list was re-uploaded)
+    back.classList.toggle('hidden', !sgClass);
+    if (!total) { setText('sg-sub', 'No class list uploaded yet'); return note('Upload a class list below and the students will show up here.'); }
+
+    if (!sgClass) {          // step 1: programs and sections only
+        const cls = {};
+        studentsAll.forEach(s => { const k = sgCls(s); (cls[k] = cls[k] || { key: k, program: s.program || '(No program)', ys: stYS(s), n: 0 }).n++; });
+        const list = Object.keys(cls).map(k => cls[k])
+            .filter(c => !q || (c.program + ' ' + c.ys).toLowerCase().indexOf(q) >= 0)
+            .sort((a, b) => a.program.localeCompare(b.program) || a.ys.localeCompare(b.ys));
+        setText('sg-sub', list.length + (list.length === 1 ? ' class' : ' classes') + ' · tap a program and section');
+        search.placeholder = 'Search program or section';
+        if (!list.length) return note('No programs match.');
+        list.forEach(c => {
+            const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
+            row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
+            n.textContent = c.program; d.textContent = c.ys + ' · ' + c.n + (c.n === 1 ? ' student' : ' students');
+            ch.className = 'sg-chev'; ch.textContent = '›';
+            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
+            b.onclick = () => sgPick(c.key);
+            row.appendChild(b); box.appendChild(row);
+        });
+    } else {                 // step 2: the students of the chosen program and section
+        const inClass = studentsAll.filter(s => sgCls(s) === sgClass), f = inClass[0];
+        const list = inClass.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0).sort((a, b) => a.name.localeCompare(b.name));
+        setText('sg-sub', (f.program || '(No program)') + ' · ' + stYS(f) + ' · tap a student to see the grade');
+        search.placeholder = 'Search name or number';
+        if (!list.length) return note('No students match.');
+        list.forEach(s => {
+            const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
+            row.className = 'sg-row' + (sgOpen === s.no ? ' open' : '');
+            b.type = 'button'; b.className = 'sg-btn';
+            who.className = 'sg-who'; n.textContent = s.name; d.textContent = s.no;
+            ch.className = 'sg-chev'; ch.textContent = '›';
+            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
+            b.onclick = () => { sgOpen = sgOpen === s.no ? null : s.no; renderGradesPanel(); };
+            row.appendChild(b);
+            if (sgOpen === s.no) {
+                const g = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
+                g.className = 'sg-grade'; l.textContent = 'Grade'; v.textContent = s.grade || 'No grade yet';
+                g.appendChild(l); g.appendChild(v); row.appendChild(g);
+            }
+            box.appendChild(row);
+        });
+    }
     box.scrollTop = keep;
 }
 function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); loadStudents(); }
