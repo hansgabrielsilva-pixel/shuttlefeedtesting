@@ -1868,3 +1868,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 [data-theme="dark"] #session-screen .res-undo, [data-theme="dark"] #session-screen .usb-btn { background: rgba(255,255,255,0.08); color: #E1C6AF; }
 [data-theme="dark"] #session-screen #btn-pause { background: linear-gradient(145deg, #4a3b24, #2b2518); color: #E1C6AF; }
 @media (prefers-reduced-motion: reduce) { #session-screen .action-btn { transition: none; } }
+
+/* ===== MODE CARDS: figure on a see-through background (no black or white box) ===== */
+.mc-art { isolation: auto; }
+.menu-card.mode-card img.card-img { mix-blend-mode: normal; filter: url(#sf-cream); }
+.menu-card.mode-card:hover img.card-img { transform: scale(1.06); }
