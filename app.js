@@ -925,7 +925,14 @@ function stepValue(id, delta) {
 }
 
 // UI Navigation
+function lgShowForm(on) {                  // login page: Sign up / Sign in buttons first, the form after Sign in
+    const c = document.getElementById('login-card'); if (!c) return;
+    c.classList.toggle('form-open', !!on);
+    c.scrollTop = 0;
+    if (on) setTimeout(() => { const u = document.getElementById('username'); if (u && u.offsetParent) u.focus(); }, 120);
+}
 function navigate(screenId) {
+    if (screenId === 'login-screen') lgShowForm(false);
     if (isViewOnly()) {                         // View only: Home is the live view, and the drill screens stay closed
         if (screenId === 'dashboard-screen') screenId = 'live-screen';
         else if (screenId === 'mode-screen' || screenId === 'session-screen') return;
