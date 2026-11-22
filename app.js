@@ -202,7 +202,7 @@ function applyImages() {
     });
     const bg = imgUrl(IMAGES.bg);
     if (bg) document.documentElement.style.setProperty('--bg-img', `url("${bg}")`);
-    const lg = document.querySelector('.lg-logo'); if (lg) cutoutLogo(lg, imgUrl(IMAGES.logo));      // login page: logo without its white background
+    document.querySelectorAll('.lg-logo').forEach(lg => cutoutLogo(lg, imgUrl(IMAGES.logo)));      // login / sign up pages: logo without its white background
 }
 
 function applyUserData(d) {
