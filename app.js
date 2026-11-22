@@ -2454,7 +2454,7 @@ async function sgmGo(d) {                     // Previous / Next: typed activiti
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function isGraded(s) { return !!s.grade || (s.acts || []).some(a => a.grade); }
 // ---- Missing work (like Google Classroom): an activity that classmates have but this student has no grade for ----
-var missMap = {};                                   // student no. -> names of the activities that student is missing
+var missMap = {}, sgMissAll = false;                                   // student no. -> names of the activities that student is missing
 function nkey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, ' '); }     // "Quiz  1" and "quiz 1" are the same activity
 function isDone(g) { return !!String(g || '').trim(); }                                     // any grade counts, including EX (excused) or N/A
 function sgComputeMissing() {
@@ -2542,9 +2542,8 @@ function renderGradesPanel() {
         row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
         n.textContent = s.name; d.textContent = showClass ? s.no + ' · ' + (s.program || '(No program)') + ' ' + stYS(s) : s.no;
         ch.className = 'sg-chev'; ch.textContent = '›';
-        const end = document.createElement('span'), pill = document.createElement('span');
-        end.className = 'sg-end'; pill.className = 'sg-pill' + (isGraded(s) ? ' done' : ''); pill.textContent = s.grade || ((s.acts || []).length ? s.acts.length + (s.acts.length === 1 ? ' activity' : ' activities') : 'No grade');
-        end.appendChild(pill); end.appendChild(ch);
+        const end = document.createElement('span');
+        end.className = 'sg-end'; end.appendChild(ch);
         who.appendChild(n); who.appendChild(d);
         const miss = missMap[s.no] || [];
         if (miss.length) { row.classList.add('has-miss'); const w = document.createElement('small'); w.className = 'sg-missline'; w.textContent = 'Missing: ' + miss.join(', '); who.appendChild(w); }   // red line, like Classroom
@@ -2563,8 +2562,31 @@ function renderGradesPanel() {
         setText('sg-sub', q ? hits.length + (hits.length === 1 ? ' student' : ' students') + ' found' : list.length + (list.length === 1 ? ' class' : ' classes') + ' · tap a program and section');
         search.placeholder = 'Search student name or number';
         if (q && !hits.length && !list.length) return note('No students or programs match.');
+        const mlist = q ? [] : studentsAll.filter(s => missMap[s.no]).sort((a, b) => a.name.localeCompare(b.name));
+        if (mlist.length) {                                              // Classwork missing: every student with a missing activity, and which one
+            const wrap = document.createElement('div'), top = document.createElement('div'), t = document.createElement('b'), c = document.createElement('span');
+            wrap.className = 'sg-missbox'; top.className = 'sg-miss-top';
+            t.textContent = 'Classwork missing'; c.textContent = mlist.length + (mlist.length === 1 ? ' student' : ' students');
+            top.appendChild(t); top.appendChild(c); wrap.appendChild(top);
+            (sgMissAll ? mlist : mlist.slice(0, 5)).forEach(s => {
+                const b = document.createElement('button'), nm = document.createElement('span'), cl = document.createElement('small'), tags = document.createElement('span');
+                b.type = 'button'; b.className = 'sg-mrow'; nm.className = 'sg-mname'; nm.textContent = s.name;
+                cl.textContent = (s.program || '(No program)') + ' · ' + stYS(s); tags.className = 'sg-mtags';
+                missMap[s.no].forEach(m => { const g = document.createElement('i'); g.textContent = m; tags.appendChild(g); });
+                b.appendChild(nm); b.appendChild(cl); b.appendChild(tags);
+                b.onclick = () => openGradeModal(s);
+                wrap.appendChild(b);
+            });
+            if (mlist.length > 5) {
+                const more = document.createElement('button'); more.type = 'button'; more.className = 'sg-mmore';
+                more.textContent = sgMissAll ? 'Show less' : 'Show all ' + mlist.length;
+                more.onclick = () => { sgMissAll = !sgMissAll; renderGradesPanel(); };
+                wrap.appendChild(more);
+            }
+            box.appendChild(wrap);
+        }
         if (hits.length) { if (list.length) head('Students'); hits.slice(0, 25).forEach(s => box.appendChild(studentRow(s, true))); if (hits.length > 25) note('Showing the first 25. Type more to narrow it down.'); }
-        if (list.length && hits.length) head('Programs');
+        if (list.length && (hits.length || mlist.length)) head('Programs');
         list.forEach(c => {
             const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
             row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
