@@ -2046,3 +2046,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     .sgp-hero { min-height: 170px; padding: 30px 16px 20px; }
     .sgp-tab { flex-direction: row; gap: 7px; padding: 10px 8px; text-align: left; font-size: 12px; }
 }
+
+/* ===== PHONE: stop the browser from enlarging text and keep the page inside the screen width ===== */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { max-width: 100%; overflow-x: hidden; }
