@@ -2454,7 +2454,8 @@ async function sgmGo(d) {                     // Previous / Next: typed activiti
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function isGraded(s) { return !!s.grade || (s.acts || []).some(a => a.grade); }
 // ---- Missing work (like Google Classroom): an activity that classmates have but this student has no grade for ----
-var missMap = {}, sgMissAll = false;                                   // student no. -> names of the activities that student is missing
+var missMap = {};
+const SG_MISS = '__missing__';                  // sgClass value while the Classwork missing list is open                                   // student no. -> names of the activities that student is missing
 function nkey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, ' '); }     // "Quiz  1" and "quiz 1" are the same activity
 function isDone(g) { return !!String(g || '').trim(); }                                     // any grade counts, including EX (excused) or N/A
 function sgComputeMissing() {
@@ -2482,7 +2483,8 @@ function sgProgress() {                       // "2 of 5 students graded" + the 
 // ---- Export grades: Excel or CSV, for the open class (or every class when none is open) ----
 function sgExportToggle() { document.getElementById('sg-exp-menu').classList.toggle('hidden'); }
 function sgExportRows() {
-    const list = (sgClass ? studentsAll.filter(s => sgCls(s) === sgClass) : studentsAll.slice())
+    const one = sgClass && sgClass !== SG_MISS;
+    const list = (one ? studentsAll.filter(s => sgCls(s) === sgClass) : studentsAll.slice())
         .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stKey(a).localeCompare(stKey(b)) || a.name.localeCompare(b.name));
     const names = [];                                                   // every activity name, in the order first seen
     list.forEach(s => (s.acts || []).forEach(a => { if (a.name && names.indexOf(a.name) < 0) names.push(a.name); }));
@@ -2492,7 +2494,7 @@ function sgExportRows() {
         const m = {}; (s.acts || []).forEach(a => { if (a.name && !(a.name in m)) m[a.name] = a.grade; });
         return [s.no, s.name, s.program || '', s.year || '', s.section || ''].concat(names.map(n => n in m ? num(m[n]) : ''), [num(s.grade || ''), (missMap[s.no] || []).join('; ')]);
     });
-    const f = list[0], label = sgClass && f ? [f.program, stYS(f)].join(' ') : 'all classes';
+    const f = list[0], label = one && f ? [f.program, stYS(f)].join(' ') : 'all classes';
     return { head, rows, file: 'grades - ' + label.replace(/[\\/:*?"<>|]+/g, '-').trim() + ' - ' + new Date().toISOString().slice(0, 10) };
 }
 async function sgExport(kind) {
@@ -2532,8 +2534,8 @@ function renderGradesPanel() {
     if (!sgShown) { setText('sg-sub', total ? 'Tap to see the programs' : 'No class list uploaded yet'); return; }
     search.classList.toggle('hidden', !total);
     document.getElementById('sg-export').classList.toggle('hidden', !total);
-    document.getElementById('sg-exp-btn').textContent = sgClass ? '⬇ Export this class' : '⬇ Export all grades';
-    if (sgClass && !studentsAll.some(s => sgCls(s) === sgClass)) sgClass = null;   // class no longer exists (list was re-uploaded)
+    document.getElementById('sg-exp-btn').textContent = sgClass && sgClass !== SG_MISS ? '⬇ Export this class' : '⬇ Export all grades';
+    if (sgClass && sgClass !== SG_MISS && !studentsAll.some(s => sgCls(s) === sgClass)) sgClass = null;   // class no longer exists (list was re-uploaded)
     back.classList.toggle('hidden', !sgClass);
     if (!total) { setText('sg-sub', 'No class list uploaded yet'); return note('Upload a class list below and the students will show up here.'); }
 
@@ -2563,30 +2565,20 @@ function renderGradesPanel() {
         search.placeholder = 'Search student name or number';
         if (q && !hits.length && !list.length) return note('No students or programs match.');
         const mlist = q ? [] : studentsAll.filter(s => missMap[s.no]).sort((a, b) => a.name.localeCompare(b.name));
-        if (mlist.length) {                                              // Classwork missing: every student with a missing activity, and which one
-            const wrap = document.createElement('div'), top = document.createElement('div'), t = document.createElement('b'), c = document.createElement('span');
-            wrap.className = 'sg-missbox'; top.className = 'sg-miss-top';
-            t.textContent = 'Classwork missing'; c.textContent = mlist.length + (mlist.length === 1 ? ' student' : ' students');
-            top.appendChild(t); top.appendChild(c); wrap.appendChild(top);
-            (sgMissAll ? mlist : mlist.slice(0, 5)).forEach(s => {
-                const b = document.createElement('button'), nm = document.createElement('span'), cl = document.createElement('small'), tags = document.createElement('span');
-                b.type = 'button'; b.className = 'sg-mrow'; nm.className = 'sg-mname'; nm.textContent = s.name;
-                cl.textContent = (s.program || '(No program)') + ' · ' + stYS(s); tags.className = 'sg-mtags';
-                missMap[s.no].forEach(m => { const g = document.createElement('i'); g.textContent = m; tags.appendChild(g); });
-                b.appendChild(nm); b.appendChild(cl); b.appendChild(tags);
-                b.onclick = () => openGradeModal(s);
-                wrap.appendChild(b);
-            });
-            if (mlist.length > 5) {
-                const more = document.createElement('button'); more.type = 'button'; more.className = 'sg-mmore';
-                more.textContent = sgMissAll ? 'Show less' : 'Show all ' + mlist.length;
-                more.onclick = () => { sgMissAll = !sgMissAll; renderGradesPanel(); };
-                wrap.appendChild(more);
-            }
-            box.appendChild(wrap);
+        if (!q) {                                                        // Classwork missing card, same look as the program cards, placed above them
+            const nAct = Object.keys(missMap).reduce((t, k) => t + missMap[k].length, 0);
+            const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span'), end = document.createElement('span');
+            row.className = 'sg-row miss-card' + (mlist.length ? ' has-miss' : ' clear'); b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
+            n.textContent = 'Classwork missing';
+            d.textContent = mlist.length ? mlist.length + (mlist.length === 1 ? ' student' : ' students') + ' · ' + nAct + ' missing ' + (nAct === 1 ? 'activity' : 'activities') : 'Nothing missing · everyone is caught up ✓';
+            ch.className = 'sg-chev'; ch.textContent = '›'; end.className = 'sg-end';
+            if (mlist.length) { const cnt = document.createElement('span'); cnt.className = 'sg-count'; cnt.textContent = mlist.length; end.appendChild(cnt); }
+            end.appendChild(ch); who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
+            b.onclick = () => sgPick(SG_MISS);
+            row.appendChild(b); box.appendChild(row);
         }
         if (hits.length) { if (list.length) head('Students'); hits.slice(0, 25).forEach(s => box.appendChild(studentRow(s, true))); if (hits.length > 25) note('Showing the first 25. Type more to narrow it down.'); }
-        if (list.length && (hits.length || mlist.length)) head('Programs');
+        if (list.length && (hits.length || !q)) head('Programs');
         list.forEach(c => {
             const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
             row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
@@ -2598,6 +2590,13 @@ function renderGradesPanel() {
             b.onclick = () => sgPick(c.key);
             row.appendChild(b); box.appendChild(row);
         });
+    } else if (sgClass === SG_MISS) {   // Classwork missing: every student with a missing activity, and which one
+        const ml = studentsAll.filter(s => missMap[s.no] && (!q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0))
+            .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stKey(a).localeCompare(stKey(b)) || a.name.localeCompare(b.name));
+        setText('sg-sub', 'Classwork missing · ' + ml.length + (ml.length === 1 ? ' student' : ' students') + ' · tap a student');
+        search.placeholder = 'Search student name or number';
+        if (!ml.length) return note(q ? 'No students match.' : 'Nothing is missing. Every student is caught up ✓');
+        ml.forEach(s => box.appendChild(studentRow(s, true)));
     } else {                 // step 2: the students of the chosen program and section
         const inClass = studentsAll.filter(s => sgCls(s) === sgClass), f = inClass[0];
         const list = inClass.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0).sort((a, b) => a.name.localeCompare(b.name));
