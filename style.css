@@ -1530,3 +1530,16 @@ body:not(.view-only) #st-switch { display: none; }
 .sgm-table tr.pending .c-n { color: #c0392b; font-size: 15px; font-weight: bold; }
 .sgm-table tr.pending input.sgm-g { border-color: rgba(192,57,43,0.6); background: rgba(192,57,43,0.07); }
 .sgm-table tr.pending input.sgm-g::placeholder { color: #c0392b; font-weight: bold; }
+
+/* Classwork missing list (above the programs) */
+.sg-missbox { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.4); animation: sgpRow 0.25s ease-out; }
+.sg-miss-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sg-miss-top b { font-size: 15px; color: #c0392b; }
+.sg-miss-top span { font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 999px; background: #c0392b; color: #fff; }
+.sg-mrow { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px; background: var(--card-bg); border: 1px solid rgba(128,128,128,0.25); border-left: 4px solid #c0392b; box-shadow: none; color: var(--text); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.sg-mrow:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+.sg-mname { font-size: 15px; font-weight: bold; }
+.sg-mrow small { font-size: 12px; color: var(--text-soft); }
+.sg-mtags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.sg-mtags i { font-style: normal; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 999px; background: rgba(192,57,43,0.14); color: #c0392b; }
+.sg-mmore { align-self: center; padding: 6px 16px; border-radius: 999px; background: transparent; color: #c0392b; font-weight: bold; font-size: 13px; box-shadow: none; border: 1.5px solid rgba(192,57,43,0.5); cursor: pointer; }
