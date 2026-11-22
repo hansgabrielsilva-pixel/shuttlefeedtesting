@@ -1469,3 +1469,42 @@ body:not(.view-only) #st-switch { display: none; }
 .sgm-table tr.done input.sgm-g { border-color: rgba(46,158,79,0.55); background: rgba(46,158,79,0.08); }
 .sgm-actions button.flash { animation: sgpFlash 0.9s ease-out; }
 @keyframes sgpFlash { 0% { box-shadow: 0 0 0 0 rgba(46,158,79,0.7); } 100% { box-shadow: 0 0 0 16px rgba(46,158,79,0); } }
+
+/* ===== Live view: who is using the machine ===== */
+.lv-using { flex-direction: row; align-items: center; gap: 14px; padding: 14px 16px; }
+.lv-av { flex: 0 0 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #fff; background: #2c3812; transition: background 0.3s; }
+.lv-using[data-s="busy"] .lv-av { background: var(--primary-red); animation: lvPulse 2s ease-in-out infinite; }
+.lv-using[data-s="free"] .lv-av { background: #2e9e4f; }
+.lv-using[data-s="lost"] .lv-av { background: #b45f06; }
+.lv-using[data-s="offline"] .lv-av { background: #777; }
+@keyframes lvPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(128,0,0,0.45); } 50% { box-shadow: 0 0 0 9px rgba(128,0,0,0); } }
+.lv-using-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lv-using-t b { font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
+.lv-using-t small { font-size: 13px; color: var(--text-mid); }
+.lv-using[data-s="lost"] .lv-using-t small, .lv-using[data-s="offline"] .lv-using-t small { color: #b45f06; font-weight: bold; }
+.lv-timer { text-align: right; padding: 6px 12px; border-radius: 12px; background: rgba(128,0,0,0.08); }
+.lv-timer span { display: block; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: var(--text-soft); }
+.lv-timer b { font-size: 20px; font-variant-numeric: tabular-nums; color: var(--red-text); }
+/* Take control button states */
+.live-take[data-s="waiting"], .live-take[data-s="offline"] { background: rgba(128,128,128,0.25); color: var(--text-mid); box-shadow: none; cursor: not-allowed; opacity: 1; }
+.live-take[data-s="waiting"]::before { content: "⏳ "; }
+.live-take[data-s="offline"]::before { content: "⚠ "; }
+.live-take.ready { animation: lvReady 0.8s ease-out 3; }
+@keyframes lvReady { 0% { box-shadow: 0 0 0 0 rgba(128,0,0,0.6); } 100% { box-shadow: 0 0 0 18px rgba(128,0,0,0); } }
+.lv-take-hint { display: block; text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-mid); }
+/* Student grades: progress, badge, search results, export */
+.sg-prog { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.sg-prog-bar { flex: 1; max-width: 160px; height: 6px; border-radius: 99px; background: rgba(128,128,128,0.25); overflow: hidden; }
+.sg-prog-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--primary-red); transition: width 0.5s ease; }
+.sg-prog.all .sg-prog-bar i { background: #2e9e4f; }
+.sg-prog span { font-size: 12px; font-weight: bold; color: var(--text-mid); white-space: nowrap; }
+.sg-badge { flex: none; font-size: 12px; font-weight: bold; padding: 4px 10px; border-radius: 999px; background: #b45f06; color: #fff; white-space: nowrap; }
+.sg-badge.ok { background: rgba(46,158,79,0.2); color: #2e9e4f; }
+.sg-group { display: block; margin: 6px 2px 0; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: var(--text-soft); }
+.sg-export { position: relative; }
+.sg-exp-btn { padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--red-text); background: transparent; color: var(--red-text); font-weight: bold; font-size: 14px; box-shadow: none; cursor: pointer; }
+.sg-exp-btn:hover { background: rgba(128,0,0,0.07); }
+.sg-exp-menu { display: flex; gap: 8px; margin-top: 8px; animation: sgpRow 0.2s ease-out; }
+.sg-exp-menu.hidden { display: none; }
+.sg-exp-menu button { flex: 1; padding: 10px; border-radius: 12px; background: rgba(128,128,128,0.12); color: var(--text); font-weight: bold; font-size: 14px; box-shadow: none; }
+.sg-exp-menu button:hover { background: rgba(128,0,0,0.12); color: var(--red-text); }
