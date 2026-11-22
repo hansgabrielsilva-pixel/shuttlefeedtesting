@@ -769,31 +769,44 @@
         </div>
     </div>
 
-    <!-- STUDENT GRADE WINDOW: the instructor types the grade here (Student grades -> program -> student) -->
+    <!-- STUDENT PROFILE WINDOW: profile header + the student's activities and grades (instructor types them here) -->
     <div class="modal hidden" id="sg-modal" onclick="if(event.target===this)closeGradeModal()">
-        <div class="modal-card hm-card sg-modal-card" role="dialog" aria-modal="true" aria-labelledby="sgm-name">
-            <div class="sgm-top">
-                <div class="sgm-avatar" id="sgm-avatar">?</div>
-                <div class="sgm-who">
+        <div class="modal-card hm-card sg-modal-card sgp" role="dialog" aria-modal="true" aria-labelledby="sgm-name">
+            <button type="button" class="sgp-close" onclick="closeGradeModal()" aria-label="Close">✕</button>
+            <div class="sgp-scroll">
+                <div class="sgp-cover"></div>
+                <div class="sgp-head">
+                    <div class="sgm-avatar sgp-avatar" id="sgm-avatar">?</div>
                     <h3 id="sgm-name">Student</h3>
                     <p id="sgm-no"></p>
                     <div class="sgm-tags"><span id="sgm-prog"></span><span id="sgm-sec"></span></div>
                 </div>
-                <button class="hm-close" onclick="closeGradeModal()" aria-label="Close">Close <span>✕</span></button>
-            </div>
-            <div class="sgm-body">
-                <div class="sgm-current" id="sgm-current"><span id="sgm-cur-label">Grade</span><b id="sgm-cur-val">No grade yet</b></div>
-                <div class="sgm-tablewrap">
-                    <table class="sgm-table">
-                        <thead><tr><th class="c-n">#</th><th>Activity</th><th class="c-g">Grade</th><th class="c-x"><span class="sr-only">Remove</span></th></tr></thead>
-                        <tbody id="sgm-rows"></tbody>
-                    </table>
+                <div class="sgp-stats">
+                    <div><b id="sgp-n">0</b><span>Activities</span></div>
+                    <div><b id="sgp-g">0</b><span>Graded</span></div>
+                    <div><b id="sgp-p">0</b><span>Pending</span></div>
                 </div>
-                <button type="button" class="sgm-add" onclick="sgmAddRow(true)">+ Add activity</button>
-                <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
-                <div class="sgm-actions">
-                    <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
-                    <button type="button" class="sgm-btn-main" id="sgm-savenext" onclick="sgmSave(true)">Save &amp; next ›</button>
+                <div class="sgm-body">
+                    <div class="sgp-title"><b>Activities &amp; grades</b><span id="sgp-dirty" class="sgp-dirty hidden">● Unsaved changes</span></div>
+                    <div class="sgp-quick" aria-label="Quick add">
+                        <button type="button" onclick="sgmQuick('Quiz')">+ Quiz</button>
+                        <button type="button" onclick="sgmQuick('Long Quiz')">+ Long quiz</button>
+                        <button type="button" onclick="sgmQuick('Activity')">+ Activity</button>
+                        <button type="button" onclick="sgmQuick('Project')">+ Project</button>
+                        <button type="button" onclick="sgmQuick('Exam')">+ Exam</button>
+                    </div>
+                    <div class="sgm-tablewrap">
+                        <table class="sgm-table">
+                            <thead><tr><th class="c-n">#</th><th>Activity</th><th class="c-g">Grade</th><th class="c-x"><span class="sr-only">Remove</span></th></tr></thead>
+                            <tbody id="sgm-rows"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="sgm-add" onclick="sgmAddRow(true)">+ Add activity</button>
+                    <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
+                    <div class="sgm-actions">
+                        <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
+                        <button type="button" class="sgm-btn-main" id="sgm-savenext" onclick="sgmSave(true)">Save &amp; next ›</button>
+                    </div>
                 </div>
             </div>
             <div class="sgm-nav">
