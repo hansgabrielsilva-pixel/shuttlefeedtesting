@@ -1543,3 +1543,9 @@ body:not(.view-only) #st-switch { display: none; }
 .sg-mtags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .sg-mtags i { font-style: normal; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 999px; background: rgba(192,57,43,0.14); color: #c0392b; }
 .sg-mmore { align-self: center; padding: 6px 16px; border-radius: 999px; background: transparent; color: #c0392b; font-weight: bold; font-size: 13px; box-shadow: none; border: 1.5px solid rgba(192,57,43,0.5); cursor: pointer; }
+
+/* Classwork missing card (same shape as the program cards) */
+.sg-row.miss-card .sg-who > span { color: #c0392b; }
+.sg-row.miss-card.clear .sg-btn { border-left: 4px solid #2e9e4f; }
+.sg-row.miss-card.clear .sg-who > span { color: #2e9e4f; }
+.sg-count { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #c0392b; color: #fff; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
