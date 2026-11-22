@@ -930,6 +930,9 @@ function navigate(screenId) {
         if (screenId === 'dashboard-screen') screenId = 'live-screen';
         else if (screenId === 'mode-screen' || screenId === 'session-screen') return;
     }
+    const ctl = screenId === 'live-screen' && accessMode === 'control';
+    document.body.classList.toggle('grades-ctl', ctl);                 // control mode on the grades screen: machine panels hidden
+    if (screenId === 'live-screen' && !ctl) { setText('lv-h1', 'LIVE VIEW'); setText('lv-h1p', 'VIEW ONLY'); }
     if (screenId === 'live-screen') loadGradesPanel();     // keeps the student list on the View only screen up to date
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
@@ -2258,7 +2261,21 @@ const STUDENT_COLS = {
     program: ['program', 'course', 'programcourse'], year: ['year', 'yearlevel', 'yr'], section: ['section', 'sec'], grade: ['grade', 'finalgrade', 'rating']
 };
 var gradesPick = false;                   // class screen opened only to look up grades (Control mode users too)
-function openGrades() { gradesPick = true; startViewOnlyClass(); }
+function openGrades() {                    // sidebar "Students & grades": opens the Student grades screen (programs, missing work, search, export)
+    closeAllSidebars(); gradesPick = false;
+    sgShown = false; sgClass = null; sgOpen = null;          // the Student grades card starts closed, like the live view
+    navigate('live-screen');
+    if (accessMode === 'control') lvControlView();           // Control mode: same screen, with a way back to the machine
+}
+function lvControlView() {                 // the live-screen while you are the controller (the machine panels are hidden by CSS)
+    setText('lv-h1', 'STUDENTS & GRADES'); setText('lv-h1p', 'CONTROL MODE');
+    setText('lv-av', initials(currentUser || 'You')); document.getElementById('lv-using').dataset.s = 'busy';
+    setText('lv-using-name', 'You are in control'); setText('lv-using-sub', 'The machine is yours. Go back to the dashboard when you are ready.');
+    lvSince = 0; lvTick();
+    const b = document.getElementById('lv-take'); b.disabled = false; b.dataset.s = 'free'; b.textContent = 'Back to dashboard';
+    document.getElementById('lv-take-hint').classList.add('hidden');
+}
+function lvTakeClick() { if (accessMode === 'control') navigate('dashboard-screen'); else chooseAccess('control'); }
 function startViewOnlyClass() {           // View only starts here: pick program + section, then the students list
     closeAllSidebars();
     classSetupFromDashboard = true;
