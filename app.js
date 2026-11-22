@@ -2379,7 +2379,6 @@ function sgmShow() {
     if (!sgmRows.length) sgmRows = [{ name: '', grade: '' }];
     sgmRenderRows();
     sgmRefresh();
-    sgmUpdated();
     sgmMsg('');
     setText('sgm-count', (sgmIdx + 1) + ' of ' + sgmList.length);
     document.getElementById('sgm-prev').disabled = sgmIdx <= 0;
@@ -2408,8 +2407,6 @@ function sgmParse(g) {
     return { got: null, out: null, pct: null };
 }
 function sgmBand(p) { return p >= 90 ? 'hi' : p >= 75 ? 'ok' : p >= 60 ? 'mid' : 'low'; }
-function sgmGradedList() { return actsClean(sgmRows).filter(r => r.grade).map(r => ({ name: r.name || '(No name)', grade: r.grade, p: sgmParse(r.grade) })); }
-function sgmAvg() { const v = sgmGradedList().filter(x => x.p.pct != null).map(x => x.p.pct); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; }
 function sgmRenderRows(focusRow) {
     const body = document.getElementById('sgm-rows');
     body.innerHTML = '';
@@ -2506,69 +2503,13 @@ function sgmRenderMiss(mi) {
         c.appendChild(ic); c.appendChild(mid); c.appendChild(sgmEl('span', 'sgr-pill bad', 'Missing')); c.appendChild(b); box.appendChild(c);
     });
 }
-function sgmRenderAna(mi) {
-    const box = document.getElementById('sgm-ana'); box.innerHTML = '';
-    const L = sgmGradedList().filter(x => x.p.pct != null);
-    if (!L.length) { box.appendChild(sgmEmpty('📊', 'No percentages yet', 'Type scores like 18/20 (or a grade out of 100) on the Activities tab to see analytics.')); return; }
-    const avg = sgmAvg(), hi = L.reduce((a, b) => b.p.pct > a.p.pct ? b : a), lo = L.reduce((a, b) => b.p.pct < a.p.pct ? b : a);
-    const comp = mi.total ? Math.round(100 * (mi.total - mi.miss.length) / mi.total) : 100;
-    const grid = sgmEl('div', 'sgp-ana-grid');
-    [['Average', avg + '%', L.length + ' graded'], ['Highest', hi.p.pct + '%', hi.name], ['Lowest', lo.p.pct + '%', lo.name], ['Completion', comp + '%', 'of class activities']].forEach(k => {
-        const d = sgmEl('div', 'sgp-ana-k'); d.appendChild(sgmEl('span', null, k[0])); d.appendChild(sgmEl('b', null, k[1])); d.appendChild(sgmEl('small', null, k[2])); grid.appendChild(d);
-    });
-    box.appendChild(grid);
-    box.appendChild(sgmEl('div', 'sgp-sec', 'Score by activity'));
-    L.forEach(x => {
-        const r = sgmEl('div', 'sgp-bar'), bar = sgmEl('span', 'sgp-bar-t'), f = sgmEl('i', sgmBand(x.p.pct));
-        f.style.width = Math.max(2, Math.min(100, x.p.pct)) + '%'; bar.appendChild(f);
-        r.appendChild(sgmEl('span', 'sgp-bar-n', x.name)); r.appendChild(bar); r.appendChild(sgmEl('b', null, x.p.pct + '%')); box.appendChild(r);
-    });
-}
-function sgmRenderHist() {
-    const box = document.getElementById('sgm-hist'); box.innerHTML = '';
-    const L = sgmGradedList().filter(x => x.p.pct != null);
-    if (!L.length) { box.appendChild(sgmEmpty('🕘', 'No grade history yet', 'Graded activities appear here in the order they were recorded, with how each score changed.')); return; }
-    if (L.length > 1) {
-        const W = 320, H = 110, pad = 18, pts = L.map((x, i) => [pad + i * (W - 2 * pad) / (L.length - 1), 10 + (100 - Math.max(0, Math.min(100, x.p.pct))) * 0.8]);
-        const line = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-        box.insertAdjacentHTML('beforeend', '<svg class="sgp-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sgpSpk" x1="0" x2="1"><stop offset="0" stop-color="#d1434a"/><stop offset="1" stop-color="#7C0005"/></linearGradient></defs><polyline points="' + line + '" fill="none" stroke="url(#sgpSpk)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + pts.map(p => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4.5" fill="#fff" stroke="#7C0005" stroke-width="2.5"/>').join('') + '</svg>');
-    }
-    box.appendChild(sgmEl('div', 'sgp-sec', 'In the order recorded'));
-    const list = sgmEl('div', 'sgp-tl');
-    L.forEach((x, i) => {
-        const d = sgmEl('div', 'sgp-tl-i'), dot = sgmEl('i', sgmBand(x.p.pct)), mid = sgmEl('div', 'sgr-main');
-        mid.appendChild(sgmEl('b', 'sgp-card-t', x.name)); mid.appendChild(sgmEl('small', 'sgr-sub', x.grade + ' · ' + x.p.pct + '%'));
-        d.appendChild(dot); d.appendChild(mid);
-        if (i > 0) { const dl = Math.round((x.p.pct - L[i - 1].p.pct) * 10) / 10; d.appendChild(sgmEl('span', 'sgp-delta ' + (dl > 0 ? 'up' : dl < 0 ? 'down' : 'flat'), dl > 0 ? '▲ ' + dl : dl < 0 ? '▼ ' + Math.abs(dl) : '＝ same')); }
-        else d.appendChild(sgmEl('span', 'sgp-delta flat', 'first'));
-        list.appendChild(d);
-    });
-    box.appendChild(list);
-}
-function sgmUpdated() {
-    const t = sgFetched ? new Date(sgFetched) : new Date();
-    setText('sgm-updated', 'Last updated: ' + t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' • ' + t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
-    document.getElementById('sgm-updated').classList.remove('warn');
-}
-async function sgmReload() {                  // Refresh: pull the latest grades from the sheet
-    if (sgmBusy) return;
-    const u = document.getElementById('sgm-updated'), btn = document.getElementById('sgm-refresh');
-    if (sgmDirty()) { u.textContent = 'Save your changes first, then refresh'; u.classList.add('warn'); setTimeout(sgmUpdated, 2600); return; }
-    const no = sgmCur().no, old = sgFetched;
-    btn.classList.add('spin'); btn.disabled = true; sgFetched = 0;
-    await loadGradesPanel();
-    if (!sgFetched) { sgFetched = old; u.textContent = 'Could not refresh. Try again'; u.classList.add('warn'); setTimeout(sgmUpdated, 2600); }
-    else { const s = studentsAll.find(x => x.no === no); if (s) { sgmList = studentsAll.filter(x => sgCls(x) === sgCls(s)).sort((p, q) => p.name.localeCompare(q.name)); sgmIdx = Math.max(0, sgmList.findIndex(x => x.no === no)); sgmShow(); } }
-    btn.classList.remove('spin'); btn.disabled = false;
-}
 function sgmRefresh() {                       // profile stats, tabs, unsaved chip and the save buttons
     const s = sgmCur(); if (!s) return;
-    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length, mi = sgmMissingNow(), avg = sgmAvg();
-    setText('sgp-avg', avg != null ? String(avg) : (/^\d/.test(String(s.grade || '')) ? String(s.grade) : '–'));
+    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length, mi = sgmMissingNow();
     setText('sgp-g', graded); setText('sgp-p', mi.miss.length);
     document.getElementById('sgp-pbox').classList.toggle('bad', mi.miss.length > 0);
     const tb = document.getElementById('sgp-tabmiss'); tb.textContent = mi.miss.length; tb.classList.toggle('hidden', !mi.miss.length);
-    sgmRenderMiss(mi); sgmRenderAna(mi); sgmRenderHist();
+    sgmRenderMiss(mi);
     document.getElementById('sgp-dirty').classList.toggle('hidden', !sgmDirty());
     document.getElementById('sgm-save').disabled = sgmBusy || !sgmDirty();
     document.getElementById('sgm-savenext').disabled = sgmBusy;
