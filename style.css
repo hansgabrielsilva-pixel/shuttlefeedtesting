@@ -1718,3 +1718,85 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 [data-theme="dark"] .access-card.busy .ac-status { color: #FFE08A; }
 @media (max-width: 680px) { .access-card { width: 100%; max-width: 380px; min-height: 0; } .ac-title { font-size: 28px; } .access-cards { gap: 16px; } }
 @media (prefers-reduced-motion: reduce) { .access-card, .ac-go { transition: none; } }
+
+/* ===== MODE CARDS (High Angle / Rally / Service): gradient redesign ===== */
+.menu-card.mode-card { position: relative; overflow: hidden; isolation: isolate; width: 280px; height: auto; min-height: 390px; padding: 18px; justify-content: flex-start; align-items: stretch; text-align: left; border: 0; border-radius: 28px; color: #fff; box-shadow: 0 18px 36px rgba(30,39,11,0.28), inset 0 1px 0 rgba(255,255,255,0.25); transition: transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s; }
+.mode-card.mc-high { background: linear-gradient(145deg, #d1434a 0%, #8f0b12 50%, #4d0003 100%); }
+.mode-card.mc-rally { background: linear-gradient(145deg, #5f7a2a 0%, #3b4d17 48%, #1d2809 100%); }
+.mode-card.mc-service { background: linear-gradient(145deg, #c9915a 0%, #8c5524 50%, #4a2a0c 100%); }
+.mode-card::before { content: ""; position: absolute; z-index: -1; width: 240px; height: 240px; right: -80px; top: -90px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.32), rgba(255,255,255,0) 70%); }
+.mode-card::after { content: ""; position: absolute; z-index: -1; width: 260px; height: 260px; left: -120px; bottom: -150px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.12); box-shadow: 0 0 0 26px rgba(255,255,255,0.05); }
+.menu-card.mode-card:hover { transform: translateY(-10px) scale(1.02); border: 0; box-shadow: 0 28px 48px rgba(30,39,11,0.38), inset 0 1px 0 rgba(255,255,255,0.3); }
+.menu-card.mode-card:active { transform: scale(0.97); }
+.mc-art { isolation: isolate; height: 175px; border-radius: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(circle at 50% 30%, #fffaf4 0%, #F6EBE2 75%); box-shadow: 0 10px 22px rgba(0,0,0,0.22); }
+.menu-card.mode-card .card-img { height: 145px; width: auto; max-width: 92%; margin: 0; filter: none; mix-blend-mode: multiply; }
+.menu-card.mode-card svg.card-img { width: 100%; }
+.menu-card.mode-card:hover .card-img { transform: scale(1.06); }
+.mc-tag { margin: 18px 0 2px; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+.mode-card h3 { margin: 0 0 8px; font-size: 25px; font-weight: 900; letter-spacing: -0.2px; color: #fff; }
+.mode-card .desc { margin: 0; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.88); }
+.mc-go { margin-top: auto; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.mc-arrow { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #F6EBE2; color: #2C3812; box-shadow: 0 6px 14px rgba(0,0,0,0.25); transition: transform 0.25s; }
+.mc-high .mc-arrow { color: #7C0005; } .mc-service .mc-arrow { color: #6b3f14; }
+.mode-card:hover .mc-arrow { transform: translateX(4px); }
+@media (max-width: 680px) { .menu-card.mode-card { width: 100%; max-width: 340px; min-height: 0; } }
+
+/* ===== STUDENT GRADES PANEL: gradient header, toolbar, richer rows ===== */
+#sg-card { padding: 0; gap: 0; border-radius: 22px; box-shadow: 0 10px 26px rgba(30,39,11,0.16); }
+#sg-card .sg-head { position: relative; overflow: hidden; padding: 16px 18px; gap: 14px; border-radius: 22px; color: #fff; background: linear-gradient(135deg, #4a5e22 0%, #2c3812 55%, #7C0005 135%); transition: border-radius 0.2s; }
+#sg-card .sg-head.open { border-radius: 22px 22px 0 0; }
+#sg-card .sg-head::before { content: ""; position: absolute; width: 220px; height: 220px; right: -60px; top: -110px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.26), rgba(255,255,255,0) 70%); pointer-events: none; }
+#sg-card .sg-head > * { position: relative; }
+#sg-card .sg-head b { color: #fff; font-size: 18px; }
+#sg-card .sg-head small { color: rgba(255,255,255,0.82); }
+#sg-card .act-ic { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 6px 14px rgba(0,0,0,0.2); }
+#sg-card .sg-prog-bar { max-width: 240px; height: 7px; background: rgba(255,255,255,0.25); }
+#sg-card .sg-prog-bar i { background: linear-gradient(90deg, #F6EBE2, #fff); }
+#sg-card .sg-prog.all .sg-prog-bar i { background: linear-gradient(90deg, #a6f5bb, #5fe087); }
+#sg-card .sg-prog span { color: rgba(255,255,255,0.92); white-space: normal; }
+#sg-card .sg-badge { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+#sg-card .sg-badge.warn { background: #d9372b; border-color: rgba(255,255,255,0.55); }
+#sg-card .sg-badge.ok { background: rgba(124,242,154,0.25); color: #d6ffe2; }
+#sg-card .sg-main-chev { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); color: #fff; font-size: 22px; padding-bottom: 2px; }
+#sg-card .sg-head.open .sg-main-chev { color: #fff; }
+#sg-card .sg-body { padding: 16px; gap: 14px; }
+.sg-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#sg-card #sg-search { flex: 1 1 220px; min-width: 0; padding: 12px 16px 12px 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--card-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 16px center / 18px; }
+#sg-card #sg-search:focus { outline: 2px solid var(--red-text); outline-offset: 1px; }
+#sg-card .sg-exp-btn { padding: 11px 18px; border: 0; border-radius: 999px; color: #fff; background: linear-gradient(135deg, #b3262d, #7C0005); box-shadow: 0 6px 14px rgba(124,0,5,0.3); white-space: nowrap; }
+#sg-card .sg-exp-btn:hover { background: linear-gradient(135deg, #c93139, #8f0b12); }
+#sg-card .sg-exp-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; margin: 0; min-width: 200px; flex-direction: column; padding: 8px; border-radius: 16px; background: var(--card-bg); box-shadow: 0 16px 34px rgba(0,0,0,0.28); border: 1px solid var(--line); }
+#sg-card .sg-exp-menu.hidden { display: none; }
+#sg-card .sg-back { align-self: flex-start; padding: 7px 16px; background: rgba(124,0,5,0.08); border-color: transparent; }
+#sg-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+#sg-list .sg-group, #sg-list .st-note, #sg-list .sg-row.miss-card, #sg-list .sg-row.sg-stu { grid-column: 1 / -1; }
+#sg-list .sg-group { display: flex; align-items: center; gap: 10px; margin: 6px 2px 0; }
+#sg-list .sg-group::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+#sg-card .sg-row { border: 1px solid var(--line); border-radius: 16px; background: var(--card-bg); box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+#sg-card .sg-row:hover { transform: translateY(-2px); border-color: var(--red-text); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
+#sg-card .sg-row.has-miss { border-color: rgba(192,57,43,0.5); }
+#sg-card .sg-row.has-miss .sg-btn { border-left: 0; }
+#sg-card .sg-btn { justify-content: flex-start; gap: 12px; padding: 12px 14px; }
+#sg-card .sg-who { flex: 1; min-width: 0; }
+#sg-card .sg-name { font-size: 16px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sg-card .sg-chev { flex: none; }
+.sg-av { flex: none; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 0.3px; background: linear-gradient(135deg, #5f7a2a, #2c3812); box-shadow: 0 4px 10px rgba(30,39,11,0.25); }
+.sg-av-prog { font-size: 11px; }
+.sg-stu .sg-av { border-radius: 50%; background: linear-gradient(135deg, #d1434a, #7C0005); box-shadow: 0 4px 10px rgba(124,0,5,0.25); }
+.sg-mini-row { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.sg-mini { flex: 1; height: 6px; border-radius: 99px; overflow: hidden; background: rgba(128,128,128,0.22); }
+.sg-mini i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #d1434a, #7C0005); transition: width 0.5s ease; }
+.sg-mini.full i { background: linear-gradient(90deg, #7bd88f, #2e9e4f); }
+.sg-mini-row em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--text-mid); white-space: nowrap; }
+/* Classwork missing card */
+#sg-card .sg-row.miss-card.has-miss { border: 0; background: linear-gradient(135deg, #ee5a47 0%, #c0392b 50%, #8a1a12 100%); box-shadow: 0 10px 22px rgba(192,57,43,0.35); }
+#sg-card .sg-row.miss-card.has-miss .sg-name { color: #fff; }
+#sg-card .sg-row.miss-card.has-miss small, #sg-card .sg-row.miss-card.has-miss .sg-chev { color: rgba(255,255,255,0.9); }
+#sg-card .sg-row.miss-card.has-miss .sg-av-alert { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.45); font-size: 22px; box-shadow: none; }
+#sg-card .sg-row.miss-card.has-miss .sg-count { background: #fff; color: #c0392b; }
+#sg-card .sg-row.miss-card.clear { border-color: rgba(46,158,79,0.5); background: linear-gradient(135deg, rgba(46,158,79,0.18), rgba(46,158,79,0.05)); }
+#sg-card .sg-row.miss-card.clear .sg-name { color: #2e9e4f; }
+#sg-card .sg-row.miss-card.clear .sg-av-alert { background: linear-gradient(135deg, #5fe087, #2e9e4f); font-size: 22px; }
+[data-theme="dark"] #sg-card .sg-row.miss-card.clear .sg-name { color: #7bd88f; }
+@media (max-width: 480px) { #sg-card .sg-end .sg-pill { display: none; } #sg-list { grid-template-columns: 1fr; } #sg-card .sg-exp-btn { width: 100%; } .sg-tools .sg-export { flex: 1 1 100%; } }
+@media (prefers-reduced-motion: reduce) { .menu-card.mode-card, .mc-arrow, #sg-card .sg-row { transition: none; } }
