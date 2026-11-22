@@ -261,6 +261,7 @@
                 </div>
                 <div id="sg-body" class="sg-body hidden">
                 <button type="button" id="sg-back" class="sg-back hidden" onclick="sgBack()">&#8249; All programs</button>
+                <div class="sg-tools">
                 <input type="text" id="sg-search" class="hidden" placeholder="Search student name or number" oninput="renderGradesPanel()" autocomplete="off">
                 <div class="sg-export hidden" id="sg-export">
                     <button type="button" class="sg-exp-btn" id="sg-exp-btn" onclick="sgExportToggle()">⬇ Export grades</button>
@@ -268,6 +269,7 @@
                         <button type="button" onclick="sgExport('xlsx')">Excel (.xlsx)</button>
                         <button type="button" onclick="sgExport('csv')">CSV (.csv)</button>
                     </div>
+                </div>
                 </div>
                 <div id="sg-list"></div>
                 </div>
@@ -568,31 +570,37 @@
         </header>
         <div class="card-container scrollable">
             <!-- HIGH ANGLE CARD -->
-            <div class="menu-card" onclick="setupSession('High Angle')">
-                <img data-img="smash" alt="High Angle Silhouette" class="card-img">
-                <h3 class="dark-red">High Angle Mode</h3>
+            <div class="menu-card mode-card mc-high" onclick="setupSession('High Angle')">
+                <div class="mc-art"><img data-img="smash" alt="High Angle Silhouette" class="card-img"></div>
+                <span class="mc-tag">Mode 01</span>
+                <h3>High Angle Mode</h3>
                 <p class="desc">High-angle shots sent steeply upward and dropping down onto the target area, fed at one fixed speed.</p>
+                <span class="mc-go"><b>Start drill</b><span class="mc-arrow"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
             </div>
 
             <!-- RALLY CARD -->
-            <div class="menu-card" onclick="setupSession('Rally')">
-                <svg class="card-img rally-art" viewBox="0 0 200 200" role="img" aria-label="Rally">
+            <div class="menu-card mode-card mc-rally" onclick="setupSession('Rally')">
+                <div class="mc-art"><svg class="card-img rally-art" viewBox="0 0 200 200" role="img" aria-label="Rally">
                     <g fill="#263813">
                         <path d="M20 150 Q100 -10 180 150" fill="none" stroke="#263813" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 14"/>
                         <circle cx="20" cy="152" r="9"/><circle cx="180" cy="152" r="9"/>
                         <g transform="translate(100 38) rotate(180)"><path d="M0 0 L-16 -26 L16 -26 Z"/><ellipse cx="0" cy="4" rx="9" ry="7"/></g>
                         <rect x="14" y="160" width="12" height="26" rx="5"/><rect x="174" y="160" width="12" height="26" rx="5"/>
                     </g>
-                </svg>
-                <h3 class="dark-red">Rally Mode</h3>
+                </svg></div>
+                <span class="mc-tag">Mode 02</span>
+                <h3>Rally Mode</h3>
                 <p class="desc">A steady back-and-forth feed that keeps the rally going, aimed left, center, right or alternating sides.</p>
+                <span class="mc-go"><b>Start drill</b><span class="mc-arrow"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
             </div>
             
             <!-- SERVICE CARD -->
-            <div class="menu-card" onclick="setupSession('Service')">
-                <img data-img="service" alt="Service Silhouette" class="card-img">
-                <h3 class="dark-red">Service Mode</h3>
+            <div class="menu-card mode-card mc-service" onclick="setupSession('Service')">
+                <div class="mc-art"><img data-img="service" alt="Service Silhouette" class="card-img"></div>
+                <span class="mc-tag">Mode 03</span>
+                <h3>Service Mode</h3>
                 <p class="desc">Low (short) and high (long) serves, delivered with either a forehand or backhand action.</p>
+                <span class="mc-go"><b>Start drill</b><span class="mc-arrow"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
             </div>
         </div>
     </div>
