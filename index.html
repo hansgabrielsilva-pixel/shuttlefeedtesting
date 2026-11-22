@@ -801,9 +801,13 @@
                 <div class="sgp-stats">
                     <div><b id="sgp-n">0</b><span>Activities</span></div>
                     <div><b id="sgp-g">0</b><span>Graded</span></div>
-                    <div><b id="sgp-p">0</b><span>Pending</span></div>
+                    <div id="sgp-pbox"><b id="sgp-p">0</b><span>Missing</span></div>
                 </div>
                 <div class="sgm-body">
+                    <div class="sgm-missing hidden" id="sgm-missing">
+                        <div class="sgm-miss-h"><b id="sgm-miss-t"></b><small id="sgm-miss-s"></small></div>
+                        <div class="sgm-miss-chips" id="sgm-miss-chips"></div>
+                    </div>
                     <div class="sgp-title"><b>Activities &amp; grades</b><span id="sgp-dirty" class="sgp-dirty hidden">● Unsaved changes</span></div>
                     <div class="sgp-quick" aria-label="Quick add">
                         <button type="button" onclick="sgmQuick('Quiz')">+ Quiz</button>
