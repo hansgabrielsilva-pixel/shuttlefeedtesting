@@ -1624,3 +1624,31 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (pointer: coarse) {
     body .input-wrapper input, body .signup-card input, body select, body textarea, body #sg-search, body .sgm-table input, body .class-fields input { font-size: 16px; }
 }
+
+/* ===== Login page: SHUTTLEFEED palette (cream #F6EBE2, sand #E1C6AF, red #7C0005, green #2C3812), logo top right ===== */
+:root { --lg-yellow: #E1C6AF; }
+.login-card.lg-card { background: linear-gradient(180deg, rgba(44,56,18,0) 28%, rgba(44,56,18,0.62) 60%, rgba(30,39,11,0.96) 100%), var(--login-photo) center top / cover no-repeat, #0b6bd6;
+    box-shadow: 0 0 0 8px rgba(246,235,226,0.6), 0 22px 50px rgba(44,56,18,0.45); }
+.login-card.lg-card:hover { box-shadow: 0 0 0 8px rgba(246,235,226,0.6), 0 22px 50px rgba(44,56,18,0.45); }
+#login-screen .lg-logo { position: absolute; top: calc(18px + env(safe-area-inset-top, 0px)); right: 18px; z-index: 3; width: 78px; height: auto; max-height: 78px; margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; object-fit: contain; mix-blend-mode: multiply; }   /* multiply = the logo's white background disappears into the photo */
+.lg-title { color: #F6EBE2; }
+.lg-sub { color: #E1C6AF; }
+.lg-yellow { background: #7C0005; color: #F6EBE2; }
+.lg-white { background: #F6EBE2; color: #2C3812; }
+.lg-btn { box-shadow: 0 8px 20px rgba(30,39,11,0.45); }
+.lg-card.form-open .lg-stack { background: rgba(44,56,18,0.55); }
+.lg-back { background: rgba(246,235,226,0.2); color: #F6EBE2; }
+.lg-back:hover { background: rgba(246,235,226,0.32); }
+.lg-form-title { color: #F6EBE2; }
+#login-screen .input-wrapper input, #login-screen .account-select { background: #F6EBE2; color: #2C3812; }
+#login-screen .input-wrapper input::placeholder { color: #7a7468; }
+#login-screen .input-wrapper input:focus { outline: 3px solid #E1C6AF; }
+#login-screen .btn-primary.pill-btn { background: #7C0005; color: #F6EBE2; box-shadow: 0 8px 20px rgba(30,39,11,0.45); }
+#login-screen .remember-row, #login-screen .signup-text { color: #F6EBE2; }
+#login-screen .signup-text b, #login-screen .signup-text:hover { color: #E1C6AF; text-decoration: underline; }
+#login-screen .remember-row input { accent-color: #7C0005; }
+#login-screen .manual-link { color: #E1C6AF; }
+#login-screen .manual-link:hover { color: #F6EBE2; }
+#login-screen .saved-list { background: #F6EBE2; }
+@media (max-width: 600px) { #login-screen .lg-logo { width: 72px; max-height: 72px; } }
+#login-screen .lg-logo.cut { mix-blend-mode: normal; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)); }   /* background already removed, so no blend needed */
