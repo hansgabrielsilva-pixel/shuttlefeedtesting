@@ -1508,3 +1508,25 @@ body:not(.view-only) #st-switch { display: none; }
 .sg-exp-menu.hidden { display: none; }
 .sg-exp-menu button { flex: 1; padding: 10px; border-radius: 12px; background: rgba(128,128,128,0.12); color: var(--text); font-weight: bold; font-size: 14px; box-shadow: none; }
 .sg-exp-menu button:hover { background: rgba(128,0,0,0.12); color: var(--red-text); }
+
+/* ===== Missing work (Google Classroom style) ===== */
+.sg-row.has-miss .sg-btn { border-left: 4px solid #c0392b; }
+.sg-missline { display: block; margin-top: 2px; font-size: 12px; font-weight: bold; color: #c0392b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.sg-who { min-width: 0; }
+.sg-badge.warn { background: #c0392b; color: #fff; animation: lvPulse 2.4s ease-in-out infinite; }
+.sgp-stats > div.bad { background: rgba(192,57,43,0.14); }
+.sgp-stats > div.bad b { color: #c0392b; }
+.sgm-missing { padding: 12px 14px; border-radius: 14px; background: rgba(192,57,43,0.1); border: 1px solid rgba(192,57,43,0.4); animation: sgpRow 0.25s ease-out; }
+.sgm-missing.clear { background: rgba(46,158,79,0.1); border-color: rgba(46,158,79,0.4); }
+.sgm-miss-h { display: flex; flex-direction: column; gap: 2px; }
+.sgm-miss-h b { font-size: 14px; color: #c0392b; }
+.sgm-missing.clear .sgm-miss-h b { color: #2e9e4f; }
+.sgm-miss-h small { font-size: 12px; color: var(--text-mid); }
+.sgm-miss-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.sgm-miss-chips:empty { display: none; }
+.sgm-miss-chips button { padding: 6px 12px; border-radius: 999px; background: #c0392b; color: #fff; font-size: 13px; font-weight: bold; box-shadow: none; transition: transform 0.15s; }
+.sgm-miss-chips button:hover { transform: translateY(-1px); }
+.sgm-miss-chips button:active { transform: scale(0.95); }
+.sgm-table tr.pending .c-n { color: #c0392b; font-size: 15px; font-weight: bold; }
+.sgm-table tr.pending input.sgm-g { border-color: rgba(192,57,43,0.6); background: rgba(192,57,43,0.07); }
+.sgm-table tr.pending input.sgm-g::placeholder { color: #c0392b; font-weight: bold; }
