@@ -823,44 +823,51 @@
         <div class="modal-card hm-card sg-modal-card sgp" role="dialog" aria-modal="true" aria-labelledby="sgm-name">
             <button type="button" class="sgp-close" onclick="closeGradeModal()" aria-label="Close">✕</button>
             <div class="sgp-scroll">
-                <div class="sgp-cover"></div>
-                <div class="sgp-head">
-                    <div class="sgm-avatar sgp-avatar" id="sgm-avatar">?</div>
-                    <h3 id="sgm-name">Student</h3>
-                    <p id="sgm-no"></p>
-                    <div class="sgm-tags"><span id="sgm-prog"></span><span id="sgm-sec"></span></div>
+                <div class="sgp-hero">
+                    <div class="sgp-avwrap"><div class="sgm-avatar sgp-avatar" id="sgm-avatar">?</div><i class="sgp-online" aria-hidden="true"></i></div>
+                    <div class="sgp-id">
+                        <h3 id="sgm-name">Student</h3>
+                        <p id="sgm-no"></p>
+                        <div class="sgm-tags"><span id="sgm-prog"></span><span id="sgm-sec"></span></div>
+                    </div>
                 </div>
-                <div class="sgp-stats">
-                    <div><b id="sgp-n">0</b><span>Activities</span></div>
-                    <div><b id="sgp-g">0</b><span>Graded</span></div>
-                    <div id="sgp-pbox"><b id="sgp-p">0</b><span>Missing</span></div>
+                <div class="sgp-kpis">
+                    <div class="k-avg"><div class="kp-top"><span class="sgp-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="11"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="18" y1="20" x2="18" y2="14"/></svg></span><b id="sgp-avg">–</b></div><span class="kp-lbl">Current Average</span></div>
+                    <div class="k-g"><div class="kp-top"><span class="sgp-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12.5 9.5 18 20 6.5"/></svg></span><b id="sgp-g">0</b></div><span class="kp-lbl">Graded Activities</span></div>
+                    <div class="k-m" id="sgp-pbox"><div class="kp-top"><span class="sgp-ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="14"/><circle cx="12" cy="19" r="0.6"/></svg></span><b id="sgp-p">0</b></div><span class="kp-lbl">Missing Activities</span></div>
+                </div>
+                <div class="sgp-tabs" role="tablist" aria-label="Student profile sections">
+                    <button type="button" class="sgp-tab on" data-tab="acts" role="tab" aria-selected="true" onclick="sgmTab('acts')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg><span>Activities &amp; Grades</span></button>
+                    <button type="button" class="sgp-tab" data-tab="miss" role="tab" aria-selected="false" onclick="sgmTab('miss')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="12" y1="12" x2="12" y2="15"/><circle cx="12" cy="18" r="0.5"/></svg><span>Missing Requirements</span><em id="sgp-tabmiss" class="hidden">0</em></button>
+                    <button type="button" class="sgp-tab" data-tab="ana" role="tab" aria-selected="false" onclick="sgmTab('ana')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="9"/><rect x="10.5" y="6" width="3" height="14"/><rect x="16" y="13" width="3" height="7"/></svg><span>Grade Analytics</span></button>
+                    <button type="button" class="sgp-tab" data-tab="hist" role="tab" aria-selected="false" onclick="sgmTab('hist')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/><polyline points="12 7.5 12 12 15.5 14"/></svg><span>Grade History</span></button>
                 </div>
                 <div class="sgm-body">
-                    <div class="sgm-missing hidden" id="sgm-missing">
-                        <div class="sgm-miss-h"><b id="sgm-miss-t"></b><small id="sgm-miss-s"></small></div>
-                        <div class="sgm-miss-chips" id="sgm-miss-chips"></div>
+                    <div class="sgp-pane" data-pane="acts">
+                        <div class="sgp-title"><b>Activities &amp; grades</b><span id="sgp-dirty" class="sgp-dirty hidden">● Unsaved changes</span></div>
+                        <div class="sgp-quick" aria-label="Quick add">
+                            <button type="button" onclick="sgmQuick('Quiz')">+ Quiz</button>
+                            <button type="button" onclick="sgmQuick('Long Quiz')">+ Long quiz</button>
+                            <button type="button" onclick="sgmQuick('Activity')">+ Activity</button>
+                            <button type="button" onclick="sgmQuick('Project')">+ Project</button>
+                            <button type="button" onclick="sgmQuick('Exam')">+ Exam</button>
+                        </div>
+                        <div id="sgm-rows" class="sgm-list"></div>
+                        <button type="button" class="sgm-add" onclick="sgmAddRow(true)">+ Add activity</button>
+                        <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
+                        <div class="sgm-actions">
+                            <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
+                            <button type="button" class="sgm-btn-main" id="sgm-savenext" onclick="sgmSave(true)">Save &amp; next ›</button>
+                        </div>
                     </div>
-                    <div class="sgp-title"><b>Activities &amp; grades</b><span id="sgp-dirty" class="sgp-dirty hidden">● Unsaved changes</span></div>
-                    <div class="sgp-quick" aria-label="Quick add">
-                        <button type="button" onclick="sgmQuick('Quiz')">+ Quiz</button>
-                        <button type="button" onclick="sgmQuick('Long Quiz')">+ Long quiz</button>
-                        <button type="button" onclick="sgmQuick('Activity')">+ Activity</button>
-                        <button type="button" onclick="sgmQuick('Project')">+ Project</button>
-                        <button type="button" onclick="sgmQuick('Exam')">+ Exam</button>
-                    </div>
-                    <div class="sgm-tablewrap">
-                        <table class="sgm-table">
-                            <thead><tr><th class="c-n">#</th><th>Activity</th><th class="c-g">Grade</th><th class="c-x"><span class="sr-only">Remove</span></th></tr></thead>
-                            <tbody id="sgm-rows"></tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="sgm-add" onclick="sgmAddRow(true)">+ Add activity</button>
-                    <small id="sgm-msg" class="sgm-msg" aria-live="polite"></small>
-                    <div class="sgm-actions">
-                        <button type="button" class="sgm-btn-sec" id="sgm-save" onclick="sgmSave(false)">Save</button>
-                        <button type="button" class="sgm-btn-main" id="sgm-savenext" onclick="sgmSave(true)">Save &amp; next ›</button>
-                    </div>
+                    <div class="sgp-pane hidden" data-pane="miss"><div id="sgm-miss-list" class="sgp-cards"></div></div>
+                    <div class="sgp-pane hidden" data-pane="ana"><div id="sgm-ana"></div></div>
+                    <div class="sgp-pane hidden" data-pane="hist"><div id="sgm-hist"></div></div>
                 </div>
+            </div>
+            <div class="sgp-foot">
+                <span id="sgm-updated">Last updated: –</span>
+                <button type="button" class="sgp-refresh" id="sgm-refresh" onclick="sgmReload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/></svg><span>Refresh</span></button>
             </div>
             <div class="sgm-nav">
                 <button type="button" id="sgm-prev" onclick="sgmGo(-1)">‹ Previous</button>
