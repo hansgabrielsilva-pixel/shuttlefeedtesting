@@ -177,20 +177,23 @@
     <div id="access-screen" class="screen setup-bg">
         <div class="access-wrap">
             <img data-img="logo" alt="SHUTTLEFEED Logo" class="setup-logo">
-            <h2 class="dark-green">Choose your access</h2>
-            <p class="setup-desc" style="margin: 6px 0 0;">Only one instructor can control the machine at a time. Everyone else can watch the drill live.</p>
+            <span class="ac-eyebrow">Almost there</span>
+            <h2 class="ac-title">Choose your access</h2>
+            <p class="ac-lead">Only one instructor can control the machine at a time. Everyone else can watch the drill live.</p>
             <div class="access-cards">
-                <button type="button" class="access-card" id="access-control" onclick="chooseAccess('control')">
+                <button type="button" class="access-card ac-control" id="access-control" onclick="chooseAccess('control')">
                     <span class="ac-ic"><svg viewBox="0 0 24 24" width="38" height="38" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span>
-                    <h3 class="dark-red">Control mode</h3>
+                    <span class="ac-tag">Instructor</span>
+                    <h3>Control mode</h3>
                     <p>Set up and run drills: start, pause and stop the machine. Only one instructor at a time.</p>
-                    <span class="ac-status" id="ac-control-status">Checking…</span>
+                    <span class="ac-foot"><span class="ac-status" id="ac-control-status">Checking…</span><span class="ac-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
                 </button>
-                <button type="button" class="access-card" id="access-view" onclick="chooseAccess('view')">
+                <button type="button" class="access-card ac-view" id="access-view" onclick="chooseAccess('view')">
                     <span class="ac-ic view"><svg viewBox="0 0 24 24" width="38" height="38" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
-                    <h3 class="dark-red">View only</h3>
+                    <span class="ac-tag">Observer</span>
+                    <h3>View only</h3>
                     <p>Watch the live drill. You cannot change settings or control the machine.</p>
-                    <span class="ac-status" id="ac-view-status">Always available</span>
+                    <span class="ac-foot"><span class="ac-status" id="ac-view-status">Always available</span><span class="ac-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
                 </button>
             </div>
             <p class="skip-text" onclick="logout()">Log out</p>
