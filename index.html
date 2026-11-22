@@ -186,6 +186,11 @@
             <div class="header-right"><div class="settings-icon" onclick="toggleSettingsSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div></div>
         </header>
         <div class="live-body">
+            <div class="st-card lv-using" id="lv-using" data-s="free">
+                <span class="lv-av" id="lv-av">–</span>
+                <div class="lv-using-t"><b id="lv-using-name">Machine is free</b><small id="lv-using-sub">Nobody is using it right now</small></div>
+                <div class="lv-timer hidden" id="lv-timer-wrap"><span>Using for</span><b id="lv-timer">00:00</b></div>
+            </div>
             <div class="live-banner hidden">
                 <span class="lb-ic">&#128065;</span>
                 <div><b>View only</b><small id="lv-who">Connecting…</small></div>
@@ -225,12 +230,23 @@
             <div class="st-card sg-card" id="sg-card">
                 <div class="sg-head" id="sg-head" role="button" tabindex="0" aria-expanded="false" onclick="toggleGrades()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGrades();}">
                     <span class="act-ic"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
-                    <div class="sg-title"><b>Student grades</b><small id="sg-sub">Loading…</small></div>
+                    <div class="sg-title">
+                        <b>Student grades</b><small id="sg-sub">Loading…</small>
+                        <div class="sg-prog hidden" id="sg-prog"><div class="sg-prog-bar"><i id="sg-prog-fill"></i></div><span id="sg-prog-t"></span></div>
+                    </div>
+                    <span class="sg-badge hidden" id="sg-badge"></span>
                     <span class="sg-chev sg-main-chev">&#8250;</span>
                 </div>
                 <div id="sg-body" class="sg-body hidden">
                 <button type="button" id="sg-back" class="sg-back hidden" onclick="sgBack()">&#8249; All programs</button>
-                <input type="text" id="sg-search" class="hidden" placeholder="Search program or section" oninput="renderGradesPanel()" autocomplete="off">
+                <input type="text" id="sg-search" class="hidden" placeholder="Search student name or number" oninput="renderGradesPanel()" autocomplete="off">
+                <div class="sg-export hidden" id="sg-export">
+                    <button type="button" class="sg-exp-btn" id="sg-exp-btn" onclick="sgExportToggle()">⬇ Export grades</button>
+                    <div class="sg-exp-menu hidden" id="sg-exp-menu">
+                        <button type="button" onclick="sgExport('xlsx')">Excel (.xlsx)</button>
+                        <button type="button" onclick="sgExport('csv')">CSV (.csv)</button>
+                    </div>
+                </div>
                 <div id="sg-list"></div>
                 </div>
             </div>
@@ -240,7 +256,8 @@
                     <span class="act-t"><b>Upload class list</b><small>Excel or CSV: name, number, year, program, section</small></span><span class="act-go">&#8250;</span>
                 </button>
             </div>
-            <button type="button" class="btn-primary pill-btn live-take" id="lv-take" onclick="chooseAccess('control')">Take control</button>
+            <button type="button" class="btn-primary pill-btn live-take" id="lv-take" data-s="free" onclick="chooseAccess('control')">Take control</button>
+            <small class="lv-take-hint hidden" id="lv-take-hint"></small>
         </div>
     </div>
 
