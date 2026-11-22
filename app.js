@@ -2361,6 +2361,7 @@ function sgmMsg(t, kind) { const m = document.getElementById('sgm-msg'); m.textC
 function openGradeModal(s) {
     sgmList = studentsAll.filter(x => sgCls(x) === sgCls(s)).sort((a, b) => a.name.localeCompare(b.name));   // the class, so Next / Previous stay inside it
     sgmIdx = Math.max(0, sgmList.findIndex(x => x.no === s.no));
+    sgmTab('acts');
     sgmShow();
     document.getElementById('sg-modal').classList.remove('hidden');
 }
@@ -2378,6 +2379,7 @@ function sgmShow() {
     if (!sgmRows.length) sgmRows = [{ name: '', grade: '' }];
     sgmRenderRows();
     sgmRefresh();
+    sgmUpdated();
     sgmMsg('');
     setText('sgm-count', (sgmIdx + 1) + ' of ' + sgmList.length);
     document.getElementById('sgm-prev').disabled = sgmIdx <= 0;
@@ -2386,36 +2388,68 @@ function sgmShow() {
     document.getElementById('sgm-savenext').classList.toggle('hidden', last);        // last student: just Save
     const sv = document.getElementById('sgm-save'); sv.classList.toggle('sgm-btn-main', last); sv.classList.toggle('sgm-btn-sec', !last);
 }
+var SGM_TYPES = {
+    quiz:    { label: 'Quiz',      svg: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/>' },
+    long:    { label: 'Long quiz', svg: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>' },
+    act:     { label: 'Activity',  svg: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>' },
+    project: { label: 'Project',   svg: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>' },
+    exam:    { label: 'Exam',      svg: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' }
+};
+function sgmEl(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function sgmType(name) { const n = String(name || '').toLowerCase(); return /exam|midterm|final/.test(n) ? 'exam' : /project/.test(n) ? 'project' : /long/.test(n) ? 'long' : /quiz/.test(n) ? 'quiz' : 'act'; }
+function sgmIcon(type, size) { return '<svg viewBox="0 0 24 24" width="' + (size || 22) + '" height="' + (size || 22) + '" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + SGM_TYPES[type].svg + '</svg>'; }
+// "18/20" -> score 18 out of 20 (90%); a plain number above 5 is read as a percentage; 1.25, A, EX etc. have no percentage
+function sgmParse(g) {
+    g = String(g || '').trim();
+    let m = g.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+    if (m && +m[2] > 0) return { got: +m[1], out: +m[2], pct: Math.round(+m[1] / +m[2] * 1000) / 10 };
+    m = g.match(/^(\d+(?:\.\d+)?)\s*%?$/);
+    if (m && +m[1] > 5 && +m[1] <= 100) return { got: +m[1], out: null, pct: +m[1] };
+    return { got: null, out: null, pct: null };
+}
+function sgmBand(p) { return p >= 90 ? 'hi' : p >= 75 ? 'ok' : p >= 60 ? 'mid' : 'low'; }
+function sgmGradedList() { return actsClean(sgmRows).filter(r => r.grade).map(r => ({ name: r.name || '(No name)', grade: r.grade, p: sgmParse(r.grade) })); }
+function sgmAvg() { const v = sgmGradedList().filter(x => x.p.pct != null).map(x => x.p.pct); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; }
 function sgmRenderRows(focusRow) {
     const body = document.getElementById('sgm-rows');
     body.innerHTML = '';
     sgmRows.forEach((r, i) => {
-        const tr = document.createElement('tr'), tn = document.createElement('td'), ta = document.createElement('td'), tg = document.createElement('td'), tx = document.createElement('td');
-        const a = document.createElement('input'), g = document.createElement('input'), x = document.createElement('button');
-        const mark = () => { const done = !!(r.name.trim() && r.grade.trim()), pend = !!r.name.trim() && !r.grade.trim(); tr.classList.toggle('done', done); tr.classList.toggle('pending', pend); g.placeholder = pend ? 'Missing' : '0'; tn.textContent = done ? '✓' : pend ? '!' : i + 1; };   // named but no grade = missing   // a filled row shows a check
-        tn.className = 'c-n';
-        a.type = 'text'; a.maxLength = 40; a.placeholder = 'e.g. Quiz ' + (i + 1); a.value = r.name; a.autocomplete = 'off'; a.setAttribute('aria-label', 'Activity ' + (i + 1));
-        g.type = 'text'; g.maxLength = 10; g.placeholder = '0'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Grade for activity ' + (i + 1));
+        const row = sgmEl('div', 'sgr'), ic = sgmEl('span', 'sgr-ic'), main = sgmEl('div', 'sgr-main'), sub = sgmEl('small', 'sgr-sub');
+        const sc = sgmEl('div', 'sgr-sc'), pc = sgmEl('div', 'sgr-pc'), pb = sgmEl('b', null, '—'), pill = sgmEl('span', 'sgr-pill none', '—'), x = sgmEl('button', 'sgm-x', '✕');
+        const a = document.createElement('input'), g = document.createElement('input');
+        const mark = () => {
+            const done = !!(r.name.trim() && r.grade.trim()), pend = !!r.name.trim() && !r.grade.trim(), t = sgmType(r.name), p = sgmParse(r.grade);
+            row.classList.toggle('done', done); row.classList.toggle('pending', pend);
+            ic.className = 'sgr-ic t-' + t; if (ic.dataset.t !== t) { ic.dataset.t = t; ic.innerHTML = sgmIcon(t, 22); }
+            sub.textContent = SGM_TYPES[t].label + (p.out ? ' · out of ' + p.out : pend ? ' · no grade yet' : '');
+            g.placeholder = pend ? 'Missing' : '0';
+            pb.textContent = p.pct != null ? p.pct + '%' : '—'; pb.className = p.pct != null ? sgmBand(p.pct) : '';
+            pill.textContent = done ? 'Graded' : pend ? 'Missing' : '—'; pill.className = 'sgr-pill ' + (done ? 'ok' : pend ? 'bad' : 'none');
+        };
+        a.type = 'text'; a.maxLength = 40; a.placeholder = 'e.g. Quiz ' + (i + 1); a.value = r.name; a.autocomplete = 'off'; a.className = 'sgr-name'; a.setAttribute('aria-label', 'Activity ' + (i + 1));
+        g.type = 'text'; g.maxLength = 10; g.placeholder = '0'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Score for activity ' + (i + 1) + ' (for example 18/20)');
         a.oninput = () => { r.name = a.value; mark(); sgmInput(); };
         g.oninput = () => { r.grade = g.value; mark(); sgmInput(); };
         g.onfocus = () => g.select();
         a.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); g.focus(); } };
         g.onkeydown = e => {
             if (e.key !== 'Enter') return; e.preventDefault();
-            const nx = body.querySelectorAll('tr')[i + 1];
+            const nx = body.querySelectorAll('.sgr')[i + 1];
             if (nx) nx.querySelector('input').focus(); else if (r.name.trim() || r.grade.trim()) sgmAddRow(true);
         };
-        x.type = 'button'; x.className = 'sgm-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Remove activity ' + (i + 1));
+        x.type = 'button'; x.setAttribute('aria-label', 'Remove activity ' + (i + 1));
         x.onclick = () => {
-            tr.classList.add('leaving');                                    // fades out, then the row is removed
+            row.classList.add('leaving');                                   // fades out, then the row is removed
             setTimeout(() => { sgmRows.splice(sgmRows.indexOf(r), 1); if (!sgmRows.length) sgmRows.push({ name: '', grade: '' }); sgmRenderRows(); sgmInput(); }, 170);
         };
-        ta.appendChild(a); tg.appendChild(g); tx.appendChild(x);
-        tr.appendChild(tn); tr.appendChild(ta); tr.appendChild(tg); tr.appendChild(tx);
-        if (focusRow === i) tr.classList.add('fresh');
-        mark(); body.appendChild(tr);
+        main.appendChild(a); main.appendChild(sub);
+        sc.appendChild(g); sc.appendChild(sgmEl('span', 'sgr-lbl', 'Score'));
+        pc.appendChild(pb); pc.appendChild(sgmEl('span', 'sgr-lbl', 'Percentage'));
+        row.appendChild(ic); row.appendChild(main); row.appendChild(sc); row.appendChild(pc); row.appendChild(pill); row.appendChild(x);
+        if (focusRow === i) row.classList.add('fresh');
+        mark(); body.appendChild(row);
     });
-    if (focusRow != null) { const t = body.querySelectorAll('tr')[focusRow]; if (t) { t.querySelector(t.dataset.focus === 'grade' ? '.sgm-g' : 'input').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
+    if (focusRow != null) { const t = body.querySelectorAll('.sgr')[focusRow]; if (t) { t.querySelector('input').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 }
 function sgmAddRow(focus) {
     if (sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
@@ -2441,9 +2475,10 @@ function sgmMissingNow() {                    // activities the class has (or th
     names.forEach((name, k) => { if (!have.has(k)) miss.push(name); });
     return { miss, total: names.size };
 }
-function sgmFillMissing(name) {               // tap a missing chip: jump to its row (or add it) so the grade can be typed
+function sgmFillMissing(name) {               // tap a missing card: jump to its row (or add it) so the grade can be typed
+    sgmTab('acts');
     const k = nkey(name), i = sgmRows.findIndex(r => nkey(r.name) === k);
-    if (i >= 0) { const t = document.getElementById('sgm-rows').querySelectorAll('tr')[i]; if (t) { t.querySelector('.sgm-g').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }
+    if (i >= 0) { const t = document.getElementById('sgm-rows').querySelectorAll('.sgr')[i]; if (t) { t.querySelector('.sgm-g').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }
     const last = sgmRows[sgmRows.length - 1], reuse = last && !last.name.trim() && !last.grade.trim();
     if (!reuse && sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
     if (reuse) last.name = name; else sgmRows.push({ name: name, grade: '' });
@@ -2451,20 +2486,89 @@ function sgmFillMissing(name) {               // tap a missing chip: jump to its
     const t = document.getElementById('sgm-rows').lastElementChild; if (t) t.querySelector('.sgm-g').focus();
     sgmInput();
 }
-function sgmRefresh() {                       // profile stats, missing banner, unsaved chip and the save buttons
+var sgmTabNow = 'acts';
+function sgmTab(t) {
+    sgmTabNow = t;
+    document.querySelectorAll('#sg-modal .sgp-tab').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    document.querySelectorAll('#sg-modal .sgp-pane').forEach(p => p.classList.toggle('hidden', p.dataset.pane !== t));
+    const sc = document.querySelector('#sg-modal .sgp-scroll'); if (sc && sc.scrollTop > 160) sc.scrollTop = 160;
+}
+function sgmEmpty(icon, title, text) { const d = sgmEl('div', 'sgp-empty'); d.appendChild(sgmEl('div', 'sgp-empty-ic', icon)); d.appendChild(sgmEl('b', null, title)); d.appendChild(sgmEl('p', null, text)); return d; }
+function sgmRenderMiss(mi) {
+    const box = document.getElementById('sgm-miss-list'); box.innerHTML = '';
+    if (!mi.total) { box.appendChild(sgmEmpty('📋', 'No class activities yet', 'Once activities are graded for the class, anything this student is missing shows up here.')); return; }
+    if (!mi.miss.length) { box.appendChild(sgmEmpty('✓', 'All caught up', 'Every activity of the class is graded for this student.')); box.firstChild.classList.add('good'); return; }
+    mi.miss.forEach(m => {
+        const c = sgmEl('div', 'sgp-card bad'), t = sgmType(m), ic = sgmEl('span', 'sgr-ic t-' + t), mid = sgmEl('div', 'sgr-main'), b = sgmEl('button', 'sgp-addg', '+ Add grade');
+        ic.innerHTML = sgmIcon(t, 22);
+        mid.appendChild(sgmEl('b', 'sgp-card-t', m)); mid.appendChild(sgmEl('small', 'sgr-sub', SGM_TYPES[t].label + ' · not graded yet'));
+        b.type = 'button'; b.onclick = () => sgmFillMissing(m);
+        c.appendChild(ic); c.appendChild(mid); c.appendChild(sgmEl('span', 'sgr-pill bad', 'Missing')); c.appendChild(b); box.appendChild(c);
+    });
+}
+function sgmRenderAna(mi) {
+    const box = document.getElementById('sgm-ana'); box.innerHTML = '';
+    const L = sgmGradedList().filter(x => x.p.pct != null);
+    if (!L.length) { box.appendChild(sgmEmpty('📊', 'No percentages yet', 'Type scores like 18/20 (or a grade out of 100) on the Activities tab to see analytics.')); return; }
+    const avg = sgmAvg(), hi = L.reduce((a, b) => b.p.pct > a.p.pct ? b : a), lo = L.reduce((a, b) => b.p.pct < a.p.pct ? b : a);
+    const comp = mi.total ? Math.round(100 * (mi.total - mi.miss.length) / mi.total) : 100;
+    const grid = sgmEl('div', 'sgp-ana-grid');
+    [['Average', avg + '%', L.length + ' graded'], ['Highest', hi.p.pct + '%', hi.name], ['Lowest', lo.p.pct + '%', lo.name], ['Completion', comp + '%', 'of class activities']].forEach(k => {
+        const d = sgmEl('div', 'sgp-ana-k'); d.appendChild(sgmEl('span', null, k[0])); d.appendChild(sgmEl('b', null, k[1])); d.appendChild(sgmEl('small', null, k[2])); grid.appendChild(d);
+    });
+    box.appendChild(grid);
+    box.appendChild(sgmEl('div', 'sgp-sec', 'Score by activity'));
+    L.forEach(x => {
+        const r = sgmEl('div', 'sgp-bar'), bar = sgmEl('span', 'sgp-bar-t'), f = sgmEl('i', sgmBand(x.p.pct));
+        f.style.width = Math.max(2, Math.min(100, x.p.pct)) + '%'; bar.appendChild(f);
+        r.appendChild(sgmEl('span', 'sgp-bar-n', x.name)); r.appendChild(bar); r.appendChild(sgmEl('b', null, x.p.pct + '%')); box.appendChild(r);
+    });
+}
+function sgmRenderHist() {
+    const box = document.getElementById('sgm-hist'); box.innerHTML = '';
+    const L = sgmGradedList().filter(x => x.p.pct != null);
+    if (!L.length) { box.appendChild(sgmEmpty('🕘', 'No grade history yet', 'Graded activities appear here in the order they were recorded, with how each score changed.')); return; }
+    if (L.length > 1) {
+        const W = 320, H = 110, pad = 18, pts = L.map((x, i) => [pad + i * (W - 2 * pad) / (L.length - 1), 10 + (100 - Math.max(0, Math.min(100, x.p.pct))) * 0.8]);
+        const line = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+        box.insertAdjacentHTML('beforeend', '<svg class="sgp-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sgpSpk" x1="0" x2="1"><stop offset="0" stop-color="#d1434a"/><stop offset="1" stop-color="#7C0005"/></linearGradient></defs><polyline points="' + line + '" fill="none" stroke="url(#sgpSpk)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + pts.map(p => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4.5" fill="#fff" stroke="#7C0005" stroke-width="2.5"/>').join('') + '</svg>');
+    }
+    box.appendChild(sgmEl('div', 'sgp-sec', 'In the order recorded'));
+    const list = sgmEl('div', 'sgp-tl');
+    L.forEach((x, i) => {
+        const d = sgmEl('div', 'sgp-tl-i'), dot = sgmEl('i', sgmBand(x.p.pct)), mid = sgmEl('div', 'sgr-main');
+        mid.appendChild(sgmEl('b', 'sgp-card-t', x.name)); mid.appendChild(sgmEl('small', 'sgr-sub', x.grade + ' · ' + x.p.pct + '%'));
+        d.appendChild(dot); d.appendChild(mid);
+        if (i > 0) { const dl = Math.round((x.p.pct - L[i - 1].p.pct) * 10) / 10; d.appendChild(sgmEl('span', 'sgp-delta ' + (dl > 0 ? 'up' : dl < 0 ? 'down' : 'flat'), dl > 0 ? '▲ ' + dl : dl < 0 ? '▼ ' + Math.abs(dl) : '＝ same')); }
+        else d.appendChild(sgmEl('span', 'sgp-delta flat', 'first'));
+        list.appendChild(d);
+    });
+    box.appendChild(list);
+}
+function sgmUpdated() {
+    const t = sgFetched ? new Date(sgFetched) : new Date();
+    setText('sgm-updated', 'Last updated: ' + t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' • ' + t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    document.getElementById('sgm-updated').classList.remove('warn');
+}
+async function sgmReload() {                  // Refresh: pull the latest grades from the sheet
+    if (sgmBusy) return;
+    const u = document.getElementById('sgm-updated'), btn = document.getElementById('sgm-refresh');
+    if (sgmDirty()) { u.textContent = 'Save your changes first, then refresh'; u.classList.add('warn'); setTimeout(sgmUpdated, 2600); return; }
+    const no = sgmCur().no, old = sgFetched;
+    btn.classList.add('spin'); btn.disabled = true; sgFetched = 0;
+    await loadGradesPanel();
+    if (!sgFetched) { sgFetched = old; u.textContent = 'Could not refresh. Try again'; u.classList.add('warn'); setTimeout(sgmUpdated, 2600); }
+    else { const s = studentsAll.find(x => x.no === no); if (s) { sgmList = studentsAll.filter(x => sgCls(x) === sgCls(s)).sort((p, q) => p.name.localeCompare(q.name)); sgmIdx = Math.max(0, sgmList.findIndex(x => x.no === no)); sgmShow(); } }
+    btn.classList.remove('spin'); btn.disabled = false;
+}
+function sgmRefresh() {                       // profile stats, tabs, unsaved chip and the save buttons
     const s = sgmCur(); if (!s) return;
-    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length, mi = sgmMissingNow();
-    setText('sgp-n', rows.length); setText('sgp-g', graded); setText('sgp-p', mi.miss.length);
+    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length, mi = sgmMissingNow(), avg = sgmAvg();
+    setText('sgp-avg', avg != null ? String(avg) : (/^\d/.test(String(s.grade || '')) ? String(s.grade) : '–'));
+    setText('sgp-g', graded); setText('sgp-p', mi.miss.length);
     document.getElementById('sgp-pbox').classList.toggle('bad', mi.miss.length > 0);
-    const box = document.getElementById('sgm-missing'), chips = document.getElementById('sgm-miss-chips');
-    chips.innerHTML = '';
-    box.classList.toggle('hidden', !mi.total);
-    box.classList.toggle('clear', !mi.miss.length);
-    if (mi.miss.length) {
-        setText('sgm-miss-t', '⚠ Missing ' + mi.miss.length + (mi.miss.length === 1 ? ' activity' : ' activities'));
-        setText('sgm-miss-s', 'The class has these but there is no grade yet. Tap one to add it.');
-        mi.miss.forEach(m => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.name + ' +'; b.onclick = () => sgmFillMissing(m.name); chips.appendChild(b); });
-    } else if (mi.total) { setText('sgm-miss-t', '✓ Nothing missing'); setText('sgm-miss-s', 'Every activity of the class is graded for this student.'); }
+    const tb = document.getElementById('sgp-tabmiss'); tb.textContent = mi.miss.length; tb.classList.toggle('hidden', !mi.miss.length);
+    sgmRenderMiss(mi); sgmRenderAna(mi); sgmRenderHist();
     document.getElementById('sgp-dirty').classList.toggle('hidden', !sgmDirty());
     document.getElementById('sgm-save').disabled = sgmBusy || !sgmDirty();
     document.getElementById('sgm-savenext').disabled = sgmBusy;
