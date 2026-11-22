@@ -2338,7 +2338,7 @@ function sgmRenderRows(focusRow) {
     sgmRows.forEach((r, i) => {
         const tr = document.createElement('tr'), tn = document.createElement('td'), ta = document.createElement('td'), tg = document.createElement('td'), tx = document.createElement('td');
         const a = document.createElement('input'), g = document.createElement('input'), x = document.createElement('button');
-        const mark = () => { const done = !!(r.name.trim() && r.grade.trim()); tr.classList.toggle('done', done); tn.textContent = done ? '✓' : i + 1; };   // a filled row shows a check
+        const mark = () => { const done = !!(r.name.trim() && r.grade.trim()), pend = !!r.name.trim() && !r.grade.trim(); tr.classList.toggle('done', done); tr.classList.toggle('pending', pend); g.placeholder = pend ? 'Missing' : '0'; tn.textContent = done ? '✓' : pend ? '!' : i + 1; };   // named but no grade = missing   // a filled row shows a check
         tn.className = 'c-n';
         a.type = 'text'; a.maxLength = 40; a.placeholder = 'e.g. Quiz ' + (i + 1); a.value = r.name; a.autocomplete = 'off'; a.setAttribute('aria-label', 'Activity ' + (i + 1));
         g.type = 'text'; g.maxLength = 10; g.placeholder = '0'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Grade for activity ' + (i + 1));
@@ -2378,10 +2378,39 @@ function sgmQuick(base) {                     // quick chips: adds "Quiz 3" and 
     const t = document.getElementById('sgm-rows').lastElementChild; if (t) { t.querySelector('.sgm-g').focus(); }
     sgmInput();
 }
-function sgmRefresh() {                       // profile stats, unsaved chip and the save buttons
+function sgmMissingNow() {                    // activities the class has (or this student already has a row for) without a grade for this student
+    const s = sgmCur(); if (!s) return { miss: [], total: 0 };
+    const names = new Map();
+    studentsAll.forEach(o => { if (o.no === s.no || sgCls(o) !== sgCls(s)) return; (o.acts || []).forEach(a => { const k = nkey(a.name); if (k && !names.has(k)) names.set(k, a.name.trim()); }); });
+    sgmRows.forEach(r => { const k = nkey(r.name); if (k && !names.has(k)) names.set(k, r.name.trim()); });
+    const have = new Set(sgmRows.filter(r => isDone(r.grade)).map(r => nkey(r.name))), miss = [];
+    names.forEach((name, k) => { if (!have.has(k)) miss.push(name); });
+    return { miss, total: names.size };
+}
+function sgmFillMissing(name) {               // tap a missing chip: jump to its row (or add it) so the grade can be typed
+    const k = nkey(name), i = sgmRows.findIndex(r => nkey(r.name) === k);
+    if (i >= 0) { const t = document.getElementById('sgm-rows').querySelectorAll('tr')[i]; if (t) { t.querySelector('.sgm-g').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }
+    const last = sgmRows[sgmRows.length - 1], reuse = last && !last.name.trim() && !last.grade.trim();
+    if (!reuse && sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
+    if (reuse) last.name = name; else sgmRows.push({ name: name, grade: '' });
+    sgmRenderRows(sgmRows.length - 1);
+    const t = document.getElementById('sgm-rows').lastElementChild; if (t) t.querySelector('.sgm-g').focus();
+    sgmInput();
+}
+function sgmRefresh() {                       // profile stats, missing banner, unsaved chip and the save buttons
     const s = sgmCur(); if (!s) return;
-    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length;
-    setText('sgp-n', rows.length); setText('sgp-g', graded); setText('sgp-p', rows.length - graded);
+    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length, mi = sgmMissingNow();
+    setText('sgp-n', rows.length); setText('sgp-g', graded); setText('sgp-p', mi.miss.length);
+    document.getElementById('sgp-pbox').classList.toggle('bad', mi.miss.length > 0);
+    const box = document.getElementById('sgm-missing'), chips = document.getElementById('sgm-miss-chips');
+    chips.innerHTML = '';
+    box.classList.toggle('hidden', !mi.total);
+    box.classList.toggle('clear', !mi.miss.length);
+    if (mi.miss.length) {
+        setText('sgm-miss-t', '⚠ Missing ' + mi.miss.length + (mi.miss.length === 1 ? ' activity' : ' activities'));
+        setText('sgm-miss-s', 'The class has these but there is no grade yet. Tap one to add it.');
+        mi.miss.forEach(m => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m.name + ' +'; b.onclick = () => sgmFillMissing(m.name); chips.appendChild(b); });
+    } else if (mi.total) { setText('sgm-miss-t', '✓ Nothing missing'); setText('sgm-miss-s', 'Every activity of the class is graded for this student.'); }
     document.getElementById('sgp-dirty').classList.toggle('hidden', !sgmDirty());
     document.getElementById('sgm-save').disabled = sgmBusy || !sgmDirty();
     document.getElementById('sgm-savenext').disabled = sgmBusy;
@@ -2424,16 +2453,31 @@ async function sgmGo(d) {                     // Previous / Next: typed activiti
 }
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
 function isGraded(s) { return !!s.grade || (s.acts || []).some(a => a.grade); }
+// ---- Missing work (like Google Classroom): an activity that classmates have but this student has no grade for ----
+var missMap = {};                                   // student no. -> names of the activities that student is missing
+function nkey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, ' '); }     // "Quiz  1" and "quiz 1" are the same activity
+function isDone(g) { return !!String(g || '').trim(); }                                     // any grade counts, including EX (excused) or N/A
+function sgComputeMissing() {
+    const byCls = {};
+    studentsAll.forEach(s => { const m = (byCls[sgCls(s)] = byCls[sgCls(s)] || new Map()); (s.acts || []).forEach(a => { const k = nkey(a.name); if (k && !m.has(k)) m.set(k, a.name.trim()); }); });
+    missMap = {};
+    studentsAll.forEach(s => {
+        const have = new Set((s.acts || []).filter(a => isDone(a.grade)).map(a => nkey(a.name))), miss = [];
+        byCls[sgCls(s)].forEach((name, k) => { if (!have.has(k)) miss.push(name); });
+        if (miss.length) missMap[s.no] = miss;
+    });
+}
 function sgProgress() {                       // "2 of 5 students graded" + the badge, shown even while the card is closed
-    const total = studentsAll.length, done = studentsAll.filter(isGraded).length, left = total - done;
+    const total = studentsAll.length, done = studentsAll.filter(isGraded).length, left = total - done, mm = studentsAll.filter(s => missMap[s.no]).length;
     const prog = document.getElementById('sg-prog'), badge = document.getElementById('sg-badge');
     prog.classList.toggle('hidden', !total); badge.classList.toggle('hidden', !total);
     if (!total) return;
-    setText('sg-prog-t', done + ' of ' + total + (total === 1 ? ' student' : ' students') + ' graded');
+    setText('sg-prog-t', done + ' of ' + total + (total === 1 ? ' student' : ' students') + ' graded' + (mm ? ' · ' + mm + ' with missing work' : ''));
     document.getElementById('sg-prog-fill').style.width = Math.round(100 * done / total) + '%';
-    prog.classList.toggle('all', !left);
-    badge.textContent = left ? left + ' ungraded' : 'All graded ✓';
-    badge.classList.toggle('ok', !left);
+    prog.classList.toggle('all', !left && !mm);
+    badge.textContent = mm ? mm + ' missing work' : left ? left + ' ungraded' : 'All graded ✓';
+    badge.classList.toggle('ok', !left && !mm);
+    badge.classList.toggle('warn', !!mm);
 }
 // ---- Export grades: Excel or CSV, for the open class (or every class when none is open) ----
 function sgExportToggle() { document.getElementById('sg-exp-menu').classList.toggle('hidden'); }
@@ -2442,11 +2486,11 @@ function sgExportRows() {
         .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stKey(a).localeCompare(stKey(b)) || a.name.localeCompare(b.name));
     const names = [];                                                   // every activity name, in the order first seen
     list.forEach(s => (s.acts || []).forEach(a => { if (a.name && names.indexOf(a.name) < 0) names.push(a.name); }));
-    const head = ['Student No.', 'Name', 'Program', 'Year', 'Section'].concat(names, ['Average / Grade']);
+    const head = ['Student No.', 'Name', 'Program', 'Year', 'Section'].concat(names, ['Average / Grade', 'Missing']);
     const num = v => /^\d+(\.\d+)?$/.test(v) ? Number(v) : v;
     const rows = list.map(s => {
         const m = {}; (s.acts || []).forEach(a => { if (a.name && !(a.name in m)) m[a.name] = a.grade; });
-        return [s.no, s.name, s.program || '', s.year || '', s.section || ''].concat(names.map(n => n in m ? num(m[n]) : ''), [num(s.grade || '')]);
+        return [s.no, s.name, s.program || '', s.year || '', s.section || ''].concat(names.map(n => n in m ? num(m[n]) : ''), [num(s.grade || ''), (missMap[s.no] || []).join('; ')]);
     });
     const f = list[0], label = sgClass && f ? [f.program, stYS(f)].join(' ') : 'all classes';
     return { head, rows, file: 'grades - ' + label.replace(/[\\/:*?"<>|]+/g, '-').trim() + ' - ' + new Date().toISOString().slice(0, 10) };
@@ -2480,6 +2524,7 @@ function renderGradesPanel() {
     const keep = box.scrollTop, q = search.value.trim().toLowerCase(), total = studentsAll.length;
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    sgComputeMissing();
     sgProgress();
     document.getElementById('sg-body').classList.toggle('hidden', !sgShown);       // closed: only the title shows
     document.getElementById('sg-head').classList.toggle('open', sgShown);
@@ -2500,14 +2545,17 @@ function renderGradesPanel() {
         const end = document.createElement('span'), pill = document.createElement('span');
         end.className = 'sg-end'; pill.className = 'sg-pill' + (isGraded(s) ? ' done' : ''); pill.textContent = s.grade || ((s.acts || []).length ? s.acts.length + (s.acts.length === 1 ? ' activity' : ' activities') : 'No grade');
         end.appendChild(pill); end.appendChild(ch);
-        who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
+        who.appendChild(n); who.appendChild(d);
+        const miss = missMap[s.no] || [];
+        if (miss.length) { row.classList.add('has-miss'); const w = document.createElement('small'); w.className = 'sg-missline'; w.textContent = 'Missing: ' + miss.join(', '); who.appendChild(w); }   // red line, like Classroom
+        b.appendChild(who); b.appendChild(end);
         b.onclick = () => openGradeModal(s);                            // straight to the student's profile window
         row.appendChild(b); return row;
     };
     const head = t => { const h = document.createElement('small'); h.className = 'sg-group'; h.textContent = t; box.appendChild(h); };
     if (!sgClass) {          // step 1: programs and sections (or student matches while searching)
         const cls = {};
-        studentsAll.forEach(s => { const k = sgCls(s); const c = (cls[k] = cls[k] || { key: k, program: s.program || '(No program)', ys: stYS(s), n: 0, g: 0 }); c.n++; if (isGraded(s)) c.g++; });
+        studentsAll.forEach(s => { const k = sgCls(s); const c = (cls[k] = cls[k] || { key: k, program: s.program || '(No program)', ys: stYS(s), n: 0, g: 0, m: 0 }); c.n++; if (isGraded(s)) c.g++; if (missMap[s.no]) c.m++; });
         const list = Object.keys(cls).map(k => cls[k])
             .filter(c => !q || (c.program + ' ' + c.ys).toLowerCase().indexOf(q) >= 0)
             .sort((a, b) => a.program.localeCompare(b.program) || a.ys.localeCompare(b.ys));
@@ -2522,7 +2570,9 @@ function renderGradesPanel() {
             row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
             n.textContent = c.program; d.textContent = c.ys + ' · ' + c.n + (c.n === 1 ? ' student' : ' students') + ' · ' + c.g + ' graded';
             ch.className = 'sg-chev'; ch.textContent = '›';
-            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
+            who.appendChild(n); who.appendChild(d);
+            if (c.m) { row.classList.add('has-miss'); const w = document.createElement('small'); w.className = 'sg-missline'; w.textContent = c.m + (c.m === 1 ? ' student has' : ' students have') + ' missing work'; who.appendChild(w); }
+            b.appendChild(who); b.appendChild(ch);
             b.onclick = () => sgPick(c.key);
             row.appendChild(b); box.appendChild(row);
         });
