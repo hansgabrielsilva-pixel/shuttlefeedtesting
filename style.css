@@ -1549,3 +1549,6 @@ body:not(.view-only) #st-switch { display: none; }
 .sg-row.miss-card.clear .sg-btn { border-left: 4px solid #2e9e4f; }
 .sg-row.miss-card.clear .sg-who > span { color: #2e9e4f; }
 .sg-count { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #c0392b; color: #fff; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Student grades opened from the sidebar while in Control mode: no machine / drill panels */
+body.grades-ctl #lv-empty, body.grades-ctl #lv-card, body.grades-ctl #lv-results { display: none !important; }
