@@ -2567,18 +2567,6 @@ function sgComputeMissing() {
         if (miss.length) missMap[s.no] = miss;
     });
 }
-function sgProgress() {                       // "2 of 5 students graded" + the badge, shown even while the card is closed
-    const total = studentsAll.length, done = studentsAll.filter(isGraded).length, left = total - done, mm = studentsAll.filter(s => missMap[s.no]).length;
-    const prog = document.getElementById('sg-prog'), badge = document.getElementById('sg-badge');
-    prog.classList.toggle('hidden', !total); badge.classList.toggle('hidden', !total);
-    if (!total) return;
-    setText('sg-prog-t', done + ' of ' + total + (total === 1 ? ' student' : ' students') + ' graded' + (mm ? ' · ' + mm + ' with missing work' : ''));
-    document.getElementById('sg-prog-fill').style.width = Math.round(100 * done / total) + '%';
-    prog.classList.toggle('all', !left && !mm);
-    badge.textContent = mm ? mm + ' missing work' : left ? left + ' ungraded' : 'All graded ✓';
-    badge.classList.toggle('ok', !left && !mm);
-    badge.classList.toggle('warn', !!mm);
-}
 // ---- Export grades: Excel or CSV, for the open class (or every class when none is open) ----
 function sgExportToggle() { document.getElementById('sg-exp-menu').classList.toggle('hidden'); }
 function sgExportRows() {
@@ -2626,7 +2614,6 @@ function renderGradesPanel() {
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
     sgComputeMissing();
-    sgProgress();
     document.getElementById('sg-body').classList.toggle('hidden', !sgShown);       // closed: only the title shows
     document.getElementById('sg-head').classList.toggle('open', sgShown);
     document.getElementById('sg-head').setAttribute('aria-expanded', sgShown ? 'true' : 'false');
@@ -2688,7 +2675,7 @@ function renderGradesPanel() {
             fill.style.width = pct + '%'; bar.appendChild(fill); meta.appendChild(bar); meta.appendChild(sgEl('em', null, c.g + '/' + c.n + ' graded'));
             who.appendChild(meta);
             if (c.m) { row.classList.add('has-miss'); who.appendChild(sgEl('small', 'sg-missline', c.m + (c.m === 1 ? ' student has' : ' students have') + ' missing work')); }
-            b.appendChild(sgEl('span', 'sg-av sg-av-prog', String(c.program).replace(/[^A-Za-z0-9]/g, '').slice(0, 5).toUpperCase() || '?')); b.appendChild(who); b.appendChild(sgEl('span', 'sg-chev', '›'));
+            const cap = sgEl('span', 'sg-av sg-av-prog'); cap.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/></svg>'; b.appendChild(cap); b.appendChild(who); b.appendChild(sgEl('span', 'sg-chev', '›'));
             b.onclick = () => sgPick(c.key);
             row.appendChild(b); box.appendChild(row);
         });
