@@ -1800,3 +1800,71 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 [data-theme="dark"] #sg-card .sg-row.miss-card.clear .sg-name { color: #7bd88f; }
 @media (max-width: 480px) { #sg-card .sg-end .sg-pill { display: none; } #sg-list { grid-template-columns: 1fr; } #sg-card .sg-exp-btn { width: 100%; } .sg-tools .sg-export { flex: 1 1 100%; } }
 @media (prefers-reduced-motion: reduce) { .menu-card.mode-card, .mc-arrow, #sg-card .sg-row { transition: none; } }
+
+/* ===== MODE CARDS: no white panel, silhouettes sit directly on the gradient ===== */
+.mc-art { height: 185px; border-radius: 0; overflow: visible; box-shadow: none; background: radial-gradient(circle at 50% 58%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0) 66%); }
+.menu-card.mode-card img.card-img { height: 170px; max-width: 96%; mix-blend-mode: screen; filter: grayscale(1) invert(1) brightness(1.2) contrast(1.05); }   /* white picture background turns black and vanishes; the dark figure turns cream-white */
+.menu-card.mode-card svg.card-img { height: 160px; filter: none; mix-blend-mode: normal; }
+.mode-card .rally-art g { fill: #F6EBE2; }
+.mode-card .rally-art path { stroke: #F6EBE2; }
+
+/* ===== CONTROL SCREEN: cream / bronze gradient redesign (same palette as Service mode) ===== */
+#session-screen .params-card { position: relative; border-radius: 28px; border: 1px solid rgba(201,145,90,0.4); background: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 46%), linear-gradient(160deg, #fffaf3 0%, #F6EBE2 48%, #E1C6AF 100%); box-shadow: 0 16px 34px rgba(140,85,36,0.22), inset 0 1px 0 rgba(255,255,255,0.8); }
+#session-screen .params-head h3 { display: flex; align-items: center; gap: 10px; color: #6b3f14; font-weight: 900; letter-spacing: -0.2px; }
+#session-screen .params-head h3::before { content: ""; width: 6px; height: 1.1em; border-radius: 6px; background: linear-gradient(180deg, #c9915a, #8c5524); }
+#session-screen .lock-pill { background: linear-gradient(135deg, #c9915a, #6b3f14); box-shadow: 0 4px 10px rgba(107,63,20,0.35); }
+#session-screen .params-card .field-label { color: #7a4a1e; }
+#session-screen .speed-tile, #session-screen .aim-pad, #session-screen .params-card .input-group { background: rgba(255,255,255,0.58); border: 1px solid rgba(255,255,255,0.85); border-radius: 20px; box-shadow: 0 6px 14px rgba(140,85,36,0.12); }
+#session-screen .params-card .slider-header span { background: linear-gradient(135deg, #c9915a, #8c5524); color: #fff; box-shadow: 0 3px 8px rgba(140,85,36,0.3); }
+#session-screen .angle-opts button { background: #fff; color: var(--green-text); border: 2px solid rgba(201,145,90,0.25); border-radius: 18px; box-shadow: 0 4px 10px rgba(140,85,36,0.1); }
+#session-screen .angle-opts button:hover { border-color: #c9915a; box-shadow: 0 10px 20px rgba(140,85,36,0.22); }
+#session-screen .angle-opts button.on { background: linear-gradient(145deg, #d6a06a 0%, #8c5524 55%, #4a2a0c 100%); color: #fff; border-color: transparent; box-shadow: 0 10px 22px rgba(107,63,20,0.45), inset 0 1px 0 rgba(255,255,255,0.3); }
+#session-screen .angle-opts button::after { border-color: #c9915a; }
+#session-screen .pad { background: rgba(255,255,255,0.85); border: 1px solid rgba(201,145,90,0.3); }
+#session-screen .pad .zone { fill: rgba(201,145,90,0.16); stroke: rgba(140,85,36,0.55); }
+#session-screen .needle { stroke: #8c5524; }
+#session-screen .nudge button { background: #fff; color: #7a4a1e; border: 1px solid rgba(201,145,90,0.3); font-weight: 700; }
+#session-screen .nudge button:hover { background: #fbe9d4; }
+#session-screen .stepper { background: #fff; border: 1px solid rgba(201,145,90,0.3); }
+#session-screen .stepper button { color: #8c5524; }
+#session-screen .stepper button:hover { background: rgba(201,145,90,0.2); }
+#session-screen .stepper:focus-within { box-shadow: 0 0 0 2px #c9915a; }
+#session-screen .locked-val { background: #fff; border: 1px solid rgba(201,145,90,0.3); }
+#session-screen .locked-val em { background: #F6EBE2; color: #8c5524; }
+
+/* progress card: bronze gradient like the Service card */
+#session-screen .status-card { position: relative; overflow: hidden; border-radius: 28px; background: radial-gradient(circle at 90% 0%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%), linear-gradient(145deg, #cf985f 0%, #8c5524 52%, #4a2a0c 100%); box-shadow: 0 18px 36px rgba(74,42,12,0.4), inset 0 1px 0 rgba(255,255,255,0.3); }
+#session-screen .status-card::after { content: ""; position: absolute; width: 240px; height: 240px; left: -110px; bottom: -140px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.12); box-shadow: 0 0 0 24px rgba(255,255,255,0.05); pointer-events: none; }
+#session-screen .ring-bg { stroke: rgba(0,0,0,0.28); }
+#session-screen .ring-fill { stroke: #F6EBE2; filter: drop-shadow(0 0 6px rgba(255,235,210,0.55)); }
+#session-screen .status-box { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); }
+
+/* hit / miss card */
+#session-screen .results-card { border-radius: 24px; border: 1px solid rgba(201,145,90,0.4); background: linear-gradient(160deg, #fffaf3 0%, #F6EBE2 55%, #E1C6AF 100%); box-shadow: 0 12px 26px rgba(140,85,36,0.18); }
+#session-screen .results-card .field-label { color: #7a4a1e; }
+#session-screen .res-undo { background: #fff; color: #7a4a1e; border: 1px solid rgba(201,145,90,0.35); }
+#session-screen .res-btn.res-hit { background: linear-gradient(145deg, #7fae45, #2f5a14); }
+#session-screen .res-btn.res-miss { background: linear-gradient(145deg, #e2503f, #8a1a12); }
+
+/* connect + action buttons */
+#session-screen .usb-btn { background: linear-gradient(160deg, #fffaf3, #F6EBE2); color: #6b3f14; border: 2px solid #c9915a; border-radius: 16px; }
+#session-screen .usb-btn.on { background: linear-gradient(145deg, #7fae45, #2f5a14); color: #fff; border-color: transparent; }
+#session-screen .action-btn { border: 0; border-radius: 24px; background: linear-gradient(145deg, #d6a06a 0%, #8c5524 52%, #4a2a0c 100%); color: #fff; letter-spacing: 1px; box-shadow: 0 14px 28px rgba(74,42,12,0.4), inset 0 1px 0 rgba(255,255,255,0.35); transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; }
+#session-screen .action-btn:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.07); }
+#session-screen .action-btn:active:not(:disabled) { transform: scale(0.97); }
+#session-screen #btn-pause { background: linear-gradient(145deg, #fffaf3, #E1C6AF); color: #6b3f14; box-shadow: 0 12px 24px rgba(140,85,36,0.3), inset 0 1px 0 #fff; }
+#session-screen .action-btn.btn-primary { background: linear-gradient(145deg, #e2503f, #8a1a12); box-shadow: 0 14px 28px rgba(138,26,18,0.4), inset 0 1px 0 rgba(255,255,255,0.3); }
+
+/* dark theme */
+[data-theme="dark"] #session-screen .params-card { border-color: rgba(201,145,90,0.25); background: radial-gradient(circle at 100% 0%, rgba(201,145,90,0.16) 0%, rgba(201,145,90,0) 46%), linear-gradient(160deg, #2b2518 0%, #231f14 60%, #1c1a10 100%); box-shadow: 0 16px 34px rgba(0,0,0,0.4); }
+[data-theme="dark"] #session-screen .params-head h3, [data-theme="dark"] #session-screen .params-card .field-label { color: #E1C6AF; }
+[data-theme="dark"] #session-screen .speed-tile, [data-theme="dark"] #session-screen .aim-pad, [data-theme="dark"] #session-screen .params-card .input-group { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); box-shadow: none; }
+[data-theme="dark"] #session-screen .angle-opts button, [data-theme="dark"] #session-screen .stepper, [data-theme="dark"] #session-screen .locked-val, [data-theme="dark"] #session-screen .nudge button { background: rgba(255,255,255,0.08); color: var(--text); border-color: rgba(201,145,90,0.25); }
+[data-theme="dark"] #session-screen .angle-opts button.on { color: #fff; border-color: transparent; background: linear-gradient(145deg, #d6a06a 0%, #8c5524 55%, #4a2a0c 100%); }
+[data-theme="dark"] #session-screen .pad { background: rgba(0,0,0,0.3); }
+[data-theme="dark"] #session-screen .stepper button, [data-theme="dark"] #session-screen .nudge button { color: #E1C6AF; }
+[data-theme="dark"] #session-screen .results-card { background: linear-gradient(160deg, #2b2518, #1c1a10); border-color: rgba(201,145,90,0.25); }
+[data-theme="dark"] #session-screen .results-card .field-label { color: #E1C6AF; }
+[data-theme="dark"] #session-screen .res-undo, [data-theme="dark"] #session-screen .usb-btn { background: rgba(255,255,255,0.08); color: #E1C6AF; }
+[data-theme="dark"] #session-screen #btn-pause { background: linear-gradient(145deg, #4a3b24, #2b2518); color: #E1C6AF; }
+@media (prefers-reduced-motion: reduce) { #session-screen .action-btn { transition: none; } }
