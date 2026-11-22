@@ -2258,6 +2258,7 @@ function toggleGrades() {
 // ---- Grade window: a table of the student's activities and grades (rows can be added as needed) ----
 var sgmList = [], sgmIdx = -1, sgmBusy = false, sgmRows = [];
 const SGM_OK = /^[0-9A-Za-z.,%\/+\- ]{0,10}$/;
+const SGM_COLORS = ['#7c0005', '#2c3812', '#b45f06', '#1f5f8b', '#6a3d9a', '#0f766e', '#9d174d'];
 function actsParse(t) { try { const a = JSON.parse(t || '[]'); return Array.isArray(a) ? a.map(r => ({ name: String((r && r[0]) || ''), grade: String((r && r[1]) || '') })) : []; } catch (e) { return []; } }
 function actsClean(rows) { return rows.map(r => ({ name: r.name.trim(), grade: r.grade.trim() })).filter(r => r.name || r.grade); }
 function actsAvg(rows) { const n = rows.map(r => r.grade).filter(g => /^\d+(\.\d+)?$/.test(g)).map(Number); return n.length ? String(Math.round(n.reduce((a, b) => a + b, 0) / n.length * 100) / 100) : ''; }
@@ -2273,6 +2274,9 @@ function openGradeModal(s) {
 function sgmShow() {
     const s = sgmCur(); if (!s) return;
     setText('sgm-avatar', (s.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?').toUpperCase());
+    const av = document.getElementById('sgm-avatar'), hue = Array.from(s.no + s.name).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % SGM_COLORS.length, 7);
+    av.style.background = SGM_COLORS[hue];                                  // every student gets their own colour
+    av.classList.remove('pop'); void av.offsetWidth; av.classList.add('pop');
     setText('sgm-name', s.name);
     setText('sgm-no', 'Student no. ' + s.no);
     setText('sgm-prog', s.program || '(No program)');
@@ -2295,11 +2299,13 @@ function sgmRenderRows(focusRow) {
     sgmRows.forEach((r, i) => {
         const tr = document.createElement('tr'), tn = document.createElement('td'), ta = document.createElement('td'), tg = document.createElement('td'), tx = document.createElement('td');
         const a = document.createElement('input'), g = document.createElement('input'), x = document.createElement('button');
-        tn.className = 'c-n'; tn.textContent = i + 1;
+        const mark = () => { const done = !!(r.name.trim() && r.grade.trim()); tr.classList.toggle('done', done); tn.textContent = done ? '✓' : i + 1; };   // a filled row shows a check
+        tn.className = 'c-n';
         a.type = 'text'; a.maxLength = 40; a.placeholder = 'e.g. Quiz ' + (i + 1); a.value = r.name; a.autocomplete = 'off'; a.setAttribute('aria-label', 'Activity ' + (i + 1));
-        g.type = 'text'; g.maxLength = 10; g.placeholder = 'e.g. 90'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Grade for activity ' + (i + 1));
-        a.oninput = () => { r.name = a.value; sgmInput(); };
-        g.oninput = () => { r.grade = g.value; sgmInput(); };
+        g.type = 'text'; g.maxLength = 10; g.placeholder = '0'; g.value = r.grade; g.autocomplete = 'off'; g.inputMode = 'decimal'; g.className = 'sgm-g'; g.setAttribute('aria-label', 'Grade for activity ' + (i + 1));
+        a.oninput = () => { r.name = a.value; mark(); sgmInput(); };
+        g.oninput = () => { r.grade = g.value; mark(); sgmInput(); };
+        g.onfocus = () => g.select();
         a.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); g.focus(); } };
         g.onkeydown = e => {
             if (e.key !== 'Enter') return; e.preventDefault();
@@ -2307,11 +2313,16 @@ function sgmRenderRows(focusRow) {
             if (nx) nx.querySelector('input').focus(); else if (r.name.trim() || r.grade.trim()) sgmAddRow(true);
         };
         x.type = 'button'; x.className = 'sgm-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Remove activity ' + (i + 1));
-        x.onclick = () => { sgmRows.splice(i, 1); if (!sgmRows.length) sgmRows.push({ name: '', grade: '' }); sgmRenderRows(); sgmInput(); };
+        x.onclick = () => {
+            tr.classList.add('leaving');                                    // fades out, then the row is removed
+            setTimeout(() => { sgmRows.splice(sgmRows.indexOf(r), 1); if (!sgmRows.length) sgmRows.push({ name: '', grade: '' }); sgmRenderRows(); sgmInput(); }, 170);
+        };
         ta.appendChild(a); tg.appendChild(g); tx.appendChild(x);
-        tr.appendChild(tn); tr.appendChild(ta); tr.appendChild(tg); tr.appendChild(tx); body.appendChild(tr);
+        tr.appendChild(tn); tr.appendChild(ta); tr.appendChild(tg); tr.appendChild(tx);
+        if (focusRow === i) tr.classList.add('fresh');
+        mark(); body.appendChild(tr);
     });
-    if (focusRow != null) { const t = body.querySelectorAll('tr')[focusRow]; if (t) { t.querySelector('input').focus(); t.scrollIntoView({ block: 'nearest' }); } }
+    if (focusRow != null) { const t = body.querySelectorAll('tr')[focusRow]; if (t) { t.querySelector(t.dataset.focus === 'grade' ? '.sgm-g' : 'input').focus(); t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 }
 function sgmAddRow(focus) {
     if (sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
@@ -2319,16 +2330,26 @@ function sgmAddRow(focus) {
     sgmRenderRows(focus ? sgmRows.length - 1 : null);
     sgmInput();
 }
-function sgmRefresh() {                       // summary box and save buttons
+function sgmQuick(base) {                     // quick chips: adds "Quiz 3" and puts the cursor in its grade box
+    const n = sgmRows.filter(r => r.name.trim().toLowerCase().indexOf(base.toLowerCase()) === 0).length + 1;
+    const lastRow = sgmRows[sgmRows.length - 1], reuse = lastRow && !lastRow.name.trim() && !lastRow.grade.trim();
+    if (!reuse && sgmRows.length >= 30) return sgmMsg('You can add up to 30 activities.', 'err');
+    if (reuse) lastRow.name = base + ' ' + n; else sgmRows.push({ name: base + ' ' + n, grade: '' });
+    sgmRenderRows(sgmRows.length - 1);
+    const t = document.getElementById('sgm-rows').lastElementChild; if (t) { t.querySelector('.sgm-g').focus(); }
+    sgmInput();
+}
+function sgmRefresh() {                       // profile stats, unsaved chip and the save buttons
     const s = sgmCur(); if (!s) return;
-    const rows = actsClean(sgmRows), avg = actsAvg(rows), cur = document.getElementById('sgm-current');
-    let label = 'Grade', val = 'No grade yet';
-    if (rows.length) { label = 'Average · ' + rows.length + (rows.length === 1 ? ' activity' : ' activities'); val = avg || '—'; }
-    else if (s.grade) { val = s.grade; }
-    setText('sgm-cur-label', label); setText('sgm-cur-val', val);
-    cur.classList.toggle('has', val !== 'No grade yet' && val !== '—');
+    const rows = actsClean(sgmRows), graded = rows.filter(r => r.grade).length;
+    setText('sgp-n', rows.length); setText('sgp-g', graded); setText('sgp-p', rows.length - graded);
+    document.getElementById('sgp-dirty').classList.toggle('hidden', !sgmDirty());
     document.getElementById('sgm-save').disabled = sgmBusy || !sgmDirty();
     document.getElementById('sgm-savenext').disabled = sgmBusy;
+}
+function sgmFlash() {                         // little "saved" animation on the Save button
+    const sv = document.getElementById('sgm-save'), sn = document.getElementById('sgm-savenext');
+    [sv, sn].forEach(b => { b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); });
 }
 function sgmInput() { sgmMsg(''); sgmRefresh(); }
 async function sgmSave(goNext) {
@@ -2352,7 +2373,7 @@ async function sgmSave(goNext) {
     sgmBusy = false; sv.textContent = t1; sn.innerHTML = t2;
     if (ok) {
         if (goNext && sgmIdx < sgmList.length - 1) { sgmIdx++; sgmShow(); sgmMsg('Saved ✓ ' + sgmList[sgmIdx - 1].name.split(' ')[0] + "'s activities", 'ok'); }
-        else { sgmShow(); sgmMsg('Saved ✓', 'ok'); }
+        else { sgmShow(); sgmMsg('Saved ✓', 'ok'); sgmFlash(); }
     } else sgmRefresh();
     return ok;
 }
