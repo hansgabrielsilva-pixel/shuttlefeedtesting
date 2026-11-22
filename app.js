@@ -2696,7 +2696,12 @@ function renderGradesPanel() {
     }
     box.scrollTop = keep;
 }
-function openStudents() { closeAllSidebars(); navigate('students-screen'); backToStudents(); document.getElementById('st-pick').classList.add('hidden'); loadStudents(); }   // Upload class list: the upload card only, no students list
+var stFrom = 'dashboard-screen';           // the screen the Students (upload class list) screen was opened from, so Back returns there
+function stBack() {
+    if (stFrom === 'live-screen') { navigate('live-screen'); if (accessMode === 'control') lvControlView(); }   // back to Students & grades (Control mode keeps its way back to the machine)
+    else navigate('dashboard-screen');
+}
+function openStudents() { const cur = document.querySelector('.screen.active'); stFrom = cur && cur.id === 'live-screen' ? 'live-screen' : 'dashboard-screen'; closeAllSidebars(); navigate('students-screen'); backToStudents(); document.getElementById('st-pick').classList.add('hidden'); loadStudents(); }   // Upload class list: the upload card only, no students list
 function stYS(s) { return s.year && s.section ? s.year + '-' + s.section : s.year ? 'Year ' + s.year : s.section ? 'Section ' + s.section : 'All'; }
 function stKey(s) { return (s.year || '') + '|' + (s.section || ''); }
 function fillOptions(id, items, first) {
