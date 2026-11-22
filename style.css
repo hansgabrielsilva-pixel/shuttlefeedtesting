@@ -1652,3 +1652,30 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 #login-screen .saved-list { background: #F6EBE2; }
 @media (max-width: 600px) { #login-screen .lg-logo { width: 72px; max-height: 72px; } }
 #login-screen .lg-logo.cut { mix-blend-mode: normal; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)); }   /* background already removed, so no blend needed */
+
+/* ===================================================================
+   SIGN UP PAGE: same photo card as the log in page
+   =================================================================== */
+#signup-screen { justify-content: center; align-items: center; padding: 16px; }
+.signup-card.lg-card { text-align: left; }
+#signup-screen .lg-logo { position: absolute; top: calc(18px + env(safe-area-inset-top, 0px)); right: 18px; z-index: 3; width: 78px; height: auto; max-height: 78px; margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; object-fit: contain; mix-blend-mode: multiply; filter: none; }
+#signup-screen .lg-logo.cut { mix-blend-mode: normal; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)); }
+.lg-back-top { position: absolute; top: calc(18px + env(safe-area-inset-top, 0px)); left: 18px; z-index: 3; margin: 0; }
+#signup-screen .lg-stack { padding-bottom: 22px; background: linear-gradient(180deg, rgba(44,56,18,0) 0%, rgba(44,56,18,0.35) 100%); }
+#signup-screen .lg-sub { margin-bottom: 14px; }
+#signup-screen .input-wrapper { margin: 10px 0; }
+#signup-screen .input-wrapper input { background: #F6EBE2; color: #2C3812; border-radius: 999px; box-shadow: none; }
+#signup-screen .input-wrapper input::placeholder { color: #7a7468; }
+#signup-screen .input-wrapper input:focus { outline: 3px solid #E1C6AF; transform: none; box-shadow: none; }
+#signup-screen .input-icon { color: #5b6470; }
+#signup-screen .btn-primary.lg-btn { width: 100%; margin-top: 8px; background: #7C0005; color: #F6EBE2; border-radius: 999px; box-shadow: 0 8px 20px rgba(30,39,11,0.45); }
+#signup-screen .btn-primary.lg-btn:disabled { opacity: 0.75; cursor: progress; }
+#signup-screen .signup-text { color: #F6EBE2; margin: 14px 0 2px; text-align: center; }
+#signup-screen .signup-text b, #signup-screen .signup-text:hover { color: #E1C6AF; text-decoration: underline; }
+@media (max-width: 600px) {
+    #signup-screen { padding: 0; }
+    #signup-screen > .signup-card.lg-card { margin: 0; width: 100%; height: 100%; padding: 0; border-radius: 0; box-shadow: none; }
+    #signup-screen .lg-logo { width: 72px; max-height: 72px; }
+    #signup-screen .lg-stack { padding: 22px 22px calc(22px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height: 640px) { #signup-screen .lg-title { font-size: 26px; } #signup-screen .lg-sub { margin: 4px 0 8px; } #signup-screen .input-wrapper { margin: 7px 0; } }
