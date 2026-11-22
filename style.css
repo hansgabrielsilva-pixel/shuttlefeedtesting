@@ -1679,3 +1679,42 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     #signup-screen .lg-stack { padding: 22px 22px calc(22px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-height: 640px) { #signup-screen .lg-title { font-size: 26px; } #signup-screen .lg-sub { margin: 4px 0 8px; } #signup-screen .input-wrapper { margin: 7px 0; } }
+
+/* ===== ACCESS SCREEN REDESIGN: gradient cards ===== */
+#access-screen .access-wrap { max-width: 760px; }
+#access-screen .setup-logo { margin-bottom: 14px; }
+.ac-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--red-text); background: rgba(124,0,5,0.1); padding: 5px 14px; border-radius: 999px; }
+.ac-title { margin: 12px 0 6px; font-size: 34px; line-height: 1.1; font-weight: 900; color: var(--green-text); letter-spacing: -0.3px; }
+.ac-lead { max-width: 520px; font-size: 15px; line-height: 1.6; color: var(--text-mid); }
+.access-cards { gap: 24px; margin: 28px 0 10px; }
+.access-card { position: relative; overflow: hidden; isolation: isolate; width: 300px; min-height: 330px; padding: 26px 24px 22px; border: none; border-radius: 28px; align-items: flex-start; text-align: left; gap: 0; color: #fff; box-shadow: 0 18px 36px rgba(30,39,11,0.28), inset 0 1px 0 rgba(255,255,255,0.25); transition: transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s, filter 0.3s; }
+.access-card.ac-control { background: linear-gradient(145deg, #5f7a2a 0%, #3b4d17 48%, #1d2809 100%); }
+.access-card.ac-view { background: linear-gradient(145deg, #d1434a 0%, #8f0b12 50%, #4d0003 100%); }
+/* soft light blobs + faint court line for depth */
+.access-card::before { content: ""; position: absolute; z-index: -1; width: 230px; height: 230px; right: -70px; top: -80px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.34), rgba(255,255,255,0) 70%); }
+.access-card::after { content: ""; position: absolute; z-index: -1; width: 260px; height: 260px; left: -110px; bottom: -150px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.12); box-shadow: 0 0 0 26px rgba(255,255,255,0.05); }
+.access-card:hover:not(:disabled) { transform: translateY(-10px) scale(1.02); border-color: transparent; box-shadow: 0 28px 48px rgba(30,39,11,0.38), inset 0 1px 0 rgba(255,255,255,0.3); }
+.access-card:active:not(:disabled) { transform: scale(0.97); }
+.access-card:focus-visible { outline: 3px solid #E1C6AF; outline-offset: 4px; }
+.access-card h3 { margin: 4px 0 8px; font-size: 26px; font-weight: 900; letter-spacing: -0.2px; color: #fff; }
+.access-card p { font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.86); }
+.ac-ic { width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #fff; box-shadow: 0 8px 18px rgba(0,0,0,0.2); }
+.ac-ic.view { background: rgba(255,255,255,0.16); }
+.ac-tag { margin: 18px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+.ac-foot { margin-top: auto; padding-top: 18px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ac-status { margin: 0; font-size: 12px; letter-spacing: 0.4px; padding: 6px 12px 6px 22px; position: relative; border-radius: 999px; background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.ac-status::before { content: ""; position: absolute; left: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: #7CF29A; box-shadow: 0 0 0 3px rgba(124,242,154,0.28); }
+.ac-go { flex: none; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #F6EBE2; color: #2C3812; box-shadow: 0 6px 14px rgba(0,0,0,0.25); transition: transform 0.25s; }
+.access-card.ac-view .ac-go { color: #7C0005; }
+.access-card:hover:not(:disabled) .ac-go { transform: translateX(4px); }
+/* control mode taken by another instructor */
+.access-card.busy .ac-status { background: rgba(255,197,49,0.22); color: #FFE08A; border-color: rgba(255,197,49,0.5); }
+.access-card.busy .ac-status::before { background: #FFC531; box-shadow: 0 0 0 3px rgba(255,197,49,0.3); }
+.access-card:disabled { opacity: 1; filter: grayscale(0.75) brightness(0.85); cursor: not-allowed; box-shadow: 0 10px 20px rgba(0,0,0,0.18); }
+.access-card:disabled .ac-go { opacity: 0.35; }
+[data-theme="dark"] .ac-title, [data-theme="dark"] .ac-lead { color: #F6EBE2; }
+[data-theme="dark"] .ac-eyebrow { color: #E1C6AF; background: rgba(225,198,175,0.14); }
+[data-theme="dark"] .ac-status, [data-theme="dark"] .access-card.busy .ac-status { color: #fff; }
+[data-theme="dark"] .access-card.busy .ac-status { color: #FFE08A; }
+@media (max-width: 680px) { .access-card { width: 100%; max-width: 380px; min-height: 0; } .ac-title { font-size: 28px; } .access-cards { gap: 16px; } }
+@media (prefers-reduced-motion: reduce) { .access-card, .ac-go { transition: none; } }
