@@ -166,6 +166,35 @@ function imgUrl(v) {
     if (!v) return '';
     return /^(https?:|data:)/.test(v) ? v : 'https://lh3.googleusercontent.com/d/' + v;
 }
+// Removes the white background around the logo (only the white that touches the picture's edge, so white inside the logo stays).
+// If the browser blocks reading the picture, the logo simply keeps the CSS blend that hides its white.
+function cutoutLogo(el, url) {
+    if (!url || /^data:/.test(url)) return;
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => {
+        try {
+            const s = Math.min(1, 300 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * s)), h = Math.max(1, Math.round(im.naturalHeight * s));
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            const g = c.getContext('2d'); g.drawImage(im, 0, 0, w, h);
+            const d = g.getImageData(0, 0, w, h), p = d.data, seen = new Uint8Array(w * h), st = [];
+            const lite = (i, t) => p[i * 4 + 3] < 20 || Math.min(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]) > t;
+            const push = i => { if (!seen[i] && lite(i, 232)) { seen[i] = 1; st.push(i); } };
+            for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+            for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+            while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; p[i * 4 + 3] = 0; if (x > 0) push(i - 1); if (x < w - 1) push(i + 1); if (y > 0) push(i - w); if (y < h - 1) push(i + w); }
+            const edge = [];                                     // light fringe pixels left over from smoothing at the border
+            for (let i = 0; i < w * h; i++) {
+                if (p[i * 4 + 3] === 0) continue; const x = i % w, y = (i / w) | 0;
+                const near = (x > 0 && p[(i - 1) * 4 + 3] === 0) || (x < w - 1 && p[(i + 1) * 4 + 3] === 0) || (y > 0 && p[(i - w) * 4 + 3] === 0) || (y < h - 1 && p[(i + w) * 4 + 3] === 0);
+                if (near && lite(i, 200)) edge.push(i);
+            }
+            edge.forEach(i => { p[i * 4 + 3] = 0; });
+            g.putImageData(d, 0, 0);
+            el.src = c.toDataURL('image/png'); el.classList.add('cut');
+        } catch (e) { /* blocked: keep the blend */ }
+    };
+    im.src = url;
+}
 function applyImages() {
     document.querySelectorAll('img[data-img]').forEach(img => {
         const u = imgUrl(IMAGES[img.dataset.img]);
@@ -173,6 +202,7 @@ function applyImages() {
     });
     const bg = imgUrl(IMAGES.bg);
     if (bg) document.documentElement.style.setProperty('--bg-img', `url("${bg}")`);
+    const lg = document.querySelector('.lg-logo'); if (lg) cutoutLogo(lg, imgUrl(IMAGES.logo));      // login page: logo without its white background
 }
 
 function applyUserData(d) {
