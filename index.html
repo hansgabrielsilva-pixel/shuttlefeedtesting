@@ -99,12 +99,22 @@
 
     <!-- LOGIN SCREEN -->
     <div id="login-screen" class="screen active">
-        <div class="login-card">
-            
-            <img data-img="logo" alt="SHUTTLEFEED Logo" class="login-logo">
-            
-            <h2 class="dark-green">Welcome to SHUTTLEFEED</h2>
-            <p class="subtitle">CvSU Carmona - PHED 4 Instructor Console</p>
+        <div class="login-card lg-card" id="login-card">
+          <div class="lg-stack">
+            <img data-img="logo" alt="SHUTTLEFEED Logo" class="login-logo lg-logo">
+            <h2 class="lg-title">SHUTTLEFEED</h2>
+            <p class="lg-sub">CvSU Carmona - PHED 4 Instructor Console</p>
+
+            <!-- first view: Sign up / Sign in -->
+            <div class="lg-landing">
+                <button type="button" class="lg-btn lg-yellow" onclick="navigate('signup-screen')">Sign up</button>
+                <button type="button" class="lg-btn lg-white" onclick="lgShowForm(true)">Sign in</button>
+            </div>
+
+            <!-- second view: the sign in form (opens with Sign in) -->
+            <div class="lg-form" id="lg-form">
+            <button type="button" class="lg-back" onclick="lgShowForm(false)" aria-label="Back">&#8249; Back</button>
+            <h3 class="lg-form-title">Sign in</h3>
 
             <div class="input-wrapper" id="account-picker">
                 <button type="button" class="account-select" id="account-select" onclick="toggleSavedList()" aria-haspopup="listbox" aria-expanded="false"><span id="account-select-text">Select your account</span><svg class="account-chev" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
@@ -129,7 +139,9 @@
             <label class="remember-row"><input type="checkbox" id="remember-me" checked><span>Remember me on this device</span></label>
             <button class="btn-primary pill-btn" onclick="startIntro()">Log in</button>
             </div>
+            </div>
             <button type="button" class="manual-link" onclick="openInfo('manual', true)">&#128214; User's manual</button>
+          </div>
         </div>
     </div>
 
