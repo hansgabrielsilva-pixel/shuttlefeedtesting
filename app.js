@@ -2081,7 +2081,7 @@ function liveSnapshot() {
     const sc = shotCounts();
     return { phase: run ? (paused ? 'PAUSED' : 'RUNNING') : onSession ? 'SETUP' : 'IDLE', cls: classLabel(currentClass),
              mode: show ? currentMode : '', range: show && rangePicked ? selectedRange : '', dir: show && dirPicked ? dirNow() : '',
-             launched: shuttlesLaunched, total: totalShuttles, hits: sc.hits, misses: sc.misses };
+             usb: usbIsConnected(), launched: shuttlesLaunched, total: totalShuttles, hits: sc.hits, misses: sc.misses };
 }
 
 async function accessTick() {
@@ -2165,6 +2165,44 @@ async function resumeAccess() {           // page refreshed while logged in
     showAccessScreen();
 }
 
+// ---- Live view: who is using the machine, and for how long ----
+var lvSince = 0, lvOffset = 0, lvWasBusy = null;
+function initials(n) { return (String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?').toUpperCase(); }
+function fmtDur(ms) {
+    const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60, p = v => String(v).padStart(2, '0');
+    return h ? h + ':' + p(m) + ':' + p(sec) : p(m) + ':' + p(sec);
+}
+function lvTick() {                                // runs every second so the timer counts up between server updates
+    const w = document.getElementById('lv-timer-wrap'); if (!w) return;
+    w.classList.toggle('hidden', !lvSince);
+    if (lvSince) setText('lv-timer', fmtDur(Date.now() + lvOffset - lvSince));
+}
+setInterval(lvTick, 1000);
+function lvUsing(r, s, free, busy, chips) {
+    const card = document.getElementById('lv-using'), av = document.getElementById('lv-av');
+    if (r && r.now) lvOffset = r.now - Date.now();                       // server clock minus this device's clock
+    lvSince = busy && r.holder && r.holder.since ? r.holder.since : 0;
+    const name = busy ? holderName(r.holder) : '';
+    const lost = busy && r.age > 30000;                                  // the controller stopped reporting
+    card.dataset.s = !r ? 'offline' : free ? 'free' : lost ? 'lost' : 'busy';
+    av.textContent = !r ? '!' : free ? '–' : initials(name);
+    setText('lv-using-name', !r ? 'No connection' : free ? 'Machine is free' : name + ' is using the machine');
+    let sub = !r ? 'Trying to reconnect…' : free ? 'Nobody is using it right now' : [chips[s.phase] || 'IDLE', s.cls && s.cls !== 'No class set' ? s.cls : ''].filter(Boolean).join(' · ');
+    if (lost) sub = 'No signal for ' + Math.round(r.age / 1000) + 's · they may have lost connection';
+    else if (busy && s.usb === false) sub += ' · machine not connected';
+    setText('lv-using-sub', sub);
+    lvTick();
+}
+function lvTake(r, free, busy) {                   // the Take control button changes with the situation
+    const b = document.getElementById('lv-take'), hint = document.getElementById('lv-take-hint');
+    let st = 'free', txt = 'Take control', why = '';
+    if (!r) { st = 'offline'; txt = 'Offline'; why = "Can't reach the server. Check the internet connection."; }
+    else if (busy) { st = 'waiting'; txt = 'Waiting for ' + holderName(r.holder) + ' to finish'; why = "This button turns on as soon as the machine is free."; }
+    b.disabled = st !== 'free'; b.dataset.s = st; b.textContent = txt;
+    hint.textContent = why; hint.classList.toggle('hidden', !why);
+    if (lvWasBusy === true && free) { toast('The machine is free now. You can take control.', 4000); b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 2500); }
+    lvWasBusy = !!r && busy ? true : (r ? false : lvWasBusy);
+}
 function fmtClock(ms) { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
 function renderLive(r) {                  // paints the View only screen from the server's answer (null = no connection)
     const s = (r && r.snap) || {}, free = !!r && !!r.free, busy = !!r && !free;
@@ -2174,7 +2212,8 @@ function renderLive(r) {                  // paints the View only screen from th
     setText('lv-who', !r ? 'Connection lost. Trying again…' : free ? 'Nobody is controlling the machine right now.' : holderName(r.holder) + ' is in control' + since + (s.cls && s.cls !== 'No class set' ? ' · ' + s.cls : ''));
     const chip = document.getElementById('lv-chip');
     chip.textContent = !r ? 'OFFLINE' : free ? 'FREE' : (chips[s.phase] || 'IDLE'); chip.dataset.s = !r || free ? '' : (s.phase || '');
-    const take = document.getElementById('lv-take'); take.disabled = busy; take.textContent = busy ? 'Control is in use' : 'Take control';
+    lvUsing(r, s, free, busy, chips);
+    lvTake(r, free, busy);
     document.getElementById('lv-card').classList.toggle('hidden', !active);
     document.getElementById('lv-results').classList.toggle('hidden', !active);
     document.getElementById('lv-empty').classList.toggle('hidden', active);
@@ -2384,6 +2423,54 @@ async function sgmGo(d) {                     // Previous / Next: typed activiti
     sgmIdx = n; sgmShow();
 }
 function closeGradeModal() { document.getElementById('sg-modal').classList.add('hidden'); }
+function isGraded(s) { return !!s.grade || (s.acts || []).some(a => a.grade); }
+function sgProgress() {                       // "2 of 5 students graded" + the badge, shown even while the card is closed
+    const total = studentsAll.length, done = studentsAll.filter(isGraded).length, left = total - done;
+    const prog = document.getElementById('sg-prog'), badge = document.getElementById('sg-badge');
+    prog.classList.toggle('hidden', !total); badge.classList.toggle('hidden', !total);
+    if (!total) return;
+    setText('sg-prog-t', done + ' of ' + total + (total === 1 ? ' student' : ' students') + ' graded');
+    document.getElementById('sg-prog-fill').style.width = Math.round(100 * done / total) + '%';
+    prog.classList.toggle('all', !left);
+    badge.textContent = left ? left + ' ungraded' : 'All graded ✓';
+    badge.classList.toggle('ok', !left);
+}
+// ---- Export grades: Excel or CSV, for the open class (or every class when none is open) ----
+function sgExportToggle() { document.getElementById('sg-exp-menu').classList.toggle('hidden'); }
+function sgExportRows() {
+    const list = (sgClass ? studentsAll.filter(s => sgCls(s) === sgClass) : studentsAll.slice())
+        .sort((a, b) => (a.program || '').localeCompare(b.program || '') || stKey(a).localeCompare(stKey(b)) || a.name.localeCompare(b.name));
+    const names = [];                                                   // every activity name, in the order first seen
+    list.forEach(s => (s.acts || []).forEach(a => { if (a.name && names.indexOf(a.name) < 0) names.push(a.name); }));
+    const head = ['Student No.', 'Name', 'Program', 'Year', 'Section'].concat(names, ['Average / Grade']);
+    const num = v => /^\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+    const rows = list.map(s => {
+        const m = {}; (s.acts || []).forEach(a => { if (a.name && !(a.name in m)) m[a.name] = a.grade; });
+        return [s.no, s.name, s.program || '', s.year || '', s.section || ''].concat(names.map(n => n in m ? num(m[n]) : ''), [num(s.grade || '')]);
+    });
+    const f = list[0], label = sgClass && f ? [f.program, stYS(f)].join(' ') : 'all classes';
+    return { head, rows, file: 'grades - ' + label.replace(/[\\/:*?"<>|]+/g, '-').trim() + ' - ' + new Date().toISOString().slice(0, 10) };
+}
+async function sgExport(kind) {
+    document.getElementById('sg-exp-menu').classList.add('hidden');
+    const d = sgExportRows();
+    if (!d.rows.length) return toast('There are no students to export.');
+    try {
+        if (kind === 'xlsx') {
+            await loadSheetJS();
+            const ws = XLSX.utils.aoa_to_sheet([d.head].concat(d.rows));
+            ws['!cols'] = d.head.map((h, i) => ({ wch: i === 1 ? 26 : i < 5 ? 14 : Math.max(10, String(h).length + 2) }));
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Grades');
+            XLSX.writeFile(wb, d.file + '.xlsx');
+        } else {
+            const q = v => { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v) && isNaN(Number(v))) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+            const csv = '\uFEFF' + [d.head].concat(d.rows).map(r => r.map(q).join(',')).join('\r\n');
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+            a.download = d.file + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        }
+        toast('Grades exported (' + d.rows.length + (d.rows.length === 1 ? ' student' : ' students') + ').');
+    } catch (e) { toast(e.message || 'Could not export. Try CSV instead.'); }
+}
 function sgBack() { sgClass = null; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
 function sgPick(k) { sgClass = k; sgOpen = null; document.getElementById('sg-search').value = ''; renderGradesPanel(); }
 function sgCls(s) { return (s.program || '-') + '||' + stKey(s); }      // one program + year/section = one class
@@ -2393,28 +2480,47 @@ function renderGradesPanel() {
     const keep = box.scrollTop, q = search.value.trim().toLowerCase(), total = studentsAll.length;
     box.innerHTML = '';
     const note = t => { const d = document.createElement('small'); d.className = 'st-note'; d.textContent = t; box.appendChild(d); };
+    sgProgress();
     document.getElementById('sg-body').classList.toggle('hidden', !sgShown);       // closed: only the title shows
     document.getElementById('sg-head').classList.toggle('open', sgShown);
     document.getElementById('sg-head').setAttribute('aria-expanded', sgShown ? 'true' : 'false');
     if (!sgShown) { setText('sg-sub', total ? 'Tap to see the programs' : 'No class list uploaded yet'); return; }
     search.classList.toggle('hidden', !total);
+    document.getElementById('sg-export').classList.toggle('hidden', !total);
+    document.getElementById('sg-exp-btn').textContent = sgClass ? '⬇ Export this class' : '⬇ Export all grades';
     if (sgClass && !studentsAll.some(s => sgCls(s) === sgClass)) sgClass = null;   // class no longer exists (list was re-uploaded)
     back.classList.toggle('hidden', !sgClass);
     if (!total) { setText('sg-sub', 'No class list uploaded yet'); return note('Upload a class list below and the students will show up here.'); }
 
-    if (!sgClass) {          // step 1: programs and sections only
+    const studentRow = (s, showClass) => {
+        const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
+        row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
+        n.textContent = s.name; d.textContent = showClass ? s.no + ' · ' + (s.program || '(No program)') + ' ' + stYS(s) : s.no;
+        ch.className = 'sg-chev'; ch.textContent = '›';
+        const end = document.createElement('span'), pill = document.createElement('span');
+        end.className = 'sg-end'; pill.className = 'sg-pill' + (isGraded(s) ? ' done' : ''); pill.textContent = s.grade || ((s.acts || []).length ? s.acts.length + (s.acts.length === 1 ? ' activity' : ' activities') : 'No grade');
+        end.appendChild(pill); end.appendChild(ch);
+        who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
+        b.onclick = () => openGradeModal(s);                            // straight to the student's profile window
+        row.appendChild(b); return row;
+    };
+    const head = t => { const h = document.createElement('small'); h.className = 'sg-group'; h.textContent = t; box.appendChild(h); };
+    if (!sgClass) {          // step 1: programs and sections (or student matches while searching)
         const cls = {};
-        studentsAll.forEach(s => { const k = sgCls(s); (cls[k] = cls[k] || { key: k, program: s.program || '(No program)', ys: stYS(s), n: 0 }).n++; });
+        studentsAll.forEach(s => { const k = sgCls(s); const c = (cls[k] = cls[k] || { key: k, program: s.program || '(No program)', ys: stYS(s), n: 0, g: 0 }); c.n++; if (isGraded(s)) c.g++; });
         const list = Object.keys(cls).map(k => cls[k])
             .filter(c => !q || (c.program + ' ' + c.ys).toLowerCase().indexOf(q) >= 0)
             .sort((a, b) => a.program.localeCompare(b.program) || a.ys.localeCompare(b.ys));
-        setText('sg-sub', list.length + (list.length === 1 ? ' class' : ' classes') + ' · tap a program and section');
-        search.placeholder = 'Search program or section';
-        if (!list.length) return note('No programs match.');
+        const hits = !q ? [] : studentsAll.filter(s => (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0).sort((a, b) => a.name.localeCompare(b.name));
+        setText('sg-sub', q ? hits.length + (hits.length === 1 ? ' student' : ' students') + ' found' : list.length + (list.length === 1 ? ' class' : ' classes') + ' · tap a program and section');
+        search.placeholder = 'Search student name or number';
+        if (q && !hits.length && !list.length) return note('No students or programs match.');
+        if (hits.length) { if (list.length) head('Students'); hits.slice(0, 25).forEach(s => box.appendChild(studentRow(s, true))); if (hits.length > 25) note('Showing the first 25. Type more to narrow it down.'); }
+        if (list.length && hits.length) head('Programs');
         list.forEach(c => {
             const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
             row.className = 'sg-row'; b.type = 'button'; b.className = 'sg-btn'; who.className = 'sg-who';
-            n.textContent = c.program; d.textContent = c.ys + ' · ' + c.n + (c.n === 1 ? ' student' : ' students');
+            n.textContent = c.program; d.textContent = c.ys + ' · ' + c.n + (c.n === 1 ? ' student' : ' students') + ' · ' + c.g + ' graded';
             ch.className = 'sg-chev'; ch.textContent = '›';
             who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(ch);
             b.onclick = () => sgPick(c.key);
@@ -2424,22 +2530,9 @@ function renderGradesPanel() {
         const inClass = studentsAll.filter(s => sgCls(s) === sgClass), f = inClass[0];
         const list = inClass.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0).sort((a, b) => a.name.localeCompare(b.name));
         setText('sg-sub', (f.program || '(No program)') + ' · ' + stYS(f) + ' · tap a student to enter the grade');
-        search.placeholder = 'Search name or number';
+        search.placeholder = 'Search student name or number';
         if (!list.length) return note('No students match.');
-        list.forEach(s => {
-            const row = document.createElement('div'), b = document.createElement('button'), who = document.createElement('span'), n = document.createElement('span'), d = document.createElement('small'), ch = document.createElement('span');
-            row.className = 'sg-row';
-            b.type = 'button'; b.className = 'sg-btn';
-            who.className = 'sg-who'; n.textContent = s.name; d.textContent = s.no;
-            ch.className = 'sg-chev'; ch.textContent = '›';
-            const end = document.createElement('span'), pill = document.createElement('span');
-            end.className = 'sg-end'; pill.className = 'sg-pill' + (s.grade ? ' done' : ''); pill.textContent = s.grade || ((s.acts || []).length ? s.acts.length + (s.acts.length === 1 ? ' activity' : ' activities') : 'No grade');
-            end.appendChild(pill); end.appendChild(ch);
-            who.appendChild(n); who.appendChild(d); b.appendChild(who); b.appendChild(end);
-            b.onclick = () => openGradeModal(s);
-            row.appendChild(b);
-            box.appendChild(row);
-        });
+        list.forEach(s => box.appendChild(studentRow(s, false)));
     }
     box.scrollTop = keep;
 }
