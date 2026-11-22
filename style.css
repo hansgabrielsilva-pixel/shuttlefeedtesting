@@ -1428,3 +1428,44 @@ body:not(.view-only) #st-switch { display: none; }
 .sgm-add { align-self: flex-start; padding: 8px 16px; border-radius: 999px; border: 1.5px dashed var(--red-text); background: transparent; color: var(--red-text); font-weight: bold; font-size: 14px; box-shadow: none; cursor: pointer; }
 .sgm-add:hover { background: rgba(128,0,0,0.07); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ===== Student profile window ===== */
+.sgp { position: relative; padding: 0; overflow: hidden; animation: sgpIn 0.28s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes sgpIn { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.sgp-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.sgp-cover { height: 96px; background: linear-gradient(135deg, var(--primary-red) 0%, #2c3812 100%); position: relative; }
+.sgp-cover::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 85% 20%, rgba(255,255,255,0.22), transparent 55%); }
+.sgp-close { position: absolute; top: 12px; right: 12px; z-index: 5; width: 36px; height: 36px; padding: 0; border-radius: 50%; background: rgba(0,0,0,0.28); color: #fff; font-size: 15px; box-shadow: none; backdrop-filter: blur(4px); transition: transform 0.2s, background 0.2s; }
+.sgp-close:hover { background: rgba(0,0,0,0.5); transform: rotate(90deg); }
+.sgp-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 20px; margin-top: -46px; position: relative; z-index: 2; }
+.sgp-avatar { flex: none; width: 92px; height: 92px; border-radius: 50%; font-size: 34px; border: 5px solid var(--card-bg); box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
+.sgp-avatar.pop { animation: sgpPop 0.4s cubic-bezier(.2,.9,.3,1.4); }
+@keyframes sgpPop { from { transform: scale(0.6); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
+.sgp-head h3 { margin-top: 10px; font-size: 22px; color: var(--red-text); line-height: 1.2; overflow-wrap: anywhere; }
+.sgp-head p { font-size: 13px; color: var(--text-soft); margin-top: 3px; }
+.sgp-head .sgm-tags { justify-content: center; }
+.sgp-stats { display: flex; gap: 10px; margin: 16px 20px 4px; }
+.sgp-stats > div { flex: 1; text-align: center; padding: 10px 6px; border-radius: 14px; background: rgba(128,128,128,0.1); }
+.sgp-stats b { display: block; font-size: 22px; color: var(--text); transition: transform 0.2s; }
+.sgp-stats span { font-size: 11px; font-weight: bold; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-soft); }
+.sgp .sgm-body { overflow: visible; padding: 12px 20px 22px; }
+.sgp-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.sgp-title b { font-size: 15px; color: var(--text); }
+.sgp-dirty { font-size: 12px; font-weight: bold; color: #b45f06; animation: sgpBlink 1.6s ease-in-out infinite; }
+@keyframes sgpBlink { 50% { opacity: 0.45; } }
+.sgp-quick { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.sgp-quick::-webkit-scrollbar { display: none; }
+.sgp-quick button { flex: none; padding: 7px 14px; border-radius: 999px; background: rgba(128,0,0,0.08); color: var(--red-text); font-size: 13px; font-weight: bold; box-shadow: none; border: 1px solid transparent; transition: transform 0.15s, background 0.15s; }
+.sgp-quick button:hover { background: rgba(128,0,0,0.16); transform: translateY(-1px); }
+.sgp-quick button:active { transform: scale(0.95); }
+.sgp .sgm-tablewrap { max-height: none; overflow: hidden; }
+.sgm-table th { position: static; }
+.sgm-table tr { transition: background 0.2s, opacity 0.17s, transform 0.17s; }
+.sgm-table tr:hover { background: rgba(128,128,128,0.07); }
+.sgm-table tr.fresh { animation: sgpRow 0.3s ease-out; }
+@keyframes sgpRow { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+.sgm-table tr.leaving { opacity: 0; transform: translateX(24px); }
+.sgm-table tr.done .c-n { color: #2e9e4f; font-size: 15px; }
+.sgm-table tr.done input.sgm-g { border-color: rgba(46,158,79,0.55); background: rgba(46,158,79,0.08); }
+.sgm-actions button.flash { animation: sgpFlash 0.9s ease-out; }
+@keyframes sgpFlash { 0% { box-shadow: 0 0 0 0 rgba(46,158,79,0.7); } 100% { box-shadow: 0 0 0 16px rgba(46,158,79,0); } }
