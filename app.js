@@ -71,6 +71,7 @@ function getInterval() { return isLockedMode() ? LOCKED_DRILL.interval : (parseF
 let controlsLocked = false;
 function setControlsLocked(on) {
     controlsLocked = !!on;
+    if (on) closeStudentList();
     const card = document.querySelector('.params-card');
     if (card) card.classList.toggle('locked', controlsLocked);
     const pill = document.getElementById('lock-pill');
@@ -220,6 +221,7 @@ function resetLocalState() {
     authToken = null;
     currentClass = null;
     lastClass = null;
+    pickedStudent = null; classStudents = []; rosterAll = []; rosterState = 'idle';
     returningFlow = false;
     activeSession = null;
     lastSession = null;
@@ -340,7 +342,8 @@ function beginLoggedSession(intervalSec) {
     sessionDraft = {
         id: makeCid(), username: currentUser, cls: classLabel(currentClass), mode: lastDrill.mode, range: lastDrill.range,
         direction: lastDrill.dir, angle: lastDrill.angle, interval: intervalSec, planned: totalShuttles,
-        launched: 0, hits: 0, misses: 0, startedAt: Date.now(), updatedAt: Date.now()
+        launched: 0, hits: 0, misses: 0, startedAt: Date.now(), updatedAt: Date.now(),
+        studentNo: pickedStudent ? pickedStudent.no : '', student: pickedStudent ? pickedStudent.name : ''     // who did the drill
     };
     saveDraft();
     activeSession = Promise.resolve(sessionDraft.id);
@@ -401,7 +404,7 @@ function recoverDraft() {                                        // the page was
 function addLocalHistory(rec) {                                  // shows the drill in "Recent sessions" right away, even offline
     if (rec.username !== currentUser) return;
     historyCache = [{ id: rec.id, ts: rec.startedAt, cls: rec.cls, mode: rec.mode, range: rec.range, count: rec.launched,
-        planned: rec.planned, hits: rec.hits, misses: rec.misses, status: rec.status, pending: true }].concat(historyCache);
+        planned: rec.planned, hits: rec.hits, misses: rec.misses, status: rec.status, student: rec.student || '', studentNo: rec.studentNo || '', pending: true }].concat(historyCache);
     statsCache = { sessions: (statsCache.sessions || 0) + 1, shuttles: (statsCache.shuttles || 0) + rec.launched };
     refreshDashboard();
 }
@@ -446,7 +449,8 @@ async function uploadPending(item, token) {
         return await api('logSession', {
             token, id: item.id, cls: item.cls, mode: item.mode, range: item.range, direction: item.direction, angle: item.angle,
             interval: item.interval, planned: item.planned, launched: item.launched, status: item.status,
-            hits: item.hits, misses: item.misses, startedAt: item.startedAt, endedAt: item.endedAt
+            hits: item.hits, misses: item.misses, startedAt: item.startedAt, endedAt: item.endedAt,
+            studentNo: item.studentNo || '', student: item.student || ''
         });
     } catch (e) {
         if (e.network || e.message !== 'Unknown action.') throw e;
@@ -477,14 +481,118 @@ setInterval(async () => {
 
 
 // Loads the last drill's settings and opens the control screen (instructor still presses START)
-function quickStart() {
+function quickStart(keepStudent) {
     document.getElementById('interval').value = lastDrill.interval;
     document.getElementById('count').value = lastDrill.count;
     document.getElementById('h-dir').value = lastDrill.direction ?? 0;
     document.getElementById('v-ang').value = lastDrill.angle ?? 30;
-    setupSession(normMode(lastDrill.mode), true);   // true = keep the loaded settings selected
+    setupSession(normMode(lastDrill.mode), true, keepStudent);   // true = keep the loaded settings selected
     setRange(lastDrill.range);
 }
+
+// ============================================================
+//  STUDENT PICKER (control screen): choose who does the drill.
+//  The list is the class list the instructor uploaded (Students sheet), filtered to the class that is set.
+// ============================================================
+const REQUIRE_STUDENT = true;      // true: START needs a student whenever the class has an uploaded list. false: choosing one is optional.
+let rosterAll = [];                // every uploaded student, loaded from the server
+let rosterState = 'idle';          // idle | loading | ok | error
+let rosterAt = 0;
+let classStudents = [];            // the students of the class that is set, sorted by name
+let pickedStudent = null;          // { no, name } = who does the next drill
+
+function progKey(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }          // "BS CPE" and "BSCPE" match
+function studentInClass(s, c) {
+    if (!c) return false;
+    const sy = parseInt(s.year) || 0, cy = parseInt(c.year) || 0;
+    return progKey(s.program) === progKey(c.program) && (!sy || !cy || sy === cy)
+        && String(s.section || '').trim().toUpperCase() === String(c.section || '').trim().toUpperCase();
+}
+function studentRequired() { return REQUIRE_STUDENT && classStudents.length > 0; }
+function studentInitials(n) { return (String(n || '').split(/[\s,]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?').toUpperCase(); }
+function pickClassStudents() {
+    classStudents = currentClass ? rosterAll.filter(s => studentInClass(s, currentClass)).sort((a, b) => a.name.localeCompare(b.name)) : [];
+    if (pickedStudent && !classStudents.some(s => s.no === pickedStudent.no)) pickedStudent = null;   // not in this class (any more)
+}
+async function loadRoster(force) {
+    if (!authToken || !hasServer()) { if (!rosterAll.length) rosterState = 'error'; renderStudentPicker(); return; }
+    if (rosterState === 'loading') return;
+    if (!force && rosterState === 'ok' && Date.now() - rosterAt < 30000) return;
+    rosterState = 'loading'; renderStudentPicker();
+    try {
+        rosterAll = (await api('listStudents', {})).students.map(a => ({ no: a[0], name: a[1], program: a[2], year: a[3], section: a[4] }));
+        rosterState = 'ok'; rosterAt = Date.now();
+    } catch (e) { rosterState = rosterAll.length ? 'ok' : 'error'; }       // offline: the list loaded earlier stays usable
+    pickClassStudents();
+    renderStudentPicker();
+}
+function refreshStudentPicker(force) { pickClassStudents(); renderStudentPicker(); loadRoster(force); }
+function renderStudentPicker() {
+    const btn = document.getElementById('student-select'); if (!btn) return;
+    let text, sub = '', tag = 'Not set', loading = false, off = false;
+    if (pickedStudent) { text = pickedStudent.name; sub = 'Student no. ' + pickedStudent.no + ' · ' + classLabel(currentClass); tag = 'Selected'; }
+    else if (!currentClass) { text = 'No class set'; sub = 'Set your class on Home first'; tag = 'Optional'; off = true; }
+    else if (rosterState === 'loading' && !classStudents.length) { text = 'Loading students…'; loading = true; }
+    else if (rosterState === 'error' && !classStudents.length) { text = 'Could not load the list'; sub = 'Tap to try again'; tag = 'Optional'; off = true; }
+    else if (!classStudents.length) { text = 'No students uploaded'; sub = 'No class list for ' + classLabel(currentClass) + ' yet'; tag = 'Optional'; off = true; }
+    else { text = 'Choose a student'; sub = classStudents.length + ' students · ' + classLabel(currentClass); }
+    setText('stu-text', text); setText('stu-sub', sub); setText('student-tag', tag);
+    setText('stu-av', pickedStudent ? studentInitials(pickedStudent.name) : '👤');
+    btn.classList.toggle('empty', !pickedStudent);
+    btn.classList.toggle('is-loading', loading);
+    btn.classList.toggle('off', off);
+    btn.setAttribute('aria-busy', loading ? 'true' : 'false');
+    if (!classStudents.length) closeStudentList();
+}
+function toggleStudentList() {
+    if (blockedWhileLocked()) return;
+    if (!currentClass) { toast('Set your class first (on Home).'); return; }
+    if (!classStudents.length) {
+        if (rosterState === 'loading') return;
+        if (rosterState === 'error') { loadRoster(true); return; }
+        toast('No class list uploaded for ' + classLabel(currentClass) + '. Upload it in Students & grades.', 4500); return;
+    }
+    if (document.getElementById('student-list').classList.contains('open')) closeStudentList(); else openStudentList();
+}
+function openStudentList() {
+    const list = document.getElementById('student-list'), btn = document.getElementById('student-select'), q = document.getElementById('student-search');
+    q.value = ''; q.classList.toggle('hidden', classStudents.length < 8);        // a short list needs no search box
+    list.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+    renderStudentList();
+    const on = list.querySelector('.stu-item.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+}
+function closeStudentList() {
+    const list = document.getElementById('student-list'), btn = document.getElementById('student-select');
+    if (list) list.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+function renderStudentList() {
+    const box = document.getElementById('stu-items'), q = document.getElementById('student-search').value.trim().toLowerCase();
+    const rows = classStudents.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0);
+    box.textContent = '';
+    if (!rows.length) { const n = document.createElement('div'); n.className = 'stu-none'; n.textContent = 'No student matches "' + q + '".'; box.appendChild(n); return; }
+    rows.forEach(s => {
+        const it = document.createElement('div');
+        it.className = 'stu-item' + (pickedStudent && pickedStudent.no === s.no ? ' on' : '');
+        it.setAttribute('role', 'option'); it.setAttribute('aria-selected', pickedStudent && pickedStudent.no === s.no ? 'true' : 'false'); it.tabIndex = 0;
+        const av = document.createElement('span'); av.className = 'stu-av'; av.textContent = studentInitials(s.name);
+        const tx = document.createElement('span'); tx.className = 'stu-txt';
+        const b = document.createElement('b'); b.textContent = s.name;
+        const sm = document.createElement('small'); sm.textContent = 'No. ' + s.no;
+        tx.append(b, sm); it.append(av, tx);
+        it.addEventListener('click', () => pickStudent(s));
+        it.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickStudent(s); } });
+        box.appendChild(it);
+    });
+}
+function pickStudent(s) {
+    if (blockedWhileLocked()) return;
+    pickedStudent = { no: s.no, name: s.name };
+    closeStudentList(); renderStudentPicker(); popEl('student-tag');
+}
+function clearStudent() { pickedStudent = null; closeStudentList(); renderStudentPicker(); }
+document.addEventListener('click', e => { if (!e.target.closest('#student-list') && !e.target.closest('#student-select')) closeStudentList(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeStudentList(); });
 
 // --- Class details (program / year / section) ---
 let currentClass = null;
@@ -783,6 +891,7 @@ function changeClass() {                // from the dashboard chip
 function setCurrentClass(c) {
     if (isViewOnly() || gradesPick) { gradesPick = false; openStudentsFor(c); return; }      // View only: just look up this class's students, nothing is saved
     currentClass = lastClass = c;
+    pickedStudent = null; classStudents = [];            // the student list belongs to the class
     api('saveClass', { program: c.program, year: c.year, section: c.section }).catch(e => toast('Class not saved: ' + e.message));
     if (classSetupFromDashboard || returningFlow) navigate('dashboard-screen');
     else showChecklist(false);
@@ -1591,7 +1700,7 @@ function hmCard(r, isBest, i, rank) {
     if (isBest) title.append(hmEl('span', 'hm-best', '🏆 Best'));
     const dt = r.when;
     const timeTxt = dt ? (HM.sort === 'best' ? dt.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : dt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })) : '';
-    info.append(title, hmEl('small', '', `${timeTxt} · ${RANGE_LABELS[it.range] || ''} range · ${r.count} shuttles`));
+    info.append(title, hmEl('small', '', `${it.student ? '👤 ' + it.student + ' · ' : ''}${timeTxt} · ${RANGE_LABELS[it.range] || ''} range · ${r.count} shuttles`));
     row.append(badge, info, hmEl('span', 'hm-chev', '›'));
     row.onclick = () => hmToggle(r.id);
     row.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hmToggle(r.id); } };
@@ -1615,7 +1724,7 @@ function hmCard(r, isBest, i, rank) {
         inner.append(grid, bar);
     }
     const tags = hmEl('div', 'hm-tags');
-    tags.append(hmEl('span', '', `🎯 ${RANGE_LABELS[it.range] || '-'} range`), hmEl('span', '', `🏸 ${r.count} launched`), hmEl('span', '', `🎓 ${it.cls}`));
+    tags.append(hmEl('span', '', `🎯 ${RANGE_LABELS[it.range] || '-'} range`), hmEl('span', '', `🏸 ${r.count} launched`), hmEl('span', '', `🎓 ${it.cls}`), ...(it.student ? [hmEl('span', '', `👤 ${it.student}`)] : []));
     if (it.planned && r.count < it.planned) tags.append(hmEl('span', 'warn', `Stopped early · ${r.count} of ${it.planned}`));
     const again = hmEl('button', 'hm-again', 'Repeat this drill ▶');
     again.onclick = ev => { ev.stopPropagation(); repeatDrill(it); };
@@ -1736,7 +1845,7 @@ function applyModeLayout() {
     }
 }
 
-function setupSession(modeName, keepChoices) {
+function setupSession(modeName, keepChoices, keepStudent) {
     setControlsLocked(false);                 // a fresh control screen is always editable
     currentMode = modeName;
     document.getElementById('session-title').innerText = modeName.toUpperCase() + " MODE CONTROL";
@@ -1752,6 +1861,8 @@ function setupSession(modeName, keepChoices) {
     resetButtons();
     updateSliders();
     if (!keepChoices) clearChoices();         // opening Smash / Service from the menu: nothing is pre-selected
+    if (!keepStudent) pickedStudent = null;   // a new drill: choose the student again (Run again keeps the same one)
+    refreshStudentPicker();
     navigate('session-screen');
 }
 
@@ -2121,7 +2232,8 @@ function liveSnapshot() {
     const sc = shotCounts();
     return { phase: run ? (paused ? 'PAUSED' : 'RUNNING') : onSession ? 'SETUP' : 'IDLE', cls: classLabel(currentClass),
              mode: show ? currentMode : '', range: show && rangePicked ? selectedRange : '', dir: show && dirPicked ? dirNow() : '',
-             usb: usbIsConnected(), launched: shuttlesLaunched, total: totalShuttles, hits: sc.hits, misses: sc.misses };
+             usb: usbIsConnected(), launched: shuttlesLaunched, total: totalShuttles, hits: sc.hits, misses: sc.misses,
+             student: show && pickedStudent ? pickedStudent.name : '' };
 }
 
 async function accessTick() {
@@ -2227,7 +2339,7 @@ function lvUsing(r, s, free, busy, chips) {
     card.dataset.s = !r ? 'offline' : free ? 'free' : lost ? 'lost' : 'busy';
     av.textContent = !r ? '!' : free ? '–' : initials(name);
     setText('lv-using-name', !r ? 'No connection' : free ? 'Machine is free' : name + ' is using the machine');
-    let sub = !r ? 'Trying to reconnect…' : free ? 'Nobody is using it right now' : [chips[s.phase] || 'IDLE', s.cls && s.cls !== 'No class set' ? s.cls : ''].filter(Boolean).join(' · ');
+    let sub = !r ? 'Trying to reconnect…' : free ? 'Nobody is using it right now' : [chips[s.phase] || 'IDLE', s.cls && s.cls !== 'No class set' ? s.cls : '', s.student ? '👤 ' + s.student : ''].filter(Boolean).join(' · ');
     if (lost) sub = 'No signal for ' + Math.round(r.age / 1000) + 's · they may have lost connection';
     else if (busy && s.usb === false) sub += ' · machine not connected';
     setText('lv-using-sub', sub);
@@ -2929,8 +3041,18 @@ function cfIcon(sel) { const s = document.querySelector(sel); return s ? s.outer
 function requestStart() {
     if (!usbIsConnected()) { toast('Connect the machine first (press the USB button).'); return; }
     if (feederBlocksStart()) { showFeederBlock(); return; }          // red feeder dot: no shuttlecocks, so no start
-    if (!rangePicked || !dirPicked) {
-        toast(!rangePicked && !dirPicked ? 'Choose a Range and a Direction first.' : !rangePicked ? 'Choose a Range first.' : 'Choose a Direction first.');
+    const missing = [];
+    if (!rangePicked) missing.push('a Range');
+    if (!dirPicked) missing.push('a Direction');
+    if (studentRequired() && !pickedStudent) missing.push('a Student');
+    if (missing.length) {
+        toast('Choose ' + (missing.length > 1 ? missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1] : missing[0]) + ' first.');
+        if (missing.indexOf('a Student') >= 0) {
+            const tile = document.getElementById('student-tile');
+            tile.classList.remove('cf-pulse'); void tile.offsetWidth; tile.classList.add('cf-pulse');
+            setTimeout(() => tile.classList.remove('cf-pulse'), 2200);
+            if (missing.length === 1) openStudentList();            // only the student is missing: open the list straight away
+        }
         return;
     }
     openLaunchConfirm();
@@ -2946,6 +3068,7 @@ function openLaunchConfirm() {
         : '<button type="button" class="cf-tile" data-edit="range"><span class="cf-k">Range</span><span class="cf-ic">' + rangeIcon + '</span><b>' + RANGE_LABELS[selectedRange] + '</b><em>Tap to change</em></button>';
     setText('cf-mode', currentMode.toUpperCase() + ' MODE');
     setText('cf-class', document.getElementById('session-class').innerText || '');
+    { const cs = document.getElementById('cf-student'); cs.textContent = pickedStudent ? '👤 ' + pickedStudent.name : ''; cs.classList.toggle('hidden', !pickedStudent); }
     document.getElementById('cf-tiles').innerHTML =
         rangeTile +
         '<button type="button" class="cf-tile" data-edit="dir"><span class="cf-k">Direction</span><span class="cf-ic">' + dirIcon + '</span><b>' + SMASH_DIR_NAMES[dir] + '</b><em>Tap to change</em></button>' +
@@ -3056,7 +3179,7 @@ function showDrillSummary(d) {
     const badge = document.getElementById('sum-badge');
     badge.textContent = t[0]; badge.className = 'sum-badge ' + t[2];
     setText('sum-title', t[1]);
-    setText('sum-sub', [currentMode, RANGE_LABELS[selectedRange] || '', currentClass ? classLabel(currentClass) : ''].filter(Boolean).join(' · '));
+    setText('sum-sub', [pickedStudent ? pickedStudent.name : '', currentMode, RANGE_LABELS[selectedRange] || '', currentClass ? classLabel(currentClass) : ''].filter(Boolean).join(' · '));
     setText('sum-launched', String(d.launched));
     setText('sum-of', 'of ' + d.planned + ' shuttles launched');
     const scored = d.hits + d.misses;
@@ -3083,7 +3206,7 @@ function closeSummary(goHome) {
 }
 function summaryRunAgain() {
     closeSummary(false);
-    if (activeScreenId() !== 'session-screen') quickStart();    // reload the same drill settings
+    if (activeScreenId() !== 'session-screen') quickStart(true);    // reload the same drill settings (same student)
     requestStart();                                             // the usual "Ready to launch?" check still appears
 }
 
