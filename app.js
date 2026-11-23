@@ -2383,10 +2383,48 @@ function renderLive(r) {                  // paints the View only screen from th
     setText('lv-empty-s', !r ? 'Reconnecting…' : free ? 'The machine is free.' : holderName(r.holder) + (s.phase === 'SETUP' ? ' is setting up the next drill.' : ' is in control, waiting to start a drill.'));
     document.getElementById('lv-last').classList.toggle('hidden', !L);
     if (!L) { if (r) setText('lv-empty-s', document.getElementById('lv-empty-s').innerText + ' No drill has been recorded yet.'); return; }
-    const d = new Date(L.at), h = L.hits || 0, m = L.misses || 0;
+    const d = new Date(L.at);
     setText('lv-last-title', (L.cls && L.cls !== 'No class set' ? L.cls : 'No class') + ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + fmtClock(L.at));
-    setText('lv-last-sub', [L.mode, (L.launched || 0) + ' of ' + (L.total || 0) + ' shuttles', L.by ? 'by ' + L.by : ''].filter(Boolean).join(' · '));
-    setText('lv-l-hits', h); setText('lv-l-miss', m); setText('lv-l-acc', h + m ? Math.round(100 * h / (h + m)) + '%' : '-');
+    setText('lv-last-sub', [L.mode, (L.launched || 0) + ' of ' + (L.total || 0) + ' shuttles', L.by ? 'by ' + L.by : '', L.student ? '👤 ' + L.student : ''].filter(Boolean).join(' · '));
+    lvRenderHist(r);
+}
+
+// ---- View only: history of the selected class (who did each drill) ----
+var lvHistAll = false, lvHistKey = '';
+function lvToggleHist() { lvHistAll = !lvHistAll; lvHistKey = ''; if (lvLastR) lvRenderHist(lvLastR); }
+var lvLastR = null;
+function lvRenderHist(r) {
+    lvLastR = r;
+    const box = document.getElementById('lv-hist'); if (!box) return;
+    const L = r && r.last;
+    const cls = currentClass ? classLabel(currentClass) : (L && L.cls) || '';          // the class chosen on this screen, else the class of the last drill
+    const all = (r && Array.isArray(r.recent) && r.recent.length ? r.recent : (L ? [L] : []));
+    const rows = all.filter(x => !cls || (x.cls || '') === cls);
+    const shown = lvHistAll ? rows : rows.slice(0, 4);
+    const key = [cls, lvHistAll, rows.length, shown.map(x => x.at + '|' + (x.student || '')).join(',')].join('~');
+    box.classList.toggle('hidden', !L && !rows.length);
+    const btn = document.getElementById('lv-hist-btn');
+    btn.textContent = lvHistAll ? 'Show less' : 'History';
+    btn.classList.toggle('hidden', rows.length <= 4);
+    if (key === lvHistKey) return;                    // nothing changed since the last refresh, so the list is not rebuilt every second
+    lvHistKey = key;
+    setText('lv-hist-label', (cls && cls !== 'No class set' ? cls + ' ' : '') + 'history');
+    const list = document.getElementById('lv-hist-list'); list.innerHTML = '';
+    if (!rows.length) { list.append(hmEl('div', 'lv-hist-empty', 'No drills recorded for this class yet.')); return; }
+    shown.forEach(x => {
+        const d = new Date(x.at), mode = normMode(x.mode);
+        const icon = mode === 'High Angle' ? '⚡' : mode === 'Rally' ? '🔁' : '🏸';
+        const row = hmEl('div', 'lv-hist-row');
+        const ic = hmEl('span', 'lv-hist-ic', icon);
+        const info = hmEl('div', 'lv-hist-info');
+        info.append(
+            hmEl('b', '', (x.mode || 'Drill') + ' · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + fmtClock(x.at)),
+            hmEl('small', '', (x.launched || 0) + ' of ' + (x.total || 0) + ' shuttles' + (x.by ? ' · by ' + x.by : ''))
+        );
+        const who = hmEl('span', 'lv-hist-who' + (x.student ? '' : ' none'), x.student ? '👤 ' + x.student : 'No student picked');
+        row.append(ic, info, who);
+        list.append(row);
+    });
 }
 
 (function hookControl() {                 // View only can never send machine commands; the controller reports every change quickly
