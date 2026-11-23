@@ -2099,3 +2099,40 @@ html, body { max-width: 100%; overflow-x: hidden; }
 [data-theme="dark"] .stu-item.on { color: #fff; }
 [data-theme="dark"] .stu-search { background: rgba(255,255,255,0.08); border-color: rgba(201,145,90,0.3); }
 @media (max-height: 640px) { .student-select { min-height: 46px; } .student-select .stu-av { width: 32px; height: 32px; } .stu-items { max-height: 36vh; } }
+
+
+/* ===== CONTROL SCREEN LAYOUT (with the Student picker): tiles share the card height and can never overlap ===== */
+.params-card.roomy { padding: 16px 20px; gap: 10px; }
+.params-card.roomy .params-head h3 { font-size: 22px; }
+.params-card.roomy > .speed-tile:not(.hidden) { flex: 1 1 0; min-height: min-content; padding: 12px 14px; }
+.params-card.roomy > .aim-pads.single:not(.hidden) { flex: 1 1 0; min-height: min-content; }
+.params-card.roomy > .aim-pads.single .aim-pad { padding: 12px 14px; }
+.params-card.roomy .speed-tile .angle-opts, .params-card.roomy .aim-pad .angle-opts { margin-top: 10px; gap: 12px; flex: 1 1 auto; min-height: 0; }
+.params-card.roomy .angle-opts button { padding: 8px 6px; gap: 6px; }
+.params-card.roomy .angle-opts svg { width: clamp(64px, min(8vw, 14vh), 130px); }
+.params-card.roomy .angle-opts b { font-size: clamp(20px, min(2.2vw, 3.6vh), 34px); }
+/* Service has two choice tiles (range + direction): icon and name sit side by side */
+.params-card.dense .angle-opts button { flex-direction: row; justify-content: center; gap: 12px; padding: 6px 10px; }
+.params-card.dense .angle-opts svg { width: clamp(52px, 7vh, 76px); }
+.params-card.dense .angle-opts b { font-size: clamp(20px, 3.2vh, 28px); }
+/* fixed interval + shuttles: one slim row at the bottom */
+.params-card.roomy .inputs-row { gap: 10px; flex: 0 0 auto; }
+.params-card.roomy .input-group { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 18px; }
+.params-card.roomy .input-group .field-label { margin: 0; font-size: 12px; }
+.params-card.roomy .locked-val { flex: 1; height: 44px; }
+.params-card.roomy .locked-val b { font-size: 22px; }
+.params-card.roomy .locked-val .lk { font-size: 15px; }
+.params-card.roomy .locked-val em { font-size: 10px; padding: 3px 8px; }
+@media (max-height: 640px) {
+    .params-card.roomy { padding: 10px 14px; gap: 6px; }
+    .params-card.roomy .params-head h3 { font-size: 18px; }
+    .params-card.roomy > .speed-tile:not(.hidden), .params-card.roomy > .aim-pads.single .aim-pad, .student-tile { padding: 6px 10px; }
+    .params-card.roomy .speed-tile .angle-opts, .params-card.roomy .aim-pad .angle-opts { margin-top: 6px; gap: 8px; }
+    .student-select { margin-top: 4px; min-height: 42px; padding: 4px 12px 4px 6px; }
+    .student-select .stu-av { width: 30px; height: 30px; font-size: 13px; }
+    .student-select .stu-txt small { display: none; }
+    .params-card.roomy .input-group { padding: 4px 10px; }
+    .params-card.roomy .locked-val { height: 36px; }
+    .params-card.roomy .field-label { font-size: 11px; }
+    .params-card.dense .angle-opts svg { width: 48px; }
+}
