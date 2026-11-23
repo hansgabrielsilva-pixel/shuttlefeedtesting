@@ -227,10 +227,12 @@
                     <span class="lv-last-tag">Last drill</span>
                     <b id="lv-last-title"></b>
                     <small id="lv-last-sub"></small>
-                    <div class="live-results lv-last-stats">
-                        <div><b id="lv-l-hits">0</b><small>Hits</small></div>
-                        <div><b id="lv-l-miss">0</b><small>Misses</small></div>
-                        <div><b id="lv-l-acc">-</b><small>Accuracy</small></div>
+                    <div class="lv-hist hidden" id="lv-hist">
+                        <div class="lv-hist-head">
+                            <span class="field-label" id="lv-hist-label">Class history</span>
+                            <button type="button" class="lv-hist-btn" id="lv-hist-btn" onclick="lvToggleHist()">History</button>
+                        </div>
+                        <div class="lv-hist-list" id="lv-hist-list"></div>
                     </div>
                 </div>
             </div>
