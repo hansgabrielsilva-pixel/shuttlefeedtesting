@@ -558,7 +558,7 @@ function openStudentList() {
     const list = document.getElementById('student-list'), btn = document.getElementById('student-select'), q = document.getElementById('student-search');
     q.value = ''; q.classList.toggle('hidden', classStudents.length < 8);        // a short list needs no search box
     list.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
-    renderStudentList();
+    renderStudentPickList();
     const on = list.querySelector('.stu-item.on'); if (on) on.scrollIntoView({ block: 'nearest' });
 }
 function closeStudentList() {
@@ -566,7 +566,7 @@ function closeStudentList() {
     if (list) list.classList.remove('open');
     if (btn) btn.setAttribute('aria-expanded', 'false');
 }
-function renderStudentList() {
+function renderStudentPickList() {
     const box = document.getElementById('stu-items'), q = document.getElementById('student-search').value.trim().toLowerCase();
     const rows = classStudents.filter(s => !q || (s.name + ' ' + s.no).toLowerCase().indexOf(q) >= 0);
     box.textContent = '';
@@ -1823,6 +1823,7 @@ function applyModeLayout() {
     document.getElementById('smash-dir-opts').classList.toggle('four', rally);
     const locked = isLockedMode();
     document.querySelector('.control-grid .params-card').classList.toggle('roomy', locked);   // Smash / Service: bigger controls that fill the screen
+    document.querySelector('.control-grid .params-card').classList.toggle('dense', locked && !smash);   // Service: two choice tiles (range + direction) share the height, so their buttons go side by side
     document.getElementById('free-inputs').classList.toggle('hidden', locked);      // interval + shuttles steppers
     document.getElementById('locked-inputs').classList.toggle('hidden', !locked);   // fixed 3 sec / 16 shuttles
     setText('current-angle-label', (smash || fixed) ? 'Direction' : 'Angle');
