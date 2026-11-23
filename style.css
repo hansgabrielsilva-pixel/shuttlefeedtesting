@@ -2136,3 +2136,23 @@ html, body { max-width: 100%; overflow-x: hidden; }
     .params-card.roomy .field-label { font-size: 11px; }
     .params-card.dense .angle-opts svg { width: 48px; }
 }
+
+/* === View only: "Last drill" card shows the history of the selected class (replaces hits / misses / accuracy) === */
+.lv-hist { width: 100%; margin-top: 12px; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 22px; border: 1px solid rgba(201,145,90,0.4); background: linear-gradient(160deg, #fffaf3 0%, #F6EBE2 55%, #E1C6AF 100%); box-shadow: 0 8px 18px rgba(140,85,36,0.14); text-align: left; }
+.lv-hist-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lv-hist-head .field-label { margin: 0; flex: 1; min-width: 0; color: #7a4a1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-hist-btn { flex: 0 0 auto; background: #fff; color: #7a4a1e; border: 1px solid rgba(201,145,90,0.35); font-size: 13px; font-weight: bold; padding: 7px 14px; border-radius: 14px; }
+.lv-hist-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+.lv-hist-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.72); border-radius: 14px; padding: 9px 12px; min-width: 0; }
+.lv-hist-ic { flex: 0 0 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff; font-size: 17px; }
+.lv-hist-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.lv-hist-info b { font-size: 13px; color: var(--green-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-hist-info small { font-size: 12px; color: var(--text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-hist-who { flex: 0 1 42%; min-width: 0; text-align: right; font-size: 12px; font-weight: bold; color: #7a4a1e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-hist-who.none { font-weight: normal; color: var(--text-soft); font-style: italic; }
+.lv-hist-empty { text-align: center; font-size: 13px; color: var(--text-mid); padding: 10px 0; }
+[data-theme="dark"] .lv-hist { background: linear-gradient(160deg, #2b2518, #1c1a10); border-color: rgba(201,145,90,0.25); }
+[data-theme="dark"] .lv-hist-head .field-label, [data-theme="dark"] .lv-hist-who { color: #E1C6AF; }
+[data-theme="dark"] .lv-hist-btn { background: rgba(255,255,255,0.08); color: #E1C6AF; }
+[data-theme="dark"] .lv-hist-row { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .lv-hist-ic { background: rgba(255,255,255,0.1); }
