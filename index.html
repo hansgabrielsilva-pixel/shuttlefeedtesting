@@ -633,6 +633,20 @@
             <div class="params-card">
                 <div class="params-head"><h3 class="dark-red">Launch Settings</h3><span class="lock-pill hidden" id="lock-pill">🔒 Locked while launching</span></div>
 
+                <!-- STUDENT: who does the drill (the class list the instructor uploaded, filtered to the class that is set) -->
+                <div class="student-tile" id="student-tile">
+                    <div class="slider-header"><label class="field-label" for="student-select">Student · who does the drill</label><span id="student-tag">Not set</span></div>
+                    <button type="button" class="student-select empty" id="student-select" aria-haspopup="listbox" aria-expanded="false" onclick="toggleStudentList()">
+                        <span class="stu-av" id="stu-av">👤</span>
+                        <span class="stu-txt"><b id="stu-text">Choose a student</b><small id="stu-sub"></small></span>
+                        <svg class="stu-chev" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div class="student-list" id="student-list" role="listbox" aria-label="Students in this class">
+                        <input type="text" id="student-search" class="stu-search hidden" placeholder="Search name or number" oninput="renderStudentList()" autocomplete="off">
+                        <div class="stu-items" id="stu-items"></div>
+                    </div>
+                </div>
+
                 <div class="speed-tile" id="range-tile">
                     <div class="slider-header"><label class="field-label">Range · how far it throws</label><span id="range-name">Medium</span></div>
                     <div class="angle-opts" id="range-opts">
@@ -777,6 +791,7 @@
                 <div class="cf-head">
                     <span class="cf-badge" id="cf-mode">HIGH ANGLE MODE</span>
                     <span class="cf-class" id="cf-class"></span>
+                    <span class="cf-student hidden" id="cf-student"></span>
                 </div>
                 <h3 id="cf-title">Ready to launch?</h3>
                 <p class="cf-sub">Please check your settings before the machine starts.</p>
