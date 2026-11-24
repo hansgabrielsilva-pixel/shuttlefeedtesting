@@ -268,6 +268,9 @@ input[type=range] { width: 100%; margin: 10px 0 4px; accent-color: var(--red-tex
 
 /* === DASHBOARD (simple) === */
 #dashboard-screen { position: relative; }
+/* Home background: the same campus photo as the student profile header (--profile-photo), softened by a light wash so the text stays easy to read */
+#dashboard-screen { background: linear-gradient(rgba(246,235,226,0.76), rgba(246,235,226,0.76)), var(--profile-photo, none) center / cover no-repeat; }
+[data-theme="dark"] #dashboard-screen { background: linear-gradient(rgba(21,26,15,0.86), rgba(21,26,15,0.86)), var(--profile-photo, none) center / cover no-repeat; }
 #dashboard-screen > header { z-index: 2; }
 
 /* faint badminton court behind everything */
