@@ -2282,9 +2282,40 @@ function afterAccess() {                  // what used to happen right after log
     else navigate('onboarding-intro');
 }
 
+// loading indicators for the "Choose your access" cards and the "Take control" button
+function setAccessLoading(m, on) {
+    const card = document.getElementById(m === 'control' ? 'access-control' : 'access-view');
+    const other = document.getElementById(m === 'control' ? 'access-view' : 'access-control');
+    if (card) {
+        card.classList.toggle('is-loading', on);
+        if (other) other.classList.toggle('is-dim', on);
+        card.setAttribute('aria-busy', on ? 'true' : 'false');
+        const go = card.querySelector('.ac-go'), st = card.querySelector('.ac-status');
+        if (on) {
+            if (go && !go.querySelector('.btn-spin')) go.insertAdjacentHTML('beforeend', '<span class="btn-spin" aria-hidden="true"></span>');
+            if (st) { st.dataset.old = st.textContent; st.textContent = m === 'control' ? 'Getting control…' : 'Opening live view…'; }
+        } else {
+            if (go) go.querySelectorAll('.btn-spin').forEach(x => x.remove());
+            if (st && st.dataset.old !== undefined) { st.textContent = st.dataset.old; delete st.dataset.old; }
+        }
+    }
+    const t = document.getElementById('lv-take');
+    if (m === 'control' && t) {
+        if (on) {
+            t.dataset.loading = '1'; t.dataset.label = t.textContent; t.disabled = true;
+            t.classList.add('is-loading'); t.setAttribute('aria-busy', 'true');
+            t.innerHTML = '<span class="btn-spin" aria-hidden="true"></span>Taking control…';
+        } else if (t.dataset.loading) {
+            delete t.dataset.loading; t.classList.remove('is-loading'); t.removeAttribute('aria-busy');
+            t.textContent = t.dataset.label || 'Take control'; delete t.dataset.label; t.disabled = t.dataset.s !== 'free';
+        }
+    }
+}
+
 async function chooseAccess(m) {
     if (accessBusy) return;
     accessBusy = true;
+    setAccessLoading(m, true);
     try {
         if (m === 'control') {
             const a = await api('acquireControl', { cid: CLIENT_ID });
@@ -2296,10 +2327,11 @@ async function chooseAccess(m) {
             setAccessMode('control');
             afterAccess();
         } else {
+            await new Promise(r => setTimeout(r, 450));       // short pause so the loading indicator is visible
             setAccessMode('view');
             navigate('dashboard-screen');        // View only opens on the live view first (class list / grades are one tap away)
         }
-    } catch (e) { toast(e.message); } finally { accessBusy = false; }
+    } catch (e) { toast(e.message); } finally { accessBusy = false; setAccessLoading(m, false); }
 }
 
 async function switchAccess() {           // from the sidebar
@@ -2351,7 +2383,7 @@ function lvTake(r, free, busy) {                   // the Take control button ch
     let st = 'free', txt = 'Take control', why = '';
     if (!r) { st = 'offline'; txt = 'Offline'; why = "Can't reach the server. Check the internet connection."; }
     else if (busy) { st = 'waiting'; txt = 'Waiting for ' + holderName(r.holder) + ' to finish'; why = "This button turns on as soon as the machine is free."; }
-    b.disabled = st !== 'free'; b.dataset.s = st; b.textContent = txt;
+    if (!b.dataset.loading) { b.disabled = st !== 'free'; b.dataset.s = st; b.textContent = txt; }   // keep the spinner while control is being taken
     hint.textContent = why; hint.classList.toggle('hidden', !why);
     if (lvWasBusy === true && free) { toast('The machine is free now. You can take control.', 4000); b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 2500); }
     lvWasBusy = !!r && busy ? true : (r ? false : lvWasBusy);
@@ -3484,4 +3516,48 @@ try { localStorage.removeItem('shuttlefeedRecent'); } catch (e) {}   // the old 
     onEnter('new-fullname', () => focusId('new-username'));
     onEnter('new-username', () => focusId('new-password'));
     onEnter('new-password', () => startIntro('signup'));
+})();
+
+
+// ============================================================
+//  MODE CAROUSEL (phones): the card in the middle is sharp, the others are blurred. Swipe to change.
+// ============================================================
+(function modeCarousel() {
+    const box = document.getElementById('mode-carousel'); if (!box) return;
+    const cards = Array.from(box.querySelectorAll('.mode-card'));
+    const dots = Array.from(document.querySelectorAll('#mc-dots i'));
+    const mq = window.matchMedia('(max-width: 760px)');
+    let active = -1, raf = 0;
+    function paint() {
+        raf = 0;
+        if (!mq.matches) { cards.forEach(c => c.classList.remove('is-active')); active = -1; return; }
+        const mid = box.scrollLeft + box.clientWidth / 2;
+        let best = 0, bestD = Infinity;
+        cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bestD) { bestD = d; best = i; } });
+        if (best === active) return;
+        active = best;
+        cards.forEach((c, i) => c.classList.toggle('is-active', i === best));
+        dots.forEach((d, i) => d.classList.toggle('on', i === best));
+    }
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    function centre(i, smooth) {
+        const c = cards[i]; if (!c) return;
+        box.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - box.clientWidth / 2, behavior: smooth ? 'smooth' : 'auto' });
+    }
+    box.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', () => { if (mq.matches && active >= 0) centre(active, false); schedule(); });
+    // a blurred card only moves to the middle when tapped; only the centre card starts a drill
+    box.addEventListener('click', e => {
+        if (!mq.matches) return;
+        const c = e.target.closest('.mode-card'); if (!c) return;
+        const i = cards.indexOf(c);
+        if (i !== active) { e.stopPropagation(); e.preventDefault(); centre(i, true); }
+    }, true);
+    dots.forEach((d, i) => d.addEventListener('click', () => centre(i, true)));
+    // every time the mode screen opens, start on the first card
+    const scr = document.getElementById('mode-screen');
+    if (scr) new MutationObserver(() => {
+        if (scr.classList.contains('active')) requestAnimationFrame(() => { active = -1; centre(0, false); paint(); });
+    }).observe(scr, { attributes: true, attributeFilter: ['class'] });
+    paint();
 })();
