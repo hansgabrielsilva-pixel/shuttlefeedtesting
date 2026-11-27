@@ -2208,3 +2208,9 @@ html, body { max-width: 100%; overflow-x: hidden; }
     #mode-carousel .mc-clone { display: flex; }
     #mode-carousel.no-anim .menu-card.mode-card { transition: none; }
 }
+
+/* ===== Start a drill: same background as Home (campus photo + light wash + faint court) ===== */
+#mode-screen { position: relative; background: linear-gradient(rgba(246,235,226,0.76), rgba(246,235,226,0.76)), var(--home-photo, none) center / cover no-repeat; }
+[data-theme="dark"] #mode-screen { background: linear-gradient(rgba(21,26,15,0.86), rgba(21,26,15,0.86)), var(--home-photo, none) center / cover no-repeat; }
+#mode-screen > header { position: relative; z-index: 2; }
+#mode-screen > .card-container, #mode-screen > .mc-dots, #mode-screen > .mc-swipe-hint { position: relative; z-index: 1; }
