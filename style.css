@@ -2159,3 +2159,45 @@ html, body { max-width: 100%; overflow-x: hidden; }
 [data-theme="dark"] .lv-hist-btn { background: rgba(255,255,255,0.08); color: #E1C6AF; }
 [data-theme="dark"] .lv-hist-row { background: rgba(255,255,255,0.06); }
 [data-theme="dark"] .lv-hist-ic { background: rgba(255,255,255,0.1); }
+
+
+/* ===== MODE CAROUSEL (phones): one big card in the middle, neighbours blurred, swipe to change ===== */
+.mc-dots, .mc-swipe-hint { display: none; }
+@media (max-width: 760px) {
+    #mode-carousel.card-container {
+        flex-wrap: nowrap; justify-content: flex-start; align-items: center; gap: 0;
+        padding: 18px 0 8px; overflow-x: auto; overflow-y: hidden;
+        scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+    #mode-carousel.card-container::-webkit-scrollbar { display: none; }
+    /* spacers so the first and last card can reach the middle */
+    #mode-carousel.card-container::before, #mode-carousel.card-container::after { content: ""; flex: 0 0 calc(50% - min(39vw, 150px)); }
+    #mode-carousel .menu-card.mode-card {
+        flex: 0 0 auto; width: min(78vw, 300px); max-width: none; min-height: 410px; margin: 0 -6px;
+        scroll-snap-align: center; scroll-snap-stop: always;
+        transform: scale(0.84); opacity: 0.55; filter: blur(3.5px) saturate(0.85);
+        transition: transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.35s, filter 0.35s, box-shadow 0.35s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    #mode-carousel .menu-card.mode-card.is-active {
+        transform: scale(1); opacity: 1; filter: none; z-index: 2;
+        box-shadow: 0 26px 46px rgba(30,39,11,0.38), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    #mode-carousel .menu-card.mode-card:hover { transform: scale(0.84); }
+    #mode-carousel .menu-card.mode-card.is-active:hover { transform: scale(1); }
+    .mc-dots { display: flex; justify-content: center; gap: 8px; padding: 6px 0 4px; }
+    .mc-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--sec-bg); transition: width 0.3s, background 0.3s; }
+    .mc-dots i.on { width: 24px; border-radius: 6px; background: var(--primary-red); }
+    .mc-swipe-hint { display: block; text-align: center; font-size: 12px; color: var(--text-mid); padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { #mode-carousel .menu-card.mode-card { transition: none; } }
+
+/* ===== Loading states: Take control + Choose your access ===== */
+.live-take.is-loading, .live-take.is-loading:disabled { opacity: 1; cursor: progress; background: var(--primary-red); color: #fff; }
+.live-take.is-loading::before { content: none !important; }
+.access-card.is-loading { pointer-events: none; cursor: progress; }
+.access-card.is-loading .ac-go { background: transparent; box-shadow: none; }
+.access-card.is-loading .ac-go svg { display: none; }
+.access-card.is-loading .ac-go .btn-spin { width: 26px; height: 26px; border-width: 3px; }
+.access-card.is-dim:not(.is-loading) { opacity: 0.55; filter: grayscale(0.4); pointer-events: none; }
