@@ -2201,3 +2201,10 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .access-card.is-loading .ac-go svg { display: none; }
 .access-card.is-loading .ac-go .btn-spin { width: 26px; height: 26px; border-width: 3px; }
 .access-card.is-dim:not(.is-loading) { opacity: 0.55; filter: grayscale(0.4); pointer-events: none; }
+
+/* ===== Mode carousel: looping copies (only used on phones) ===== */
+#mode-carousel .mc-clone { display: none; }
+@media (max-width: 760px) {
+    #mode-carousel .mc-clone { display: flex; }
+    #mode-carousel.no-anim .menu-card.mode-card { transition: none; }
+}
