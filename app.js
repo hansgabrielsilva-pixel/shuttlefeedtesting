@@ -3521,31 +3521,48 @@ try { localStorage.removeItem('shuttlefeedRecent'); } catch (e) {}   // the old 
 
 // ============================================================
 //  MODE CAROUSEL (phones): the card in the middle is sharp, the others are blurred. Swipe to change.
+//  It loops: after the last mode comes the first one again (and the other way round).
 // ============================================================
 (function modeCarousel() {
     const box = document.getElementById('mode-carousel'); if (!box) return;
-    const cards = Array.from(box.querySelectorAll('.mode-card'));
+    const real = Array.from(box.querySelectorAll('.mode-card')), N = real.length;
+    // three copies in a row: [clones][real][clones]. The user always rests on the middle copy, so there is no end.
+    const mk = () => real.map(c => { const k = c.cloneNode(true); k.classList.add('mc-clone'); k.setAttribute('aria-hidden', 'true'); k.tabIndex = -1; return k; });
+    const before = mk(), after = mk();
+    before.forEach(k => box.insertBefore(k, real[0]));
+    after.forEach(k => box.appendChild(k));
+    const cards = [...before, ...real, ...after];
+    const syncImgs = () => cards.forEach((c, i) => { const a = c.querySelector('img.card-img'), o = real[i % N].querySelector('img.card-img'); if (a && o && o.src && a.src !== o.src) a.src = o.src; });
+    syncImgs(); setTimeout(syncImgs, 800); setTimeout(syncImgs, 2500);
     const dots = Array.from(document.querySelectorAll('#mc-dots i'));
     const mq = window.matchMedia('(max-width: 760px)');
-    let active = -1, raf = 0;
+    let active = -1, raf = 0, settle = 0;
+    const midOf = c => c.offsetLeft + c.offsetWidth / 2;
     function paint() {
         raf = 0;
-        if (!mq.matches) { cards.forEach(c => c.classList.remove('is-active')); active = -1; return; }
+        if (!mq.matches || !box.clientWidth) { cards.forEach(c => c.classList.remove('is-active')); active = -1; return; }
         const mid = box.scrollLeft + box.clientWidth / 2;
         let best = 0, bestD = Infinity;
-        cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < bestD) { bestD = d; best = i; } });
+        cards.forEach((c, i) => { const d = Math.abs(midOf(c) - mid); if (d < bestD) { bestD = d; best = i; } });
         if (best === active) return;
         active = best;
         cards.forEach((c, i) => c.classList.toggle('is-active', i === best));
-        dots.forEach((d, i) => d.classList.toggle('on', i === best));
+        dots.forEach((d, i) => d.classList.toggle('on', i === best % N));
     }
-    const schedule = () => { if (!raf) raf = requestAnimationFrame(paint); };
     function centre(i, smooth) {
         const c = cards[i]; if (!c) return;
-        box.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - box.clientWidth / 2, behavior: smooth ? 'smooth' : 'auto' });
+        box.scrollTo({ left: midOf(c) - box.clientWidth / 2, behavior: smooth ? 'smooth' : 'auto' });
     }
-    box.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', () => { if (mq.matches && active >= 0) centre(active, false); schedule(); });
+    function recentre() {            // swiped into a copy: silently jump to the same card in the middle copy (looks identical)
+        if (!mq.matches || active < 0 || (active >= N && active < 2 * N)) return;
+        const target = N + (active % N);
+        box.classList.add('no-anim');
+        centre(target, false);
+        active = -1; paint();
+        requestAnimationFrame(() => requestAnimationFrame(() => box.classList.remove('no-anim')));
+    }
+    box.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paint); clearTimeout(settle); settle = setTimeout(recentre, 140); }, { passive: true });
+    window.addEventListener('resize', () => { if (!mq.matches) return; centre(active >= 0 ? active : N, false); paint(); });
     // a blurred card only moves to the middle when tapped; only the centre card starts a drill
     box.addEventListener('click', e => {
         if (!mq.matches) return;
@@ -3553,11 +3570,14 @@ try { localStorage.removeItem('shuttlefeedRecent'); } catch (e) {}   // the old 
         const i = cards.indexOf(c);
         if (i !== active) { e.stopPropagation(); e.preventDefault(); centre(i, true); }
     }, true);
-    dots.forEach((d, i) => d.addEventListener('click', () => centre(i, true)));
-    // every time the mode screen opens, start on the first card
+    dots.forEach((d, i) => d.addEventListener('click', () => {      // go to that mode by the shortest way round
+        let diff = i - (active % N); if (diff > N / 2) diff -= N; if (diff < -N / 2) diff += N;
+        centre(active + diff, true);
+    }));
+    // every time the mode screen opens, start on the first card of the middle copy
     const scr = document.getElementById('mode-screen');
     if (scr) new MutationObserver(() => {
-        if (scr.classList.contains('active')) requestAnimationFrame(() => { active = -1; centre(0, false); paint(); });
+        if (scr.classList.contains('active')) requestAnimationFrame(() => { box.classList.add('no-anim'); active = -1; centre(N, false); paint(); requestAnimationFrame(() => box.classList.remove('no-anim')); });
     }).observe(scr, { attributes: true, attributeFilter: ['class'] });
     paint();
 })();
