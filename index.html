@@ -571,7 +571,7 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> BACK
             </button>
         </header>
-        <div class="card-container scrollable">
+        <div class="card-container scrollable" id="mode-carousel">
             <!-- HIGH ANGLE CARD -->
             <div class="menu-card mode-card mc-high" onclick="setupSession('High Angle')">
                 <div class="mc-art"><img data-img="smash" alt="High Angle Silhouette" class="card-img"></div>
@@ -606,6 +606,8 @@
                 <span class="mc-go"><b>Start drill</b><span class="mc-arrow"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></span>
             </div>
         </div>
+        <div class="mc-dots" id="mc-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="mc-swipe-hint" id="mc-swipe-hint">Swipe to choose a mode. Tap the centre card to start.</p>
     </div>
 
     <!-- CONTROL / ACTIVE SESSION SCREEN -->
